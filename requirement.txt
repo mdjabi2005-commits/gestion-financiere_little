@@ -1,0 +1,9 @@
+streamlit
+pytesseract
+pandas
+Pillow
+opencv-python
+python-docx
+openpyxl
+reportlab
+dateutil
