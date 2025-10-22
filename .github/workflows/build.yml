@@ -1,4 +1,8 @@
 name: 🚀 Build & Release Gestion Financière Little
+permissions:
+  contents: write  # ✅ autorise la création de releases et de tags
+  actions: read
+
 
 on:
   push:
