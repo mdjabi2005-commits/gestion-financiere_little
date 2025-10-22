@@ -1,14 +1,13 @@
-name: Build App for All OS
+name: 🚀 Build & Release Gestion Financière Little
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch: # Permet de le lancer manuellement depuis GitHub
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
+    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -29,20 +28,50 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      # 👇 Commande de build adaptée à l’OS
       - name: ⚙️ Build executable
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            pyinstaller --onefile lancer_gestiolittle.py
-          elif [ "$RUNNER_OS" = "Linux" ]; then
-            pyinstaller --onefile lancer_gestiolittle.py
-          else
-            pyinstaller --onefile lancer_gestiolittle.py
-          fi
-        shell: bash  # ✅ Force l’utilisation de Bash même sur Windows
+          pyinstaller --onefile lancer_gestiolittle.py
+        shell: bash
 
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}
           path: dist/*
+
+  release:
+    name: ✨ Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: builds
+
+      - name: 🧰 Display downloaded files
+        run: ls -R builds
+
+      - name: 🏷️ Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Gestion Financière Little v${{ github.run_number }}"
+          body: |
+            🚀 Nouvelle version automatique compilée depuis GitHub Actions !
+            Contient :
+            - 🪟 Windows (.exe)
+            - 🐧 Linux (.AppImage)
+            - 🍎 macOS (.dmg)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📎 Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          files: builds/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
