@@ -55,6 +55,12 @@ jobs:
         run: |
           $bytes = [System.Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
           [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
+      
+      - name: 🔍 Debug certificat
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Host "Longueur du secret : $(${env:CODESIGN_PFX_BASE64}.Length)"
 
       # 🔏 Signature de l’exécutable Windows
       - name: 🔏 Signer l'exécutable Windows
