@@ -1,14 +1,13 @@
 import os
 import sys
-import webbrowser
 import subprocess
+import webbrowser
 import time
 import socket
 import shutil
 
-
-def wait_for_port(port, timeout=15):
-    """Attend que le port du serveur Streamlit soit ouvert."""
+def wait_for_port(port, timeout=20):
+    """Attend que le port Streamlit soit ouvert (jusqu'à timeout secondes)."""
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -19,69 +18,78 @@ def wait_for_port(port, timeout=15):
     return False
 
 
-if __name__ == "__main__":
-    PORT = 8501
+def get_base_path():
+    """Retourne le chemin de base, même si le programme est compilé avec PyInstaller."""
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
-    # Cherche automatiquement streamlit.exe dans le PATH ou l’environnement courant
-    streamlit_exe = shutil.which("streamlit")
-    if not streamlit_exe:
-        print("❌ Impossible de trouver streamlit.exe dans ton système.")
-        input("Appuie sur Entrée pour fermer…")
-        sys.exit(1)
 
-    # Base du projet selon si c’est un exécutable ou non
-    if getattr(sys, "frozen", False):
-        base_path = os.path.dirname(sys.executable)
-    else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    
-    tesseract_path = os.path.join(base_path, "tesseract", "tesseract.exe")
-
-    # 🔍 Détection intelligente du script Streamlit
-    possible_paths = [
-        os.path.join(base_path, "gestiolittle.py"),                   # pour exécution directe
-        os.path.join(os.path.dirname(base_path), "gestiolittle.py")   # pour l'exécutable dans dist/
+def find_app_path(base_path):
+    """Cherche le fichier gestiolittle.py à partir de l’emplacement courant."""
+    candidates = [
+        os.path.join(base_path, "gestiolittle.py"),
+        os.path.join(os.path.dirname(base_path), "gestiolittle.py"),
+        os.path.join(os.getcwd(), "gestiolittle.py")
     ]
-    app_path = next((p for p in possible_paths if os.path.exists(p)), None)
 
-    if not app_path:
-        print("❌ Impossible de trouver gestiolittle.py")
-        print("Cherché dans :", possible_paths)
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+
+    print("❌ Impossible de trouver gestiolittle.py")
+    print("Chemins testés :")
+    for p in candidates:
+        print("   -", p)
+    input("\nAppuie sur Entrée pour fermer…")
+    sys.exit(1)
+
+
+def launch_streamlit(app_path, port=8501):
+    """Lance Streamlit proprement et ouvre le navigateur quand le serveur est prêt."""
+    streamlit_exe = shutil.which("streamlit")
+
+    if not streamlit_exe:
+        print("❌ Streamlit introuvable ! Vérifie que Streamlit est bien installé.")
+        print("Essaie : pip install streamlit")
         input("Appuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    # 🔹 Utilise PowerShell pour exécuter la commande
     cmd = [
         "powershell", "-Command",
-        f'& "{streamlit_exe}" run "{app_path}" --server.port {PORT}'
+        f'& "{streamlit_exe}" run "{app_path}" --server.port {port}'
     ]
-    print("Lancement de Streamlit à partir de :", streamlit_exe)
-    print("Application :", app_path)
 
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    print(f"Lancement de Streamlit à partir de : {streamlit_exe}")
+    print(f"Application : {app_path}")
 
-    # Lis ce que renvoie Streamlit pendant quelques secondes
-    time.sleep(5)
-    try:
-        out, err = process.communicate(timeout=5)
-    except subprocess.TimeoutExpired:
-        out, err = "", ""
-    print("=== SORTIE STDOUT ===")
-    print(out)
-    print("=== SORTIE ERREUR ===")
-    print(err)
+    # Lance Streamlit en tâche de fond
+    process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # Attend que le serveur soit prêt avant d’ouvrir le navigateur
-    if wait_for_port(PORT, timeout=25):
+    # Attendre que le serveur démarre
+    if wait_for_port(port, timeout=30):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
-        webbrowser.open(f"http://localhost:{PORT}")
+        webbrowser.open(f"http://localhost:{port}")
     else:
-        print("⚠️ Streamlit ne s’est pas lancé correctement.")
-        input("Appuie sur Entrée pour fermer…")
+        print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
+        print("Essaye de lancer depuis le terminal pour voir les logs :")
+        print(f"   streamlit run \"{app_path}\" --server.port {port}")
+        input("\nAppuie sur Entrée pour fermer…")
+        sys.exit(1)
 
+    return process
+
+
+def main():
+    print("🚀 Démarrage de Gestion Financière Little…")
+
+    base_path = get_base_path()
+    app_path = find_app_path(base_path)
+    launch_streamlit(app_path)
+
+    print("✅ Application lancée avec succès.")
+    time.sleep(2)
+
+
+if __name__ == "__main__":
+    main()
