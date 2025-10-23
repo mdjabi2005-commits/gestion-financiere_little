@@ -1,7 +1,7 @@
 name: 🚀 Build & Release Gestion Financière Little
 
 permissions:
-  contents: write  # Nécessaire pour créer les releases
+  contents: write  # nécessaire pour créer les releases
   actions: read
 
 on:
@@ -58,9 +58,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
-            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
-            dist\lancer_gestiolittle.exe
+          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
+          if (-Not (Test-Path $signtool)) {
+            Write-Error "❌ signtool.exe introuvable ! Vérifie que le SDK Windows est bien installé."
+            exit 1
+          }
+          Start-Process -FilePath $signtool -ArgumentList @(
+            'sign', '/f', 'codesign.pfx', '/p', "${{ secrets.CODESIGN_PFX_PASSWORD }}",
+            '/tr', 'http://timestamp.digicert.com', '/td', 'sha256', '/fd', 'sha256',
+            'dist\lancer_gestiolittle.exe'
+          ) -Wait
+          Write-Host "✅ Signature terminée avec succès."
 
       - name: 📤 Upload de l’exécutable pour la Release
         uses: softprops/action-gh-release@v2
@@ -71,11 +79,11 @@ jobs:
             🚀 Nouvelle version générée automatiquement.
 
             ✅ Compatible Windows, Linux et macOS.
+            🔏 L’exécutable Windows est signé numériquement.
           files: |
             dist/lancer_gestiolittle*
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
 
