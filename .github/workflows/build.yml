@@ -43,6 +43,10 @@ jobs:
           fi
         shell: bash
 
+      - name: 🧩 Installer Windows SDK pour obtenir signtool
+        if: runner.os == 'Windows'
+        run: choco install windows-sdk-10-version-2004-all -y
+
       - name: 🪪 Importer le certificat PFX
         if: runner.os == 'Windows'
         shell: powershell
@@ -54,9 +58,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          signtool sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
+          "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
-            dist\lancer_gestiolittle.exe  
+            dist\lancer_gestiolittle.exe
 
       - name: 📤 Upload de l’exécutable pour la Release
         uses: softprops/action-gh-release@v2
@@ -69,8 +73,9 @@ jobs:
             ✅ Compatible Windows, Linux et macOS.
           files: |
             dist/lancer_gestiolittle*
-          fail_on_unmatched_files: false  # ✅ évite les erreurs si un fichier manque
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
