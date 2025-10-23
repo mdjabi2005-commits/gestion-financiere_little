@@ -43,6 +43,21 @@ jobs:
           fi
         shell: bash
 
+      - name: 🪪 Importer le certificat PFX
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $bytes = [System.Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
+          [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
+
+      - name: 🔏 Signer l'exécutable Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          signtool sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+            dist\lancer_gestiolittle.exe  
+
       - name: 📤 Upload de l’exécutable pour la Release
         uses: softprops/action-gh-release@v2
         with:
@@ -57,4 +72,5 @@ jobs:
           fail_on_unmatched_files: false  # ✅ évite les erreurs si un fichier manque
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
