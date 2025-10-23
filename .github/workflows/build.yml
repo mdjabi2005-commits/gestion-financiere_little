@@ -43,17 +43,20 @@ jobs:
           fi
         shell: bash
 
+      # 🧩 Installation du SDK Windows pour avoir signtool
       - name: 🧩 Installer Windows SDK pour obtenir signtool
         if: runner.os == 'Windows'
         run: choco install windows-sdk-10-version-2004-all -y
 
+      # 🪪 Import du certificat de signature
       - name: 🪪 Importer le certificat PFX
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $bytes = [System.Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
           [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
-      
+
+      # 🔏 Signature de l’exécutable Windows
       - name: 🔏 Signer l'exécutable Windows
         if: runner.os == 'Windows'
         shell: powershell
@@ -76,16 +79,19 @@ jobs:
 
           Write-Host "✅ signtool utilisé : $signtool"
 
-          # 🪪 Signature du fichier
-          Start-Process -FilePath $signtool -ArgumentList @(
-            'sign', '/f', 'codesign.pfx', '/p', "${{ secrets.CODESIGN_PFX_PASSWORD }}",
-            '/tr', 'http://timestamp.digicert.com', '/td', 'sha256', '/fd', 'sha256',
-            'dist\lancer_gestiolittle.exe'
-          ) -Wait
+          # 🪪 Signature du fichier (exécution directe)
+          & "$signtool" sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+            "dist\lancer_gestiolittle.exe"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "❌ Erreur lors de la signature du fichier."
+            exit $LASTEXITCODE
+          }
 
           Write-Host "✅ Signature terminée avec succès."
 
-
+      # 📤 Création de la release GitHub
       - name: 📤 Upload de l’exécutable pour la Release
         uses: softprops/action-gh-release@v2
         with:
@@ -101,5 +107,4 @@ jobs:
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
