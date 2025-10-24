@@ -5,6 +5,7 @@ import webbrowser
 import time
 import socket
 import shutil
+import tempfile
 
 def wait_for_port(port, timeout=20):
     """Attend que le port Streamlit soit ouvert (jusqu'à timeout secondes)."""
@@ -21,12 +22,13 @@ def wait_for_port(port, timeout=20):
 def get_base_path():
     """Retourne le chemin de base, même si le programme est compilé avec PyInstaller."""
     if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
+        # Si compilé avec PyInstaller, utilise le dossier temporaire d'extraction
+        return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
 
 def find_app_path(base_path):
-    """Cherche le fichier gestiolittle.py à partir de l’emplacement courant."""
+    """Cherche le fichier gestiolittle.py à partir de l'emplacement courant."""
     candidates = [
         os.path.join(base_path, "gestiolittle.py"),
         os.path.join(os.path.dirname(base_path), "gestiolittle.py"),
@@ -40,7 +42,8 @@ def find_app_path(base_path):
     print("❌ Impossible de trouver gestiolittle.py")
     print("Chemins testés :")
     for p in candidates:
-        print("   -", p)
+        print(f"   - {p}")
+    print("\n💡 Le fichier gestiolittle.py doit être dans le même dossier que l'exécutable.")
     input("\nAppuie sur Entrée pour fermer…")
     sys.exit(1)
 
@@ -55,10 +58,14 @@ def launch_streamlit(app_path, port=8501):
         input("Appuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    cmd = [
-        "powershell", "-Command",
-        f'& "{streamlit_exe}" run "{app_path}" --server.port {port}'
-    ]
+    # Commande adaptée selon l'OS
+    if sys.platform == "win32":
+        cmd = [
+            "powershell", "-Command",
+            f'& "{streamlit_exe}" run "{app_path}" --server.port {port}'
+        ]
+    else:
+        cmd = [streamlit_exe, "run", app_path, "--server.port", str(port)]
 
     print(f"Lancement de Streamlit à partir de : {streamlit_exe}")
     print(f"Application : {app_path}")
@@ -71,7 +78,7 @@ def launch_streamlit(app_path, port=8501):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
         webbrowser.open(f"http://localhost:{port}")
     else:
-        print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
+        print("⚠️ Le serveur Streamlit ne s'est pas lancé correctement.")
         print("Essaye de lancer depuis le terminal pour voir les logs :")
         print(f"   streamlit run \"{app_path}\" --server.port {port}")
         input("\nAppuie sur Entrée pour fermer…")
@@ -88,7 +95,15 @@ def main():
     launch_streamlit(app_path)
 
     print("✅ Application lancée avec succès.")
-    time.sleep(2)
+    print("💡 Ferme cette fenêtre pour arrêter l'application.")
+    
+    # Garde la fenêtre ouverte
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n🛑 Arrêt de l'application...")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
