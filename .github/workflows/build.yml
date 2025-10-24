@@ -21,45 +21,6 @@ jobs:
       - name: 🧰 Checkout du code
         uses: actions/checkout@v4
 
-      - name: 📝 Créer le guide d'installation
-        run: |
-          # Méthode compatible Windows/Linux/macOS
-          $content = @"
-          # 📖 Guide d'Installation - Gestion Financière Little
-
-          ## 🚀 Premier Lancement
-
-          1. **Extraire** le fichier ZIP téléchargé
-          2. **Lancer** `GestionFinanciereLittle.exe` (Windows) ou `GestionFinanciereLittle` (Linux/macOS)
-          3. **Le guide s'ouvrira automatiquement** la première fois
-          4. **Conserver** tous les fichiers dans le même dossier
-
-          ## ⚙️ Configuration Requise
-
-          - **Windows 10/11**, **Linux** (Ubuntu 18.04+), **macOS** (10.15+)
-          - 4 GB RAM minimum
-          - Connexion internet pour les mises à jour
-
-          ## 🔧 Dépannage
-
-          ### L'application ne se lance pas
-          - Vérifier que tous les fichiers sont dans le même dossier
-          - Redémarrer l'ordinateur
-          - Exécuter en mode administrateur (Windows)
-
-          ### Le guide ne s'ouvre pas
-          - Le fichier `GUIDE_INSTALLATION.md` doit être présent
-          - Vérifier les permissions de lecture
-
-          ## 📞 Support
-
-          En cas de problème, consulter le repository GitHub.
-
-          *Ce guide s'ouvre automatiquement au premier lancement et restera accessible.*
-          "@
-          Out-File -FilePath "GUIDE_INSTALLATION.md" -InputObject $content -Encoding UTF8
-        shell: pwsh
-
       - name: 🐍 Installer Python
         uses: actions/setup-python@v5
         with:
@@ -71,7 +32,28 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      # ... [le reste de votre configuration Tesseract reste identique] ...
+      - name: 📥 Installer Tesseract OCR
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Télécharger et installer Tesseract pour Windows
+            choco install tesseract -y
+            # Créer le dossier tesseract local
+            mkdir -p tesseract
+            # Copier Tesseract depuis l'installation système
+            cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y tesseract-ocr tesseract-ocr-fra
+            mkdir -p tesseract
+            cp /usr/bin/tesseract tesseract/ || true
+            cp -r /usr/share/tesseract-ocr tesseract/tessdata || true
+          else
+            brew install tesseract
+            mkdir -p tesseract
+            cp /usr/local/bin/tesseract tesseract/ || true
+            cp -r /usr/local/share/tessdata tesseract/ || true
+          fi
+        shell: bash
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
@@ -136,7 +118,7 @@ jobs:
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
           
-          # Copier gestiolittle.py et tesseract à côté de l'exécutable
+          # Copier les fichiers à côté de l'exécutable
           cp gestiolittle.py dist/
           cp GUIDE_INSTALLATION.md dist/
           if [ -d "tesseract" ]; then
@@ -148,10 +130,13 @@ jobs:
         run: |
           cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Inclure tous les fichiers nécessaires
             7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py GUIDE_INSTALLATION.md tesseract/
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            # Inclure tous les fichiers nécessaires
             zip -r GestionFinanciereLittle-Linux.zip GestionFinanciereLittle gestiolittle.py GUIDE_INSTALLATION.md tesseract/
           else
+            # Inclure tous les fichiers nécessaires
             zip -r GestionFinanciereLittle-macOS.zip GestionFinanciereLittle gestiolittle.py GUIDE_INSTALLATION.md tesseract/
           fi
           cd ..
