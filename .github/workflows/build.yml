@@ -98,8 +98,7 @@ jobs:
             cp gestiolittle.py dist/
           fi
         shell: bash
-        shell: bash
-
+    
       # 📦 Créer un package complet avec l'exe et les fichiers nécessaires
       - name: 📦 Créer le package de distribution
         run: |
