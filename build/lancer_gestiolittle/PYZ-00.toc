@@ -1,4 +1,4 @@
-('C:\\Users\\djabi\\gestion-financière_little\\build\\lancer_gestiolittle\\PYZ-00.pyz',
+('C:\\Users\\djabi\\gestion-financiere_little\\build\\lancer_gestiolittle\\PYZ-00.pyz',
  [('__future__',
    'C:\\Users\\djabi\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\__future__.py',
    'PYMODULE'),

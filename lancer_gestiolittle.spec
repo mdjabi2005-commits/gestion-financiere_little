@@ -5,7 +5,7 @@ a = Analysis(
     ['lancer_gestiolittle.py'],
     pathex=[],
     binaries=[],
-    datas=[('gestiolittle.py', '.'), ('configlittle.py', '.'), ('tesseract', './tesseract')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
