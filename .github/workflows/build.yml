@@ -32,6 +32,29 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: 📥 Installer Tesseract OCR
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Télécharger et installer Tesseract pour Windows
+            choco install tesseract -y
+            # Créer le dossier tesseract local
+            mkdir -p tesseract
+            # Copier Tesseract depuis l'installation système
+            cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y tesseract-ocr tesseract-ocr-fra
+            mkdir -p tesseract
+            cp /usr/bin/tesseract tesseract/ || true
+            cp -r /usr/share/tesseract-ocr tesseract/tessdata || true
+          else
+            brew install tesseract
+            mkdir -p tesseract
+            cp /usr/local/bin/tesseract tesseract/ || true
+            cp -r /usr/local/share/tessdata tesseract/ || true
+          fi
+        shell: bash
+
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
           # Créer un fichier .spec optimisé
@@ -43,9 +66,12 @@ jobs:
           block_cipher = None
           
           # Collecter tous les fichiers .py SAUF lancer_gestiolittle.py
-          # qui sera le point d'entrée
           py_files = [f for f in glob.glob('*.py') if f != 'lancer_gestiolittle.py']
           datas_list = [(f, '.') for f in py_files]
+          
+          # Ajouter le dossier tesseract s'il existe
+          if os.path.exists('tesseract'):
+              datas_list.append(('tesseract', 'tesseract'))
           
           a = Analysis(
               ['lancer_gestiolittle.py'],
@@ -89,32 +115,25 @@ jobs:
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
           
-          # Copier gestiolittle.py à côté de l'exécutable
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            cp gestiolittle.py dist/
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            cp gestiolittle.py dist/
-          else
-            cp gestiolittle.py dist/
+          # Copier gestiolittle.py et tesseract à côté de l'exécutable
+          cp gestiolittle.py dist/
+          if [ -d "tesseract" ]; then
+            cp -r tesseract dist/
           fi
         shell: bash
-    
+
       # 📦 Créer un package complet avec l'exe et les fichiers nécessaires
       - name: 📦 Créer le package de distribution
         run: |
+          cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            cd dist
-            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py
-            cd ..
+            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            cd dist
-            zip GestionFinanciereLittle-Linux.zip GestionFinanciereLittle gestiolittle.py
-            cd ..
+            zip -r GestionFinanciereLittle-Linux.zip GestionFinanciereLittle gestiolittle.py tesseract/
           else
-            cd dist
-            zip GestionFinanciereLittle-macOS.zip GestionFinanciereLittle gestiolittle.py
-            cd ..
+            zip -r GestionFinanciereLittle-macOS.zip GestionFinanciereLittle gestiolittle.py tesseract/
           fi
+          cd ..
         shell: bash
 
       # 📤 Création de la release GitHub
@@ -128,8 +147,11 @@ jobs:
 
             ✅ Compatible Windows, Linux et macOS.
             🔏 L'exécutable Windows est signé numériquement.
+            
+            📦 **Installation** : Extraire le ZIP et lancer l'exécutable.
+            ⚠️ Les 2 fichiers doivent rester ensemble dans le même dossier !
           files: |
-            dist/GestionFinanciereLittle*
+            dist/GestionFinanciereLittle*.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
