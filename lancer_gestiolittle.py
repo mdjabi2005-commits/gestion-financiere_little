@@ -6,6 +6,69 @@ import time
 import socket
 import shutil
 import tempfile
+import json
+from pathlib import Path
+
+def ouvrir_guide_installation():
+    """Ouvre le guide d'installation si c'est le premier lancement"""
+    
+    # Chemin du fichier de configuration
+    config_dir = Path.home() / ".gestiolittle"
+    config_file = config_dir / "🧪 Guide d'Installation pour Testeurs Beta"
+    
+    # Créer le dossier de configuration s'il n'existe pas
+    config_dir.mkdir(exist_ok=True)
+    
+    # Charger ou initialiser la configuration
+    if config_file.exists():
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    else:
+        config = {"premier_lancement": True, "lancements": 0}
+    
+    # Incrémenter le compteur de lancements
+    config["lancements"] = config.get("lancements", 0) + 1
+    
+    # Vérifier si c'est le premier lancement ou tous les 10 lancements
+    premier_lancement = config.get("premier_lancement", True)
+    lancements = config.get("lancements", 0)
+    
+    # Chemin du guide d'installation
+    guide_path = Path(__file__).parent / "GUIDE_INSTALLATION.md"
+    
+    # Ouvrir le guide dans les cas suivants :
+    ouvrir_guide = False
+    
+    if premier_lancement:
+        print("🎉 Premier lancement - Ouverture du guide d'installation...")
+        ouvrir_guide = True
+        config["premier_lancement"] = False
+    
+    elif lancements % 10 == 0:  # Tous les 10 lancements
+        print("📖 Rappel - Ouverture du guide d'installation...")
+        ouvrir_guide = True
+    
+    # Sauvegarder la configuration
+    with open(config_file, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2)
+    
+    # Ouvrir le guide si nécessaire
+    if ouvrir_guide and guide_path.exists():
+        try:
+            if sys.platform == "win32":
+                # Windows
+                os.startfile(str(guide_path))
+            elif sys.platform == "darwin":
+                # macOS
+                subprocess.run(["open", str(guide_path)])
+            else:
+                # Linux
+                subprocess.run(["xdg-open", str(guide_path)])
+            print("📚 Guide d'installation ouvert !")
+            # Attendre un peu que le guide s'ouvre
+            time.sleep(2)
+        except Exception as e:
+            print(f"❌ Impossible d'ouvrir le guide: {e}")
 
 def wait_for_port(port, timeout=20):
     """Attend que le port Streamlit soit ouvert (jusqu'à timeout secondes)."""
@@ -18,14 +81,12 @@ def wait_for_port(port, timeout=20):
             time.sleep(0.5)
     return False
 
-
 def get_base_path():
     """Retourne le chemin de base, même si le programme est compilé avec PyInstaller."""
     if getattr(sys, 'frozen', False):
         # Si compilé avec PyInstaller, utilise le dossier temporaire d'extraction
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
-
 
 def find_app_path(base_path):
     """Cherche le fichier gestiolittle.py à partir de l'emplacement courant."""
@@ -46,7 +107,6 @@ def find_app_path(base_path):
     print("\n💡 Le fichier gestiolittle.py doit être dans le même dossier que l'exécutable.")
     input("\nAppuie sur Entrée pour fermer…")
     sys.exit(1)
-
 
 def launch_streamlit(app_path, port=8501):
     """Lance Streamlit proprement et ouvre le navigateur quand le serveur est prêt."""
@@ -86,10 +146,13 @@ def launch_streamlit(app_path, port=8501):
 
     return process
 
-
 def main():
     print("🚀 Démarrage de Gestion Financière Little…")
 
+    # 1. Ouvrir le guide d'installation si nécessaire
+    ouvrir_guide_installation()
+
+    # 2. Lancer l'application Streamlit normale
     base_path = get_base_path()
     app_path = find_app_path(base_path)
     launch_streamlit(app_path)
@@ -104,7 +167,6 @@ def main():
     except KeyboardInterrupt:
         print("\n🛑 Arrêt de l'application...")
         sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
