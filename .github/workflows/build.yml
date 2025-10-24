@@ -100,6 +100,24 @@ jobs:
         shell: bash
         shell: bash
 
+      # 📦 Créer un package complet avec l'exe et les fichiers nécessaires
+      - name: 📦 Créer le package de distribution
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cd dist
+            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py
+            cd ..
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            cd dist
+            zip GestionFinanciereLittle-Linux.zip GestionFinanciereLittle gestiolittle.py
+            cd ..
+          else
+            cd dist
+            zip GestionFinanciereLittle-macOS.zip GestionFinanciereLittle gestiolittle.py
+            cd ..
+          fi
+        shell: bash
+
       # 🧩 Installation du SDK Windows pour avoir signtool
       - name: 🧩 Installer Windows SDK pour obtenir signtool
         if: runner.os == 'Windows'
