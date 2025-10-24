@@ -1,7 +1,7 @@
 name: 🚀 Build & Release Gestion Financière Little
 
 permissions:
-  contents: write  # nécessaire pour créer les releases
+  contents: write
   actions: read
 
 on:
@@ -32,7 +32,7 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: 🏗️ Compiler l’application
+      - name: 🏗️ Compiler l'application
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             pyinstaller --onefile lancer_gestiolittle.py
@@ -49,56 +49,69 @@ jobs:
         run: choco install windows-sdk-10-version-2004-all -y
 
       # 🪪 Import du certificat de signature
-      - name: 🪪 Importer le certificat PFX
+      - name: 🪪 Importer le certificat PFX dans le store Windows
         if: runner.os == 'Windows'
         shell: powershell
         run: |
+          # Décoder et sauvegarder le certificat
           $bytes = [System.Convert]::FromBase64String("${{ secrets.CODESIGN_PFX_BASE64 }}")
-          [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
-      
-      - name: 🔍 Debug certificat
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Host "Longueur du secret : $(${env:CODESIGN_PFX_BASE64}.Length)"
+          $pfxPath = "codesign.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, $bytes)
+          
+          # Importer le certificat dans le store Windows
+          $password = ConvertTo-SecureString -String "${{ secrets.CODESIGN_PFX_PASSWORD }}" -Force -AsPlainText
+          Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          
+          Write-Host "✅ Certificat importé dans le store Windows"
 
-      # 🔏 Signature de l’exécutable Windows
+      # 🔏 Signature de l'exécutable Windows
       - name: 🔏 Signer l'exécutable Windows
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # 🔍 Cherche signtool.exe dans la version x64 en priorité
+          # Récupérer le thumbprint du certificat
+          $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -match "CN=" } | Select-Object -First 1
+          
+          if (-not $cert) {
+            Write-Error "❌ Aucun certificat trouvé dans le store"
+            exit 1
+          }
+          
+          Write-Host "✅ Certificat trouvé : $($cert.Subject)"
+          Write-Host "   Thumbprint: $($cert.Thumbprint)"
+
+          # Chercher signtool.exe
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\" -Recurse -Filter signtool.exe |
             Where-Object { $_.FullName -match "\\x64\\" } |
             Select-Object -First 1 -ExpandProperty FullName
 
           if (-not $signtool) {
-            Write-Host "⚠️ signtool.exe (x64) non trouvé, tentative de fallback général..."
+            Write-Host "⚠️ signtool.exe (x64) non trouvé, tentative de fallback..."
             $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\" -Recurse -Filter signtool.exe |
               Select-Object -First 1 -ExpandProperty FullName
           }
 
           if (-not $signtool) {
-            Write-Error "❌ Aucun signtool valide trouvé sur le système."
+            Write-Error "❌ signtool.exe non trouvé"
             exit 1
           }
 
           Write-Host "✅ signtool utilisé : $signtool"
 
-          # 🪪 Signature du fichier (exécution directe)
-          & "$signtool" sign /f "codesign.pfx" /p "${{ secrets.CODESIGN_PFX_PASSWORD }}" `
+          # Signature avec le certificat du store (via thumbprint)
+          & "$signtool" sign /sha1 $cert.Thumbprint `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
             "dist\lancer_gestiolittle.exe"
 
           if ($LASTEXITCODE -ne 0) {
-            Write-Error "❌ Erreur lors de la signature du fichier."
+            Write-Error "❌ Erreur lors de la signature"
             exit $LASTEXITCODE
           }
 
-          Write-Host "✅ Signature terminée avec succès."
+          Write-Host "✅ Signature terminée avec succès"
 
       # 📤 Création de la release GitHub
-      - name: 📤 Upload de l’exécutable pour la Release
+      - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
@@ -107,10 +120,9 @@ jobs:
             🚀 Nouvelle version générée automatiquement.
 
             ✅ Compatible Windows, Linux et macOS.
-            🔏 L’exécutable Windows est signé numériquement.
+            🔏 L'exécutable Windows est signé numériquement.
           files: |
             dist/lancer_gestiolittle*
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
