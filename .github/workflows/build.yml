@@ -34,10 +34,7 @@ jobs:
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
-          # Lister tous les fichiers Python du projet
-          python_files=$(find . -name "*.py" -not -path "./.git/*" -not -path "./build/*" -not -path "./dist/*" | tr '\n' ':')
-          
-          # Créer un fichier .spec optimisé pour réduire les faux positifs
+          # Créer un fichier .spec optimisé
           cat > gestiolittle.spec << 'EOF'
           # -*- mode: python ; coding: utf-8 -*-
           import os
@@ -45,16 +42,17 @@ jobs:
           
           block_cipher = None
           
-          # Collecter tous les fichiers .py du projet
-          py_files = glob.glob('*.py')
-          datas_list = [(f, '.') for f in py_files if f != 'lancer_gestiolittle.py']
+          # Collecter tous les fichiers .py SAUF lancer_gestiolittle.py
+          # qui sera le point d'entrée
+          py_files = [f for f in glob.glob('*.py') if f != 'lancer_gestiolittle.py']
+          datas_list = [(f, '.') for f in py_files]
           
           a = Analysis(
               ['lancer_gestiolittle.py'],
               pathex=[],
               binaries=[],
               datas=datas_list,
-              hiddenimports=[],
+              hiddenimports=['streamlit'],
               hookspath=[],
               hooksconfig={},
               runtime_hooks=[],
@@ -90,6 +88,16 @@ jobs:
           
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
+          
+          # Copier gestiolittle.py à côté de l'exécutable
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cp gestiolittle.py dist/
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            cp gestiolittle.py dist/
+          else
+            cp gestiolittle.py dist/
+          fi
+        shell: bash
         shell: bash
 
       # 🧩 Installation du SDK Windows pour avoir signtool
