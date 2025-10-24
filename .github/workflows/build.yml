@@ -32,15 +32,54 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: 🏗️ Compiler l'application
+      - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            pyinstaller --onefile lancer_gestiolittle.py
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            pyinstaller --onefile lancer_gestiolittle.py
-          else
-            pyinstaller --onefile lancer_gestiolittle.py
-          fi
+          # Créer un fichier .spec optimisé pour réduire les faux positifs
+          cat > gestiolittle.spec << 'EOF'
+          # -*- mode: python ; coding: utf-8 -*-
+          block_cipher = None
+          
+          a = Analysis(
+              ['lancer_gestiolittle.py'],
+              pathex=[],
+              binaries=[],
+              datas=[],
+              hiddenimports=[],
+              hookspath=[],
+              hooksconfig={},
+              runtime_hooks=[],
+              excludes=['pytest', 'unittest', 'test', '_pytest', 'setuptools', 'pip', 'wheel'],
+              win_no_prefer_redirects=False,
+              win_private_assemblies=False,
+              cipher=block_cipher,
+              noarchive=False,
+          )
+          
+          pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+          
+          exe = EXE(
+              pyz,
+              a.scripts,
+              a.binaries,
+              a.zipfiles,
+              a.datas,
+              [],
+              name='GestionFinanciereLittle',
+              debug=False,
+              bootloader_ignore_signals=False,
+              strip=False,
+              upx=False,
+              console=False,
+              disable_windowed_traceback=False,
+              argv_emulation=False,
+              target_arch=None,
+              codesign_identity=None,
+              entitlements_file=None,
+          )
+          EOF
+          
+          # Compiler avec le .spec optimisé
+          pyinstaller gestiolittle.spec --clean --noconfirm
         shell: bash
 
       # 🧩 Installation du SDK Windows pour avoir signtool
@@ -58,9 +97,30 @@ jobs:
           $pfxPath = "codesign.pfx"
           [IO.File]::WriteAllBytes($pfxPath, $bytes)
           
-          # Importer le certificat dans le store Windows
-          $password = ConvertTo-SecureString -String "${{ secrets.CODESIGN_PFX_PASSWORD }}" -Force -AsPlainText
-          Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          # Vérifier si le mot de passe existe
+          $passwordString = "${{ secrets.CODESIGN_PFX_PASSWORD }}"
+          
+          if ([string]::IsNullOrEmpty($passwordString)) {
+            Write-Host "⚠️ Mot de passe vide, tentative d'import sans mot de passe..."
+            try {
+              Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Exportable
+              Write-Host "✅ Certificat importé sans mot de passe"
+            } catch {
+              Write-Error "❌ Impossible d'importer le certificat sans mot de passe : $_"
+              Write-Host "💡 Si votre certificat a un mot de passe, ajoutez le secret CODESIGN_PFX_PASSWORD dans GitHub"
+              exit 1
+            }
+          } else {
+            Write-Host "🔐 Import du certificat avec mot de passe..."
+            $password = ConvertTo-SecureString -String $passwordString -Force -AsPlainText
+            try {
+              Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password -Exportable
+              Write-Host "✅ Certificat importé avec mot de passe"
+            } catch {
+              Write-Error "❌ Erreur lors de l'import du certificat : $_"
+              exit 1
+            }
+          }
           
           Write-Host "✅ Certificat importé dans le store Windows"
 
