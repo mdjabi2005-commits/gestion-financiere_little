@@ -23,7 +23,8 @@ jobs:
 
       - name: 📝 Créer le guide d'installation
         run: |
-          cat > GUIDE_INSTALLATION.md << 'EOF'
+          # Méthode compatible Windows/Linux/macOS
+          $content = @"
           # 📖 Guide d'Installation - Gestion Financière Little
 
           ## 🚀 Premier Lancement
@@ -55,7 +56,9 @@ jobs:
           En cas de problème, consulter le repository GitHub.
 
           *Ce guide s'ouvre automatiquement au premier lancement et restera accessible.*
-          EOF
+          "@
+          Out-File -FilePath "GUIDE_INSTALLATION.md" -InputObject $content -Encoding UTF8
+        shell: pwsh
 
       - name: 🐍 Installer Python
         uses: actions/setup-python@v5
