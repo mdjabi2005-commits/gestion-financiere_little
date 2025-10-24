@@ -109,12 +109,8 @@ C'est un **faux positif** très courant pour les applications Python.
 
 ### Emplacement Recommandé
 
-Créez un dossier dédié :
 ```
-C:\Users\VotreNom\GestionFinanciere\
-└── lancer_gestiolittle.exe
-```
-
+L'app crée automatiquement un dossier sur votre bureau s'appelant "Gestion-financière_little"
 ---
 
 ## 🐛 Tests et Retours
