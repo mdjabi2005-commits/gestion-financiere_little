@@ -67,30 +67,45 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           
-          # Fonction pour installer Python sur différentes distributions
-          install_python() {
-              echo "🔧 Tentative d'installation automatique de Python..."
-              
-              if command -v apt-get &> /dev/null; then
-                  # Debian/Ubuntu/MX Linux
-                  echo "📦 Détection : Debian/Ubuntu/MX Linux"
-                  sudo apt-get update
-                  sudo apt-get install -y python3 python3-pip python3-venv python3-full
-              elif command -v dnf &> /dev/null; then
-                  # Fedora/RHEL
-                  echo "📦 Détection : Fedora/RHEL"
-                  sudo dnf install -y python3 python3-pip
-              elif command -v pacman &> /dev/null; then
-                  # Arch Linux
-                  echo "📦 Détection : Arch Linux"
-                  sudo pacman -S --noconfirm python python-pip
-              elif command -v brew &> /dev/null; then
-                  # macOS avec Homebrew
-                  echo "📦 Détection : macOS (Homebrew)"
-                  brew install python@3.11
+          # Détection spécifique de MX Linux et dérivés Debian
+          detect_linux_distro() {
+              if [ -f /etc/os-release ]; then
+                  . /etc/os-release
+                  echo "$NAME"
+              elif command -v lsb_release &> /dev/null; then
+                  lsb_release -d | cut -f2
               else
-                  return 1
+                  echo "Unknown"
               fi
+          }
+          
+          DISTRO=$(detect_linux_distro)
+          echo "🐧 Distribution détectée: $DISTRO"
+          echo ""
+          
+          # Fonction pour installer Python sur différentes distributions
+          install_python_debian() {
+              echo "📦 Installation des paquets système (Debian/Ubuntu/MX)..."
+              sudo apt-get update || return 1
+              sudo apt-get install -y python3 python3-pip python3-venv python3-full pipx || return 1
+              return 0
+          }
+          
+          install_python_fedora() {
+              echo "📦 Installation des paquets système (Fedora/RHEL)..."
+              sudo dnf install -y python3 python3-pip python3-virtualenv pipx || return 1
+              return 0
+          }
+          
+          install_python_arch() {
+              echo "📦 Installation des paquets système (Arch Linux)..."
+              sudo pacman -S --noconfirm python python-pip python-virtualenv pipx || return 1
+              return 0
+          }
+          
+          install_python_macos() {
+              echo "📦 Installation des paquets système (macOS)..."
+              brew install python@3.11 pipx || return 1
               return 0
           }
           
@@ -101,25 +116,45 @@ jobs:
               read -p "❓ Voulez-vous que je l'installe automatiquement ? (o/N) " response
               
               if [[ "$response" =~ ^[OoYy]$ ]]; then
-                  if install_python; then
-                      echo "✅ Python installé avec succès !"
-                  else
-                      echo "❌ Installation automatique impossible."
-                      echo ""
-                      echo "📋 Installez Python manuellement :"
-                      echo "   • Ubuntu/Debian/MX: sudo apt install python3 python3-pip python3-venv"
-                      echo "   • Fedora: sudo dnf install python3 python3-pip"
-                      echo "   • Arch: sudo pacman -S python python-pip"
-                      echo "   • macOS: brew install python@3.11"
-                      echo ""
-                      read -p "Appuyez sur Entrée pour fermer..."
-                      exit 1
-                  fi
+                  case "$DISTRO" in
+                      *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                          install_python_debian || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo apt install python3 python3-pip python3-venv"
+                              exit 1
+                          }
+                          ;;
+                      *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                          install_python_fedora || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo dnf install python3 python3-pip"
+                              exit 1
+                          }
+                          ;;
+                      *"Arch"*|*"Manjaro"*)
+                          install_python_arch || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo pacman -S python python-pip"
+                              exit 1
+                          }
+                          ;;
+                      *"macOS"*|*"Darwin"*)
+                          install_python_macos || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : brew install python@3.11"
+                              exit 1
+                          }
+                          ;;
+                      *)
+                          echo "❌ Distribution non supportée pour l'installation automatique."
+                          echo "📋 Installez Python manuellement pour votre distribution."
+                          exit 1
+                          ;;
+                  esac
+                  echo "✅ Python installé avec succès !"
               else
                   echo ""
                   echo "📋 Installez Python manuellement, puis relancez ce script."
-                  echo ""
-                  read -p "Appuyez sur Entrée pour fermer..."
                   exit 1
               fi
           fi
@@ -127,32 +162,49 @@ jobs:
           echo "✅ Python détecté: $(python3 --version)"
           echo ""
           
-          # Créer un environnement virtuel si nécessaire
+          # Solution pour MX Linux/Debian : utiliser pipx ou venv
           VENV_DIR=".venv"
           
           if [ ! -d "$VENV_DIR" ]; then
               echo "📦 Création de l'environnement virtuel Python..."
               
               # Vérifier si python3-venv est installé
-              if ! python3 -m venv --help &> /dev/null; then
-                  echo "⚠️  Le module venv n'est pas installé."
+              if ! python3 -c "import venv" 2>/dev/null; then
+                  echo "⚠️  Le module venv n'est pas disponible."
                   echo "📦 Installation de python3-venv..."
                   
-                  if command -v apt-get &> /dev/null; then
-                      sudo apt-get install -y python3-venv python3-full
-                  elif command -v dnf &> /dev/null; then
-                      sudo dnf install -y python3-virtualenv
-                  elif command -v pacman &> /dev/null; then
-                      sudo pacman -S --noconfirm python-virtualenv
-                  fi
+                  case "$DISTRO" in
+                      *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                          sudo apt-get install -y python3-venv python3-full || {
+                              echo "❌ Impossible d'installer python3-venv"
+                              echo "💡 Alternative : utilisation de pipx"
+                              pipx install streamlit pillow pytesseract pandas matplotlib
+                              echo "✅ Dépendances installées avec pipx !"
+                              echo ""
+                              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                              echo "  ▶️  Lancement de l'application..."
+                              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                              streamlit run gestiolittle.py --server.port 8501
+                              exit 0
+                          }
+                          ;;
+                      *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                          sudo dnf install -y python3-virtualenv
+                          ;;
+                      *"Arch"*|*"Manjaro"*)
+                          sudo pacman -S --noconfirm python-virtualenv
+                          ;;
+                  esac
               fi
               
               python3 -m venv "$VENV_DIR" || {
                   echo "❌ Impossible de créer l'environnement virtuel"
                   echo ""
-                  echo "Essayez manuellement :"
-                  echo "  sudo apt install python3-venv python3-full"
-                  echo "  python3 -m venv .venv"
+                  echo "💡 Essayez l'alternative avec pipx :"
+                  echo "   sudo apt install pipx"
+                  echo "   pipx ensurepath"
+                  echo "   pipx install streamlit pillow pytesseract pandas matplotlib"
+                  echo "   streamlit run gestiolittle.py"
                   echo ""
                   read -p "Appuyez sur Entrée pour fermer..."
                   exit 1
@@ -177,9 +229,9 @@ jobs:
               python -m pip install streamlit pillow pytesseract pandas matplotlib --quiet || {
                   echo "❌ Erreur lors de l'installation des dépendances"
                   echo ""
-                  echo "Essayez manuellement :"
-                  echo "  source .venv/bin/activate"
-                  echo "  pip install streamlit pillow pytesseract pandas matplotlib"
+                  echo "💡 Alternative : utilisation de pipx"
+                  echo "   pipx install streamlit"
+                  echo "   streamlit run gestiolittle.py"
                   echo ""
                   read -p "Appuyez sur Entrée pour fermer..."
                   exit 1
@@ -192,9 +244,20 @@ jobs:
           if ! command -v tesseract &> /dev/null; then
               echo "⚠️  Tesseract OCR n'est pas installé (optionnel pour OCR)."
               echo "   Pour l'installer :"
-              echo "   • Ubuntu/Debian/MX: sudo apt install tesseract-ocr"
-              echo "   • Fedora: sudo dnf install tesseract"
-              echo "   • macOS: brew install tesseract"
+              case "$DISTRO" in
+                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                      echo "   sudo apt install tesseract-ocr tesseract-ocr-fra"
+                      ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      echo "   sudo dnf install tesseract tesseract-langpack-fra"
+                      ;;
+                  *"Arch"*|*"Manjaro"*)
+                      echo "   sudo pacman -S tesseract tesseract-data-fra"
+                      ;;
+                  *"macOS"*|*"Darwin"*)
+                      echo "   brew install tesseract tesseract-lang/fra"
+                      ;;
+              esac
               echo ""
           fi
           
@@ -281,7 +344,6 @@ jobs:
           fi
         shell: bash
 
-      # 📦 Créer un package complet avec l'exe et les fichiers nécessaires
       - name: 📦 Créer le package de distribution
         run: |
           cd dist
@@ -297,7 +359,6 @@ jobs:
           cd ..
         shell: bash
 
-      # 📤 Création de la release GitHub
       - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
         with:
