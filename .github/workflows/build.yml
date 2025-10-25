@@ -31,6 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
       - name: 📥 Installer Tesseract OCR
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
@@ -52,6 +53,11 @@ jobs:
           fi
         shell: bash
       
+      - name: 📝 Créer le dossier dist
+        run: |
+          mkdir -p dist
+          echo "✅ Dossier dist créé"
+
       - name: 📝 Créer script de lancement pour Linux/macOS
         if: runner.os != 'Windows'
         run: |
@@ -296,7 +302,7 @@ jobs:
           python -c "
           try:
               import streamlit
-              import pillow
+              import PIL
               import pytesseract
               import pandas
               import matplotlib
@@ -329,7 +335,10 @@ jobs:
           echo "🔧 Pour relancer l'application plus tard :"
           echo "   ./run.sh"
           echo ""
-        shell: bash
+          RUNSCRIPT
+          
+          chmod +x dist/run.sh
+          echo "✅ Script run.sh créé avec succès"
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
@@ -398,7 +407,7 @@ jobs:
           if [[ "$RUNNER_OS" == "Windows" ]] && [ -d "tesseract" ]; then
             cp -r tesseract dist/
           fi
-        shell: bash
+          echo "✅ Application compilée avec succès"
 
       - name: 📦 Créer le package de distribution
         run: |
@@ -406,15 +415,17 @@ jobs:
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             # Windows : inclure Tesseract
             7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
+            echo "✅ Package Windows créé"
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             # Linux : NE PAS inclure Tesseract (utilisation système)
             zip -r GestionFinanciereLittle-Linux.zip gestiolittle.py run.sh
+            echo "✅ Package Linux créé"
           else
             # macOS : NE PAS inclure Tesseract (utilisation système)
             zip -r GestionFinanciereLittle-macOS.zip gestiolittle.py run.sh
+            echo "✅ Package macOS créé"
           fi
           cd ..
-        shell: bash
 
       - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
