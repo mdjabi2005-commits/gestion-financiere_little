@@ -408,6 +408,7 @@ jobs:
             cp -r tesseract dist/
           fi
           echo "✅ Application compilée avec succès"
+        shell: bash
 
       - name: 📦 Créer le package de distribution
         run: |
