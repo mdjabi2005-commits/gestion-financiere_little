@@ -62,23 +62,105 @@ jobs:
           #!/bin/bash
           # Script de lancement Gestion Financière Little
           
-          echo "🚀 Démarrage de Gestion Financière Little..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  🚀 Gestion Financière Little"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          # Fonction pour installer Python sur différentes distributions
+          install_python() {
+              echo "🔧 Tentative d'installation automatique de Python..."
+              
+              if command -v apt-get &> /dev/null; then
+                  # Debian/Ubuntu
+                  echo "📦 Détection : Debian/Ubuntu"
+                  sudo apt-get update
+                  sudo apt-get install -y python3 python3-pip python3-venv
+              elif command -v dnf &> /dev/null; then
+                  # Fedora/RHEL
+                  echo "📦 Détection : Fedora/RHEL"
+                  sudo dnf install -y python3 python3-pip
+              elif command -v pacman &> /dev/null; then
+                  # Arch Linux
+                  echo "📦 Détection : Arch Linux"
+                  sudo pacman -S --noconfirm python python-pip
+              elif command -v brew &> /dev/null; then
+                  # macOS avec Homebrew
+                  echo "📦 Détection : macOS (Homebrew)"
+                  brew install python@3.11
+              else
+                  return 1
+              fi
+              return 0
+          }
           
           # Vérifier Python
           if ! command -v python3 &> /dev/null; then
-              echo "❌ Python 3 n'est pas installé !"
-              echo "Installez Python 3.11+ : https://www.python.org/downloads/"
-              read -p "Appuyez sur Entrée pour fermer..."
-              exit 1
+              echo "⚠️  Python 3 n'est pas installé sur votre système."
+              echo ""
+              read -p "❓ Voulez-vous que je l'installe automatiquement ? (o/N) " response
+              
+              if [[ "$response" =~ ^[OoYy]$ ]]; then
+                  if install_python; then
+                      echo "✅ Python installé avec succès !"
+                  else
+                      echo "❌ Installation automatique impossible."
+                      echo ""
+                      echo "📋 Installez Python manuellement :"
+                      echo "   • Ubuntu/Debian: sudo apt install python3 python3-pip"
+                      echo "   • Fedora: sudo dnf install python3 python3-pip"
+                      echo "   • Arch: sudo pacman -S python python-pip"
+                      echo "   • macOS: brew install python@3.11"
+                      echo "   • Ou téléchargez sur: https://www.python.org/downloads/"
+                      echo ""
+                      read -p "Appuyez sur Entrée pour fermer..."
+                      exit 1
+                  fi
+              else
+                  echo ""
+                  echo "📋 Installez Python manuellement, puis relancez ce script."
+                  echo "   Téléchargez Python sur: https://www.python.org/downloads/"
+                  echo ""
+                  read -p "Appuyez sur Entrée pour fermer..."
+                  exit 1
+              fi
           fi
           
-          # Vérifier Streamlit
+          echo "✅ Python détecté: $(python3 --version)"
+          echo ""
+          
+          # Vérifier/Installer Streamlit
           if ! python3 -c "import streamlit" &> /dev/null; then
-              echo "📦 Installation de Streamlit..."
-              python3 -m pip install streamlit --user
+              echo "📦 Installation de Streamlit et dépendances..."
+              python3 -m pip install --user streamlit pillow pytesseract pandas matplotlib || {
+                  echo "❌ Erreur lors de l'installation des dépendances"
+                  read -p "Appuyez sur Entrée pour fermer..."
+                  exit 1
+              }
+              echo "✅ Streamlit installé !"
+              echo ""
+          fi
+          
+          # Vérifier Tesseract OCR
+          if ! command -v tesseract &> /dev/null; then
+              echo "⚠️  Tesseract OCR n'est pas installé (optionnel pour OCR)."
+              echo "   Pour l'installer :"
+              echo "   • Ubuntu/Debian: sudo apt install tesseract-ocr"
+              echo "   • Fedora: sudo dnf install tesseract"
+              echo "   • macOS: brew install tesseract"
+              echo ""
           fi
           
           # Lancer l'application
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ▶️  Lancement de l'application..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "💡 L'application va s'ouvrir dans votre navigateur"
+          echo "💡 Pour arrêter : Fermez ce terminal (Ctrl+C)"
+          echo ""
+          
+          sleep 2
           python3 -m streamlit run gestiolittle.py --server.port 8501
           RUNSCRIPT
           
