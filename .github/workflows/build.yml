@@ -427,6 +427,7 @@ jobs:
             echo "✅ Package macOS créé"
           fi
           cd ..
+        shell : bash 
 
       - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
