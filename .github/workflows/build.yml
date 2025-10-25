@@ -323,9 +323,12 @@ jobs:
           
           # Lancer Streamlit depuis l'environnement virtuel
           python -m streamlit run gestiolittle.py --server.port 8501 --server.headless true
-          RUNSCRIPT
-          
-          chmod +x dist/run.sh
+
+          # Si Streamlit se ferme (erreur ou arrêt manuel)
+          echo ""
+          echo "🔧 Pour relancer l'application plus tard :"
+          echo "   ./run.sh"
+          echo ""
         shell: bash
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
