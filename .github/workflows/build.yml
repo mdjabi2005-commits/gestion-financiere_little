@@ -42,16 +42,14 @@ jobs:
             # Copier Tesseract depuis l'installation système
             cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            # Pour Linux : on installe Tesseract système mais on ne le copie PAS
             sudo apt-get update
             sudo apt-get install -y tesseract-ocr tesseract-ocr-fra
-            mkdir -p tesseract
-            cp /usr/bin/tesseract tesseract/ || true
-            cp -r /usr/share/tesseract-ocr tesseract/tessdata || true
+            echo "✅ Tesseract installé pour Linux (utilisation système)"
           else
+            # Pour macOS : on installe Tesseract système mais on ne le copie PAS
             brew install tesseract
-            mkdir -p tesseract
-            cp /usr/local/bin/tesseract tesseract/ || true
-            cp -r /usr/local/share/tessdata tesseract/ || true
+            echo "✅ Tesseract installé pour macOS (utilisation système)"
           fi
         shell: bash
       
@@ -82,6 +80,40 @@ jobs:
           DISTRO=$(detect_linux_distro)
           echo "🐧 Distribution détectée: $DISTRO"
           echo ""
+          
+          # Fonction pour installer Tesseract OCR
+          install_tesseract() {
+              echo "📦 Installation de Tesseract OCR..."
+              case "$DISTRO" in
+                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                      sudo apt-get update
+                      sudo apt-get install -y tesseract-ocr tesseract-ocr-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      sudo dnf install -y tesseract tesseract-langpack-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"Arch"*|*"Manjaro"*)
+                      sudo pacman -S --noconfirm tesseract tesseract-data-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"macOS"*|*"Darwin"*)
+                      brew install tesseract tesseract-lang/fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+              esac
+              echo "✅ Tesseract OCR installé avec succès !"
+              return 0
+          }
           
           # Fonction pour trouver streamlit
           find_streamlit() {
@@ -158,6 +190,24 @@ jobs:
           fi
           
           echo "✅ Python détecté: $(python3 --version)"
+          echo ""
+          
+          # Vérifier et installer Tesseract OCR
+          if ! command -v tesseract &> /dev/null; then
+              echo "🔍 Tesseract OCR non détecté."
+              echo ""
+              read -p "❓ Voulez-vous installer Tesseract OCR (nécessaire pour l'OCR) ? (O/n) " tesseract_response
+              
+              if [[ "$tesseract_response" =~ ^[OoYy]*$ ]] || [ -z "$tesseract_response" ]; then
+                  install_tesseract || {
+                      echo "⚠️  Tesseract OCR n'est pas installé. L'OCR ne fonctionnera pas."
+                  }
+              else
+                  echo "⚠️  Tesseract OCR non installé. L'OCR ne fonctionnera pas."
+              fi
+          else
+              echo "✅ Tesseract OCR détecté: $(tesseract --version | head -n1)"
+          fi
           echo ""
           
           # Vérifier si pipx est installé et configuré
@@ -286,7 +336,7 @@ jobs:
                       source "$VENV_DIR/bin/activate"
                       echo "✅ Environnement virtuel activé"
                       
-                      # Installer dans le venv - CORRECTION ICI : pytesseract au lieu de tesseract
+                      # Installer dans le venv
                       python -m pip install --upgrade pip --quiet
                       python -m pip install streamlit pillow pytesseract pandas matplotlib --quiet || {
                           echo "❌ Erreur lors de l'installation des dépendances"
@@ -295,29 +345,6 @@ jobs:
                       echo "✅ Dépendances installées dans l'environnement virtuel !"
                   fi
               fi
-          fi
-          
-          # Vérifier Tesseract OCR système
-          if ! command -v tesseract &> /dev/null; then
-              echo "⚠️  Tesseract OCR n'est pas installé (optionnel pour OCR)."
-              echo "   Pour l'installer :"
-              case "$DISTRO" in
-                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      echo "   sudo apt install tesseract-ocr tesseract-ocr-fra"
-                      ;;
-                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
-                      echo "   sudo dnf install tesseract tesseract-langpack-fra"
-                      ;;
-                  *"Arch"*|*"Manjaro"*)
-                      echo "   sudo pacman -S tesseract tesseract-data-fra"
-                      ;;
-                  *"macOS"*|*"Darwin"*)
-                      echo "   brew install tesseract tesseract-lang/fra"
-                      ;;
-              esac
-              echo ""
-          else
-              echo "✅ Tesseract OCR système détecté: $(tesseract --version | head -n1)"
           fi
           
           # Vérifier que pytesseract est bien installé
@@ -376,7 +403,7 @@ jobs:
           py_files = [f for f in glob.glob('*.py') if f != 'lancer_gestiolittle.py']
           datas_list = [(f, '.') for f in py_files]
           
-          # Ajouter le dossier tesseract s'il existe
+          # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
           if os.path.exists('tesseract'):
               datas_list.append(('tesseract', 'tesseract'))
           
@@ -422,9 +449,11 @@ jobs:
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
           
-          # Copier gestiolittle.py et tesseract à côté de l'exécutable
+          # Copier gestiolittle.py à côté de l'exécutable
           cp gestiolittle.py dist/
-          if [ -d "tesseract" ]; then
+          
+          # Copier tesseract UNIQUEMENT pour Windows
+          if [[ "$RUNNER_OS" == "Windows" ]] && [ -d "tesseract" ]; then
             cp -r tesseract dist/
           fi
         shell: bash
@@ -433,13 +462,14 @@ jobs:
         run: |
           cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Windows : inclure Tesseract
             7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            # Pour Linux : distribution du code source + script de lancement
-            zip -r GestionFinanciereLittle-Linux.zip gestiolittle.py run.sh tesseract/
+            # Linux : NE PAS inclure Tesseract (utilisation système)
+            zip -r GestionFinanciereLittle-Linux.zip gestiolittle.py run.sh
           else
-            # Pour macOS : distribution du code source + script de lancement
-            zip -r GestionFinanciereLittle-macOS.zip gestiolittle.py run.sh tesseract/
+            # macOS : NE PAS inclure Tesseract (utilisation système)
+            zip -r GestionFinanciereLittle-macOS.zip gestiolittle.py run.sh
           fi
           cd ..
         shell: bash
@@ -458,16 +488,19 @@ jobs:
             - `GestionFinanciereLittle-Windows.zip`
             - ✅ Aucune installation requise
             - ⚠️ Extraire le ZIP et lancer le .exe
+            - 🔧 Tesseract OCR inclus
             
             ### 🐧 Linux (Script Python)
             - `GestionFinanciereLittle-Linux.zip`
             - 📋 Prérequis : Python 3.11+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
+            - 🔧 Tesseract installé automatiquement
             
             ### 🍎 macOS (Script Python)
             - `GestionFinanciereLittle-macOS.zip`
             - 📋 Prérequis : Python 3.11+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
+            - 🔧 Tesseract installé automatiquement
             
             ---
             
