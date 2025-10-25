@@ -129,11 +129,39 @@ jobs:
           echo "✅ Python détecté: $(python3 --version)"
           echo ""
           
+          # Vérifier pip
+          if ! python3 -m pip --version &> /dev/null; then
+              echo "⚠️  pip n'est pas installé."
+              echo "📦 Installation de pip..."
+              
+              if command -v apt-get &> /dev/null; then
+                  sudo apt-get install -y python3-pip
+              elif command -v dnf &> /dev/null; then
+                  sudo dnf install -y python3-pip
+              elif command -v pacman &> /dev/null; then
+                  sudo pacman -S --noconfirm python-pip
+              else
+                  echo "❌ Installation automatique de pip impossible."
+                  echo "   Installez-le manuellement : sudo apt install python3-pip"
+                  read -p "Appuyez sur Entrée pour fermer..."
+                  exit 1
+              fi
+              
+              echo "✅ pip installé !"
+          fi
+          
+          echo "✅ pip détecté"
+          echo ""
+          
           # Vérifier/Installer Streamlit
           if ! python3 -c "import streamlit" &> /dev/null; then
               echo "📦 Installation de Streamlit et dépendances..."
               python3 -m pip install --user streamlit pillow pytesseract pandas matplotlib || {
                   echo "❌ Erreur lors de l'installation des dépendances"
+                  echo ""
+                  echo "Essayez manuellement :"
+                  echo "  python3 -m pip install --user streamlit pillow pytesseract pandas matplotlib"
+                  echo ""
                   read -p "Appuyez sur Entrée pour fermer..."
                   exit 1
               }
