@@ -54,6 +54,36 @@ jobs:
             cp -r /usr/local/share/tessdata tesseract/ || true
           fi
         shell: bash
+      
+      - name: 📝 Créer script de lancement pour Linux/macOS
+        if: runner.os != 'Windows'
+        run: |
+          cat > dist/run.sh << 'RUNSCRIPT'
+          #!/bin/bash
+          # Script de lancement Gestion Financière Little
+          
+          echo "🚀 Démarrage de Gestion Financière Little..."
+          
+          # Vérifier Python
+          if ! command -v python3 &> /dev/null; then
+              echo "❌ Python 3 n'est pas installé !"
+              echo "Installez Python 3.11+ : https://www.python.org/downloads/"
+              read -p "Appuyez sur Entrée pour fermer..."
+              exit 1
+          fi
+          
+          # Vérifier Streamlit
+          if ! python3 -c "import streamlit" &> /dev/null; then
+              echo "📦 Installation de Streamlit..."
+              python3 -m pip install streamlit --user
+          fi
+          
+          # Lancer l'application
+          python3 -m streamlit run gestiolittle.py --server.port 8501
+          RUNSCRIPT
+          
+          chmod +x dist/run.sh
+        shell: bash
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
@@ -68,9 +98,6 @@ jobs:
           # Collecter tous les fichiers .py SAUF lancer_gestiolittle.py
           py_files = [f for f in glob.glob('*.py') if f != 'lancer_gestiolittle.py']
           datas_list = [(f, '.') for f in py_files]
-          
-          # Ajouter le guide d'installation
-          datas_list.append(('GUIDE_INSTALLATION.md', '.'))
           
           # Ajouter le dossier tesseract s'il existe
           if os.path.exists('tesseract'):
@@ -118,30 +145,30 @@ jobs:
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
           
-          # Copier les fichiers à côté de l'exécutable
+          # Copier gestiolittle.py et tesseract à côté de l'exécutable
           cp gestiolittle.py dist/
-          cp GUIDE_INSTALLATION.md dist/
           if [ -d "tesseract" ]; then
             cp -r tesseract dist/
           fi
         shell: bash
 
+      # 📦 Créer un package complet avec l'exe et les fichiers nécessaires
       - name: 📦 Créer le package de distribution
         run: |
           cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # Inclure tous les fichiers nécessaires
-            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py GUIDE_INSTALLATION.md tesseract/
+            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            # Inclure tous les fichiers nécessaires
-            zip -r GestionFinanciereLittle-Linux.zip GestionFinanciereLittle gestiolittle.py GUIDE_INSTALLATION.md tesseract/
+            # Pour Linux : distribution du code source + script de lancement
+            zip -r GestionFinanciereLittle-Linux.zip gestiolittle.py run.sh tesseract/
           else
-            # Inclure tous les fichiers nécessaires
-            zip -r GestionFinanciereLittle-macOS.zip GestionFinanciereLittle gestiolittle.py GUIDE_INSTALLATION.md tesseract/
+            # Pour macOS : distribution du code source + script de lancement
+            zip -r GestionFinanciereLittle-macOS.zip gestiolittle.py run.sh tesseract/
           fi
           cd ..
         shell: bash
 
+      # 📤 Création de la release GitHub
       - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
         with:
@@ -150,16 +177,28 @@ jobs:
           body: |
             🚀 Nouvelle version générée automatiquement.
 
-            ✅ Compatible Windows, Linux et macOS.
-            📖 **Guide d'installation inclus** - s'ouvre automatiquement au premier lancement.
+            ## 📦 Téléchargements par Plateforme
             
-            ## 📦 Installation
-            1. Télécharger le ZIP correspondant à votre OS
-            2. Extraire dans un dossier
-            3. Lancer l'exécutable
-            4. Le guide s'ouvrira automatiquement
-
-            ⚠️ **Important** : Tous les fichiers doivent rester dans le même dossier !
+            ### 🪟 Windows (Exécutable Standalone)
+            - `GestionFinanciereLittle-Windows.zip`
+            - ✅ Aucune installation requise
+            - ⚠️ Extraire le ZIP et lancer le .exe
+            
+            ### 🐧 Linux (Script Python)
+            - `GestionFinanciereLittle-Linux.zip`
+            - 📋 Prérequis : Python 3.11+
+            - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
+            
+            ### 🍎 macOS (Script Python)
+            - `GestionFinanciereLittle-macOS.zip`
+            - 📋 Prérequis : Python 3.11+
+            - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
+            
+            ---
+            
+            🔏 L'exécutable Windows est signé numériquement.
+            
+            📖 Voir le guide complet : [GUIDE_INSTALLATION.md](https://github.com/mdjabi2005-commits/gestion-financiere_little/blob/main/GUIDE_INSTALLATION.md)
           files: |
             dist/GestionFinanciereLittle*.zip
           fail_on_unmatched_files: false
