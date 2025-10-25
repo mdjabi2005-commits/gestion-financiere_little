@@ -55,7 +55,7 @@ def get_desktop_path():
         except Exception:
             pass
         
-        print(f"⚠️ Bureau introuvable, utilisation du dossier personnel : {home}")
+        print(f"Attention Bureau introuvable, utilisation du dossier personnel : {home}")
         return home
 
 def get_config_path():
@@ -77,7 +77,7 @@ def load_config():
             with open(config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"⚠️ Erreur lecture config : {e}")
+            print(f"Attention Erreur lecture config : {e}")
     
     return default_config
 
@@ -89,28 +89,28 @@ def save_config(config):
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"⚠️ Erreur sauvegarde config : {e}")
+        print(f"Attention Erreur sauvegarde config : {e}")
 
 def initialiser_dossiers():
     """Crée automatiquement tous les dossiers nécessaires"""
     desktop = get_desktop_path()
     
-    # 📁 Dossiers DIRECTEMENT sur le Bureau (toujours visibles)
+    #  Dossiers DIRECTEMENT sur le Bureau (toujours visibles)
     tickets_bureau = os.path.join(desktop, "Tickets à scanner")
     revenus_bureau = os.path.join(desktop, "Revenus à traiter")
     
-    # 📁 Dossier principal application
+    #  Dossier principal application
     app_folder = os.path.join(desktop, "Gestion_Financiere_Little")
     
     # Charger la configuration existante
     config = load_config()
     
-    # 📂 Dossiers internes (modifiables par l'utilisateur)
+    #  Dossiers internes (modifiables par l'utilisateur)
     sorted_dir = config.get("sorted_dir") or os.path.join(app_folder, "Tickets scannés")
     revenus_traites_dir = config.get("revenus_traites_dir") or os.path.join(app_folder, "Revenus traités")
     data_dir = os.path.join(app_folder, "data")
     
-    # 🧱 Création automatique des dossiers
+    #  Création automatique des dossiers
     dossiers = {
         "tickets_a_scanner": tickets_bureau,
         "revenus_a_traiter": revenus_bureau,
@@ -122,14 +122,14 @@ def initialiser_dossiers():
     
     for nom, chemin in dossiers.items():
         os.makedirs(chemin, exist_ok=True)
-        print(f"✅ Dossier créé : {chemin}")
+        print(f"OK Dossier créé : {chemin}")
     
-    # 💾 Base de données SQLite
+    #  Base de données SQLite
     db_path = os.path.join(data_dir, "finances.db")
     
-    # 🛠️ Création automatique de la base si elle n'existe pas
+    #  Création automatique de la base si elle n'existe pas
     if not os.path.exists(db_path):
-        print("📊 Création de la base de données SQLite...")
+        print(" Création de la base de données SQLite...")
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
         
@@ -159,16 +159,16 @@ def initialiser_dossiers():
         
         conn.commit()
         conn.close()
-        print(f"✅ Base de données créée : {db_path}")
+        print(f"OK Base de données créée : {db_path}")
     else:
-        print(f"✅ Base de données existante : {db_path}")
+        print(f"OK Base de données existante : {db_path}")
     
     return dossiers, db_path
 
-# ✅ Initialisation globale
+# OK Initialisation globale
 DOSSIERS, DB_PATH = initialiser_dossiers()
 
-# ✅ Variables globales accessibles
+# OK Variables globales accessibles
 DATA_DIR = DOSSIERS["data"]
 TO_SCAN_DIR = DOSSIERS["tickets_a_scanner"]
 SORTED_DIR = DOSSIERS["tickets_scannes"]
@@ -176,6 +176,6 @@ REVENUS_A_TRAITER = DOSSIERS["revenus_a_traiter"]
 REVENUS_TRAITES = DOSSIERS["revenus_traités"]
 APP_FOLDER = DOSSIERS["app_folder"]
 
-print(f"📁 Dossier principal : {APP_FOLDER}")
-print(f"📄 Tickets à scanner : {TO_SCAN_DIR}")
-print(f"💰 Revenus à traiter : {REVENUS_A_TRAITER}")
+print(f" Dossier principal : {APP_FOLDER}")
+print(f" Tickets à scanner : {TO_SCAN_DIR}")
+print(f" Revenus à traiter : {REVENUS_A_TRAITER}")
