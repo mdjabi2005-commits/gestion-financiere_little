@@ -1605,7 +1605,7 @@ with st.sidebar:
     st.title("📂 Menu principal")
     page = st.radio(
         "Navigation",
-        ["💸 Transactions", "📊 Voir Transactions"]
+        ["💸 Transactions", "📊 Voir Transactions","⚙️ Configuration"]
     )
 
 # ==============================
@@ -1660,6 +1660,13 @@ elif page == "📊 Voir Transactions":
     # === Onglet 3 : Gestion des récurrences ===
     with tab3:
         interface_gerer_recurrences()
+
+
+# ==============================
+# ⚙️ PAGE CONFIGURATION
+# ==============================
+elif page == "⚙️ Configuration":
+    interface_configuration_chemins()
         
       
 
