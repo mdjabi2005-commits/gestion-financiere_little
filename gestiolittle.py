@@ -119,6 +119,7 @@ st.markdown("""
 # 📂 CONFIGURATION DES DOSSIERS
 # ==============================
 from configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
+from configlittle import load_config,save_config
 def get_db_connection():
     """Retourne une connexion SQLite cohérente avec DB_PATH."""
     return sqlite3.connect(DB_PATH)
@@ -891,12 +892,7 @@ def process_all_tickets_in_folder():
     """
     st.subheader("🧾 Traitement des tickets à scanner")
 
-    tickets = [f for f in os.listdir(TO_SCAN_DIR) if f.lower().endswith((".jpg", ".png", ".jpeg", ".pdf"))]
-    if not tickets:
-        st.info("📂 Aucun ticket à scanner pour le moment.")
-        return
-
-     # Information des chemins
+    # Information des chemins (TOUJOURS afficher)
     st.info(f"""
     **📁 Dossier des tickets à scanner :**
     `{TO_SCAN_DIR}`
@@ -914,8 +910,6 @@ def process_all_tickets_in_folder():
     
     st.success(f"🧮 {len(tickets)} ticket(s) détecté(s) - Prêts à être traités !")
 
-    st.write(f"🧮 {len(tickets)} ticket(s) détecté(s) dans le dossier à scanner.")
-
     for ticket_file in tickets:
         ticket_path = os.path.join(TO_SCAN_DIR, ticket_file)
         st.markdown("---")
@@ -925,11 +919,11 @@ def process_all_tickets_in_folder():
         try:
             if ticket_file.lower().endswith(".pdf"):
                 text = extract_text_from_pdf(ticket_path)
-                # 👉 Affichage PDF : on montre juste le texte OCR
+                # Affichage PDF
                 with st.expander(f"📄 Texte OCR extrait du PDF : {ticket_file}", expanded=False):
                     st.text_area("Contenu OCR :", text, height=200)
             else:
-                # 👉 Affichage image : on montre l'image + texte OCR
+                # Affichage image
                 text = full_ocr(ticket_path, show_ticket=True)
         except Exception as e:
             st.error(f"❌ Erreur OCR sur {ticket_file} : {e}")
@@ -938,16 +932,14 @@ def process_all_tickets_in_folder():
         # --- Analyse du texte OCR ---
         data = parse_ticket_metadata(text)
 
-
-
         montant_final = data.get("montant", 0.0)
         montants_possibles = data.get("montants_possibles", [montant_final])
         detected_date = data.get("date", datetime.now().date().isoformat())
         key_info = data.get("infos", "")
         
-        # --- Déduction de la catégorie et sous-catégorie à partir du nom de fichier ---
+        # --- Déduction catégorie ---
         name = os.path.splitext(ticket_file)[0]
-        parts = name.split(".")[1:]  # Ignore la première partie (ex: le2)
+        parts = name.split(".")[1:]
 
         if len(parts) >= 2:
             categorie_auto = parts[1].capitalize()
@@ -959,19 +951,17 @@ def process_all_tickets_in_folder():
             categorie_auto = "Divers"
             sous_categorie_auto = "Autre"
 
-        # --- Affichage automatique ---
         st.markdown(f"🧠 **Catégorie auto-détectée :** {categorie_auto} → {sous_categorie_auto}")
 
-        # --- Affichage des infos clés OCR ---
         with st.expander("📜 Aperçu OCR (lignes clés)"):
             st.text(key_info)
 
-        # --- Interface de validation du ticket ---
+        # --- Interface validation ---
         with st.form(f"form_{ticket_file}"):
             col1, col2 = st.columns(2)
             with col1:
                 categorie = st.text_input("Catégorie principale", categorie_auto)
-                sous_categorie = st.text_input("Sous-catégorie (ex: supermarché, restaurant...)", sous_categorie_auto)
+                sous_categorie = st.text_input("Sous-catégorie", sous_categorie_auto)
             with col2:
                 montant_select = st.selectbox(
                     "Montant détecté",
@@ -988,14 +978,12 @@ def process_all_tickets_in_folder():
 
             valider = st.form_submit_button("✅ Valider et enregistrer ce ticket")
 
-
         # --- Validation / sauvegarde ---
         if valider:
             if not categorie or montant_corrige <= 0:
                 st.error("⚠️ Catégorie ou montant invalide.")
                 continue
 
-            # Ajout à la base de données
             insert_transaction_batch([{
                 "type": "dépense",
                 "categorie": categorie.strip(),
@@ -1005,9 +993,7 @@ def process_all_tickets_in_folder():
                 "source": "OCR"
             }])
 
-            # Déplacement du ticket classé
             move_ticket_to_sorted(ticket_path, categorie, sous_categorie)
-
             st.success(f"💾 Ticket {ticket_file} enregistré avec succès ({montant_corrige:.2f} €).")
 
 
