@@ -24,6 +24,19 @@ import numpy as np
 from dateutil.relativedelta import relativedelta
 
 # ==============================
+# 🔝 AJOUTER EN DÉBUT DE FICHIER (après les imports existants)
+# ==============================
+
+# Import du système de mise à jour
+try:
+    from auto_updater import show_update_notification, update_settings_ui, get_current_version
+    UPDATER_AVAILABLE = True
+except ImportError:
+    UPDATER_AVAILABLE = False
+    print("⚠️ Système de mise à jour non disponible")
+
+
+# ==============================
 # ⚙️ CONFIGURATION AUTOMATIQUE DE TESSERACT
 # ==============================
 import platform, subprocess, sys
@@ -102,17 +115,22 @@ if not TESSERACT_OK:
 
 
 # ==============================
-# 📄 Configuration Streamlit
+# 📄 MODIFIER LA CONFIGURATION STREAMLIT
 # ==============================
-st.set_page_config(layout="wide")
-st.markdown("""
-    <style>
-    div[data-testid="stDataFrame"] div[role="gridcell"] {
-        font-size: 16px !important;
-        padding: 8px !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
+
+st.set_page_config(
+    layout="wide",
+    page_title=f"Gestion Financière Little {get_current_version() if UPDATER_AVAILABLE else ''}",
+    page_icon="💰"
+)
+
+# ==============================
+# 🔔 AJOUTER APRÈS st.set_page_config()
+# ==============================
+
+# Vérifier les mises à jour au démarrage
+if UPDATER_AVAILABLE:
+    show_update_notification()
 
 
 # ==============================
@@ -1587,13 +1605,18 @@ def correct_category_name(name):
 # ==============================
 # 📋 MENU LATÉRAL
 # ==============================
+
 with st.sidebar:
-    st.title("📂 Menu principal")
+     st.title("📂 Menu principal")
+
+
+    # Afficher la version actuelle
+    if UPDATER_AVAILABLE:
+        st.caption(f"Version : {get_current_version()}")
+    
     page = st.radio(
         "Navigation",
-        ["💸 Transactions", "📊 Voir Transactions","⚙️ Configuration"]
-    )
-
+        ["💸 Transactions", "📊 Voir Transactions", "⚙️ Configuration", "🔄 Mises à jour"]  # NOUVEAU
 # ==============================
 # 💸 PAGE TRANSACTIONS
 # ==============================
@@ -1653,6 +1676,26 @@ elif page == "📊 Voir Transactions":
 # ==============================
 elif page == "⚙️ Configuration":
     interface_configuration_chemins()
+
+# ==============================
+# 🔄 AJOUTER UNE NOUVELLE PAGE "MISES À JOUR"
+# ==============================
+
+# À ajouter à la fin du fichier, avant ou après la page Configuration
+
+elif page == "🔄 Mises à jour":
+    st.header("🔄 Mises à jour")
+    
+    if UPDATER_AVAILABLE:
+        update_settings_ui()
+    else:
+        st.warning("⚠️ Le système de mise à jour n'est pas disponible.")
+        st.info("""
+        **Pour activer les mises à jour automatiques :**
+        1. Assurez-vous que le fichier `auto_updater.py` est présent
+        2. Installez les dépendances : `pip install requests`
+        3. Relancez l'application
+        """)
         
       
 
