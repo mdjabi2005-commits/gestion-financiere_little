@@ -3,14 +3,84 @@
 
 ---
 
-# 📥 Installation
+## 📥 Téléchargement
 
-1. **Télécharger** le fichier `GestionFinanciereLittle-Windows.zip`
-2. **Extraire le ZIP** dans un dossier de votre choix
-3. **Double-cliquer** sur `GestionFinanciereLittle.exe`
-4. ✅ L'application s'ouvre dans votre navigateur !
+**Lien de téléchargement :** [GitHub Releases](https://github.com/mdjabi2005-commits/gestion-financiere_little/releases/latest)
 
-⚠️ **IMPORTANT** : Les 2 fichiers doivent rester ensemble dans le même dossier !
+Téléchargez selon votre système :
+- 🪟 **Windows** : `GestionFinanciereLittle-Windows.zip`
+- 🐧 **Linux** : `GestionFinanciereLittle-Linux.zip`
+- 🍎 **macOS** : `GestionFinanciereLittle-macOS.zip`
+
+---
+
+## 🚀 Installation Rapide
+
+### 🪟 Windows (Exécutable Standalone)
+
+1. **Extraire** le ZIP
+2. **Double-cliquer** sur `GestionFinanciereLittle.exe`
+3. ✅ L'application s'ouvre dans votre navigateur !
+
+⚠️ **Gardez tous les fichiers ensemble dans le même dossier**
+
+---
+
+### 🐧 Linux (Script Python)
+
+#### Prérequis
+```bash
+# Installer Python 3.11+ (si pas déjà installé)
+sudo apt update
+sudo apt install python3 python3-pip
+
+# Installer Tesseract OCR (si besoin)
+sudo apt install tesseract-ocr tesseract-ocr-fra
+```
+
+#### Lancement
+```bash
+# 1. Extraire le ZIP
+unzip GestionFinanciereLittle-Linux.zip
+cd GestionFinanciereLittle-Linux
+
+# 2. Lancer le script (installe Streamlit automatiquement si besoin)
+chmod +x run.sh
+./run.sh
+```
+
+✅ **L'application s'ouvre dans votre navigateur !**
+
+---
+
+### 🍎 macOS (Script Python)
+
+#### Prérequis
+```bash
+# Installer Homebrew (si pas déjà installé)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Installer Python 3.11+
+brew install python@3.11
+
+# Installer Tesseract OCR (si besoin)
+brew install tesseract tesseract-lang
+```
+
+#### Lancement
+```bash
+# 1. Extraire le ZIP
+unzip GestionFinanciereLittle-macOS.zip
+cd GestionFinanciereLittle-macOS
+
+# 2. Lancer le script
+chmod +x run.sh
+./run.sh
+```
+
+✅ **L'application s'ouvre dans votre navigateur !**
+
+---
 
 ## ⚠️ IMPORTANT : Antivirus et Alertes Windows
 
@@ -109,8 +179,12 @@ C'est un **faux positif** très courant pour les applications Python.
 
 ### Emplacement Recommandé
 
+Créez un dossier dédié :
 ```
-L'app crée automatiquement un dossier sur votre bureau s'appelant "Gestion-financière_little"
+C:\Users\VotreNom\GestionFinanciere\
+└── lancer_gestiolittle.exe
+```
+
 ---
 
 ## 🐛 Tests et Retours
