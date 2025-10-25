@@ -26,37 +26,30 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📦 Installer les dépendances
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+      # ⚠️ SUPPRIMÉ : L'installation des dépendances se fait dans run.sh
+      # - name: 📦 Installer les dépendances
+      #   run: |
+      #     python -m pip install --upgrade pip
+      #     pip install -r requirements.txt
+      #     pip install pyinstaller
 
-      - name: 📥 Installer Tesseract OCR
+      - name: 📥 Installer Tesseract OCR pour Windows uniquement
+        if: runner.os == 'Windows'
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # Télécharger et installer Tesseract pour Windows
-            choco install tesseract -y
-            # Créer le dossier tesseract local
-            mkdir -p tesseract
-            # Copier Tesseract depuis l'installation système
-            cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            # Pour Linux : on installe Tesseract système mais on ne le copie PAS
-            sudo apt-get update
-            sudo apt-get install -y tesseract-ocr tesseract-ocr-fra
-            echo "✅ Tesseract installé pour Linux (utilisation système)"
-          else
-            # Pour macOS : on installe Tesseract système mais on ne le copie PAS
-            brew install tesseract
-            echo "✅ Tesseract installé pour macOS (utilisation système)"
-          fi
+          # Télécharger et installer Tesseract pour Windows
+          choco install tesseract -y
+          # Créer le dossier tesseract local
+          mkdir -p tesseract
+          # Copier Tesseract depuis l'installation système
+          cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
+          echo "✅ Tesseract installé et copié pour Windows"
         shell: bash
       
       - name: 📝 Créer le dossier dist
         run: |
           mkdir -p dist
           echo "✅ Dossier dist créé"
+        shell: bash
 
       - name: 📝 Créer script de lancement pour Linux/macOS
         if: runner.os != 'Windows'
@@ -127,6 +120,33 @@ jobs:
                       ;;
               esac
               echo "✅ Tesseract OCR installé avec succès !"
+              return 0
+          }
+
+          # ⭐⭐⭐ NOUVEAU : Fonction pour installer les dépendances OpenCV
+          install_opencv_deps() {
+              echo "📦 Installation des dépendances OpenCV..."
+              case "$DISTRO" in
+                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                      sudo apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libgl1-mesa-glx || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      sudo dnf install -y glib2 libSM libXrender libXext mesa-libGL || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+                  *"Arch"*|*"Manjaro"*)
+                      sudo pacman -S --noconfirm glib2 libsm libxrender libxext mesa || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+              esac
+              echo "✅ Dépendances OpenCV installées avec succès !"
               return 0
           }
           
@@ -219,6 +239,13 @@ jobs:
           else
               echo "✅ Tesseract OCR détecté: $(tesseract --version | head -n1)"
           fi
+
+          # ⭐⭐⭐ NOUVEAU : Installer les dépendances OpenCV
+          echo ""
+          echo "🔍 Installation des dépendances OpenCV..."
+          install_opencv_deps || {
+              echo "⚠️  Les dépendances OpenCV ne sont pas installées. Certaines fonctionnalités peuvent ne pas fonctionner."
+          }
           echo ""
           
           # SOLUTION AMÉLIORÉE : Utilisation OBLIGATOIRE d'un environnement virtuel
@@ -274,13 +301,13 @@ jobs:
           source "$VENV_DIR/bin/activate"
           echo "✅ Environnement virtuel activé"
           
-          # Installer les dépendances dans le venv
+          # ⭐⭐⭐ MODIFIÉ : Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
           python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pillow pytesseract pandas matplotlib --quiet || {
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib --quiet || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
-              python -m pip install streamlit pillow pytesseract pandas matplotlib --no-cache-dir || {
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib --no-cache-dir || {
                   echo "❌ Échec critique de l'installation des dépendances"
                   exit 1
               }
@@ -296,15 +323,28 @@ jobs:
                   echo "💡 Le module OCR ne fonctionnera pas"
               }
           }
+
+          # ⭐⭐⭐ NOUVEAU : Vérification de OpenCV
+          echo "🔍 Vérification de l'installation de OpenCV..."
+          python -c "import cv2; print('✅ OpenCV importé avec succès')" || {
+              echo "❌ OpenCV non installé, tentative de réinstallation..."
+              python -m pip install opencv-python-headless --force-reinstall --no-cache-dir || {
+                  echo "❌ Échec critique de l'installation de OpenCV"
+                  echo "💡 Le traitement d'image ne fonctionnera pas"
+              }
+          }
           
           # Vérification finale de toutes les dépendances
           echo "🔍 Vérification finale des dépendances..."
           python -c "
           try:
               import streamlit
-              import PIL
-              import pytesseract
               import pandas
+              import pytesseract
+              import PIL
+              import dateutil
+              import cv2
+              import numpy
               import matplotlib
               print('✅ Toutes les dépendances sont installées avec succès!')
           except ImportError as e:
@@ -339,9 +379,13 @@ jobs:
           
           chmod +x dist/run.sh
           echo "✅ Script run.sh créé avec succès"
+        shell: bash
 
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
+          # Installer pyinstaller uniquement pour la compilation
+          python -m pip install pyinstaller
+          
           # Créer un fichier .spec optimisé
           cat > gestiolittle.spec << 'EOF'
           # -*- mode: python ; coding: utf-8 -*-
@@ -427,7 +471,7 @@ jobs:
             echo "✅ Package macOS créé"
           fi
           cd ..
-        shell : bash 
+        shell: bash
 
       - name: 📤 Upload de l'exécutable pour la Release
         uses: softprops/action-gh-release@v2
@@ -450,6 +494,7 @@ jobs:
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
             - 🔧 Environnement virtuel automatique
             - 🐛 Résolution du problème "No module named pytesseract"
+            - 📦 Dépendances OpenCV incluses
             
             ### 🍎 macOS (Script Python)
             - `GestionFinanciereLittle-macOS.zip`
@@ -459,11 +504,10 @@ jobs:
             
             ---
             
-            ## 🆕 Améliorations Linux/macOS
-            - ✅ Environnement virtuel obligatoire (résout les problèmes d'import)
-            - ✅ Meilleure détection de MX Linux
-            - ✅ Vérification de version Python
-            - ✅ Installation automatique de Homebrew sur macOS
+            ## 🆕 Améliorations
+            - ✅ Installation automatique de toutes les dépendances
+            - ✅ Support OpenCV avec dépendances système
+            - ✅ Environnement virtuel obligatoire
             - ✅ Vérifications renforcées des dépendances
             
             🔏 L'exécutable Windows est signé numériquement.
