@@ -743,6 +743,142 @@ def backfill_recurrences_to_today(db_path):
 
 
 # ==============================
+# ⚙️ CONFIGURATION DES CHEMINS
+# ==============================
+def interface_configuration_chemins():
+    """Interface pour modifier les chemins des dossiers internes"""
+    st.header("⚙️ Configuration des dossiers")
+    
+    st.info("""
+    **📁 Organisation actuelle :**
+    - 🎯 **Tickets à scanner** : `{}` (sur le Bureau)
+    - 🎯 **Revenus à traiter** : `{}` (sur le Bureau)
+    - 🔧 **Dossiers modifiables** : Tickets scannés et Revenus traités
+    """.format(TO_SCAN_DIR, REVENUS_A_TRAITER))
+    
+    st.markdown("---")
+    
+    # Modification des dossiers internes
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📂 Tickets scannés")
+        st.write(f"Chemin actuel : `{SORTED_DIR}`")
+        nouveau_sorted = st.text_input(
+            "Nouveau chemin pour Tickets scannés :",
+            value=SORTED_DIR,
+            help="Dossier où seront rangés les tickets après traitement"
+        )
+        
+        if st.button("💾 Sauvegarder Tickets scannés"):
+            if nouveau_sorted and nouveau_sorted != SORTED_DIR:
+                try:
+                    os.makedirs(nouveau_sorted, exist_ok=True)
+                    config = load_config()
+                    config["sorted_dir"] = nouveau_sorted
+                    save_config(config)
+                    st.success(f"✅ Chemin Tickets scannés mis à jour : {nouveau_sorted}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Erreur : {e}")
+    
+    with col2:
+        st.subheader("📂 Revenus traités")
+        st.write(f"Chemin actuel : `{REVENUS_TRAITES}`")
+        nouveau_revenus = st.text_input(
+            "Nouveau chemin pour Revenus traités :",
+            value=REVENUS_TRAITES,
+            help="Dossier où seront rangés les revenus après traitement"
+        )
+        
+        if st.button("💾 Sauvegarder Revenus traités"):
+            if nouveau_revenus and nouveau_revenus != REVENUS_TRAITES:
+                try:
+                    os.makedirs(nouveau_revenus, exist_ok=True)
+                    config = load_config()
+                    config["revenus_traites_dir"] = nouveau_revenus
+                    save_config(config)
+                    st.success(f"✅ Chemin Revenus traités mis à jour : {nouveau_revenus}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Erreur : {e}")
+    
+    st.markdown("---")
+    
+    # Réinitialisation
+    if st.button("🔄 Réinitialiser les chemins par défaut"):
+        config = {"sorted_dir": None, "revenus_traites_dir": None}
+        save_config(config)
+        st.success("✅ Chemins réinitialisés aux valeurs par défaut")
+        st.rerun()
+
+# ==============================
+# 📤 UPLOAD DE SECOURS
+# ==============================
+def interface_upload_secours_tickets():
+    """Upload de secours pour les tickets"""
+    st.markdown("---")
+    st.subheader("📤 Uploader des tickets directement")
+    
+    uploaded_files = st.file_uploader(
+        "Si vous ne trouvez pas le dossier, uploader ici :",
+        type=["jpg", "jpeg", "png", "pdf"],
+        accept_multiple_files=True,
+        key="upload_secours_tickets"
+    )
+    
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join(TO_SCAN_DIR, uploaded_file.name)
+            
+            # Gestion des doublons
+            counter = 1
+            name, ext = os.path.splitext(uploaded_file.name)
+            while os.path.exists(file_path):
+                new_name = f"{name}_{counter}{ext}"
+                file_path = os.path.join(TO_SCAN_DIR, new_name)
+                counter += 1
+            
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+        
+        st.success(f"✅ {len(uploaded_files)} ticket(s) ajouté(s) !")
+        st.info("🔄 Actualisez la page pour voir les nouveaux tickets")
+        st.rerun()
+
+def interface_upload_secours_revenus():
+    """Upload de secours pour les revenus"""
+    st.markdown("---")
+    st.subheader("📤 Uploader des revenus directement")
+    
+    uploaded_files = st.file_uploader(
+        "Si vous ne trouvez pas le dossier, uploader ici :",
+        type=["pdf"],
+        accept_multiple_files=True,
+        key="upload_secours_revenus"
+    )
+    
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join(REVENUS_A_TRAITER, uploaded_file.name)
+            
+            # Gestion des doublons
+            counter = 1
+            name, ext = os.path.splitext(uploaded_file.name)
+            while os.path.exists(file_path):
+                new_name = f"{name}_{counter}{ext}"
+                file_path = os.path.join(REVENUS_A_TRAITER, new_name)
+                counter += 1
+            
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+        
+        st.success(f"✅ {len(uploaded_files)} revenu(s) ajouté(s) !")
+        st.info("🔄 Actualisez la page pour voir les nouveaux revenus")
+        st.rerun()
+
+
+# ==============================
 # ⚙️ TRAITEMENT DES TICKETS ET REVENUS
 # ==============================
 def process_all_tickets_in_folder():
@@ -759,6 +895,24 @@ def process_all_tickets_in_folder():
     if not tickets:
         st.info("📂 Aucun ticket à scanner pour le moment.")
         return
+
+     # Information des chemins
+    st.info(f"""
+    **📁 Dossier des tickets à scanner :**
+    `{TO_SCAN_DIR}`
+    
+    **💡 Méthode recommandée :** Glissez-déposez vos tickets directement dans ce dossier sur le Bureau
+    """)
+    
+    tickets = [f for f in os.listdir(TO_SCAN_DIR) if f.lower().endswith((".jpg", ".png", ".jpeg", ".pdf"))]
+    
+    if not tickets:
+        st.warning("📂 Aucun ticket trouvé dans le dossier.")
+        # Afficher l'upload de secours si pas de tickets
+        interface_upload_secours_tickets()
+        return
+    
+    st.success(f"🧮 {len(tickets)} ticket(s) détecté(s) - Prêts à être traités !")
 
     st.write(f"🧮 {len(tickets)} ticket(s) détecté(s) dans le dossier à scanner.")
 
@@ -860,8 +1014,28 @@ def process_all_tickets_in_folder():
 def interface_process_all_revenues_in_folder():
     st.subheader("📥 Scanner et enregistrer tous les revenus depuis le dossier")
 
+     # Information des chemins
+    st.info(f"""
+    **📁 Dossier des revenus à traiter :**
+    `{REVENUS_A_TRAITER}`
+    
+    **💡 Méthode recommandée :** Glissez-déposez vos PDF directement dans ce dossier sur le Bureau
+    """)
+    
+    # [RESTE DU CODE EXISTANT INCHANGÉ jusqu'à la vérification des fichiers...]
+    
     src_folder = REVENUS_A_TRAITER 
-    dest_folder = REVENUS_TRAITES
+    pdfs = [os.path.join(root, f)
+            for root, _, files in os.walk(src_folder)
+            for f in files if f.lower().endswith(".pdf")]
+    
+    if not pdfs:
+        st.warning("📂 Aucun PDF de revenu trouvé dans le dossier.")
+        # Afficher l'upload de secours si pas de revenus
+        interface_upload_secours_revenus()
+        return
+    
+    st.success(f"🧮 {len(pdfs)} revenu(s) détecté(s) - Prêts à être traités !")
 
     # --- Étape 1 : scanner les fichiers une seule fois ---
     if "revenus_data" not in st.session_state:
