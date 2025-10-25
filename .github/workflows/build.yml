@@ -286,18 +286,18 @@ jobs:
                       source "$VENV_DIR/bin/activate"
                       echo "✅ Environnement virtuel activé"
                       
-                      # Installer dans le venv
+                      # Installer dans le venv - CORRECTION ICI : pytesseract au lieu de tesseract
                       python -m pip install --upgrade pip --quiet
                       python -m pip install streamlit pillow pytesseract pandas matplotlib --quiet || {
                           echo "❌ Erreur lors de l'installation des dépendances"
                           exit 1
                       }
-                      echo "✅ Streamlit installé dans l'environnement virtuel !"
+                      echo "✅ Dépendances installées dans l'environnement virtuel !"
                   fi
               fi
           fi
           
-          # Vérifier Tesseract OCR
+          # Vérifier Tesseract OCR système
           if ! command -v tesseract &> /dev/null; then
               echo "⚠️  Tesseract OCR n'est pas installé (optionnel pour OCR)."
               echo "   Pour l'installer :"
@@ -316,6 +316,28 @@ jobs:
                       ;;
               esac
               echo ""
+          else
+              echo "✅ Tesseract OCR système détecté: $(tesseract --version | head -n1)"
+          fi
+          
+          # Vérifier que pytesseract est bien installé
+          echo "🔍 Vérification de l'installation de pytesseract..."
+          if [ "$USE_PIPX" = true ]; then
+              python -c "import pytesseract; print('✅ pytesseract importé avec succès')" || {
+                  echo "❌ pytesseract non installé, tentative de réinstallation..."
+                  pipx inject streamlit pytesseract || {
+                      echo "❌ Échec de l'installation de pytesseract"
+                      echo "💡 Essayez: pipx install pytesseract"
+                  }
+              }
+          else
+              source "$VENV_DIR/bin/activate"
+              python -c "import pytesseract; print('✅ pytesseract importé avec succès')" || {
+                  echo "❌ pytesseract non installé, tentative de réinstallation..."
+                  python -m pip install pytesseract --quiet || {
+                      echo "❌ Échec de l'installation de pytesseract"
+                  }
+              }
           fi
           
           # Lancer l'application
