@@ -26,13 +26,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      # ⚠️ SUPPRIMÉ : L'installation des dépendances se fait dans run.sh
-      # - name: 📦 Installer les dépendances
-      #   run: |
-      #     python -m pip install --upgrade pip
-      #     pip install -r requirements.txt
-      #     pip install pyinstaller
-
       - name: 📥 Installer Tesseract OCR pour Windows uniquement
         if: runner.os == 'Windows'
         run: |
@@ -108,7 +101,6 @@ jobs:
                       }
                       ;;
                   *"macOS"*|*"Darwin"*)
-                      # Vérifier si Homebrew est installé
                       if ! command -v brew &> /dev/null; then
                           echo "📦 Installation de Homebrew..."
                           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -123,7 +115,7 @@ jobs:
               return 0
           }
 
-          # ⭐⭐⭐ NOUVEAU : Fonction pour installer les dépendances OpenCV
+          # Fonction pour installer les dépendances OpenCV
           install_opencv_deps() {
               echo "📦 Installation des dépendances OpenCV..."
               case "$DISTRO" in
@@ -193,7 +185,6 @@ jobs:
                           }
                           ;;
                       *"macOS"*|*"Darwin"*)
-                          # Vérifier si Homebrew est installé
                           if ! command -v brew &> /dev/null; then
                               echo "📦 Installation de Homebrew..."
                               /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -240,7 +231,7 @@ jobs:
               echo "✅ Tesseract OCR détecté: $(tesseract --version | head -n1)"
           fi
 
-          # ⭐⭐⭐ NOUVEAU : Installer les dépendances OpenCV
+          # Installer les dépendances OpenCV
           echo ""
           echo "🔍 Installation des dépendances OpenCV..."
           install_opencv_deps || {
@@ -248,7 +239,7 @@ jobs:
           }
           echo ""
           
-          # SOLUTION AMÉLIORÉE : Utilisation OBLIGATOIRE d'un environnement virtuel
+          # Utilisation d'un environnement virtuel
           VENV_DIR=".little_finance_env"
           echo "🔧 Configuration de l'environnement Python..."
           
@@ -282,7 +273,6 @@ jobs:
                           }
                           ;;
                       *"macOS"*|*"Darwin"*)
-                          # Sur macOS, venv est généralement inclus avec Python
                           echo "✅ venv devrait être disponible avec Python"
                           ;;
                   esac
@@ -301,7 +291,7 @@ jobs:
           source "$VENV_DIR/bin/activate"
           echo "✅ Environnement virtuel activé"
           
-          # ⭐⭐⭐ MODIFIÉ : Installation de TOUTES les dépendances Python
+          # Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
           python -m pip install --upgrade pip --quiet
           python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib --quiet || {
@@ -324,7 +314,7 @@ jobs:
               }
           }
 
-          # ⭐⭐⭐ NOUVEAU : Vérification de OpenCV
+          # Vérification de OpenCV
           echo "🔍 Vérification de l'installation de OpenCV..."
           python -c "import cv2; print('✅ OpenCV importé avec succès')" || {
               echo "❌ OpenCV non installé, tentative de réinstallation..."
@@ -456,21 +446,30 @@ jobs:
 
       - name: 📦 Créer le package de distribution
         run: |
-          cd dist
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cd dist
             # Windows : inclure Tesseract
             7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
+            cd ..
             echo "✅ Package Windows créé"
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            # Linux : NE PAS inclure Tesseract (utilisation système)
-            zip -r GestionFinanciereLittle-Linux.zip gestiolittle.py run.sh
-            echo "✅ Package Linux créé"
-          else
-            # macOS : NE PAS inclure Tesseract (utilisation système)
-            zip -r GestionFinanciereLittle-macOS.zip gestiolittle.py run.sh
-            echo "✅ Package macOS créé"
+          elif [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Linux/macOS : Copier TOUS les fichiers Python nécessaires
+            for file in *.py; do
+              if [ -f "$file" ]; then
+                cp "$file" dist/
+                echo "📄 Copié: $file"
+              fi
+            done
+            cd dist
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              zip -r GestionFinanciereLittle-Linux.zip *.py run.sh
+              echo "✅ Package Linux créé avec tous les fichiers Python"
+            else
+              zip -r GestionFinanciereLittle-macOS.zip *.py run.sh
+              echo "✅ Package macOS créé avec tous les fichiers Python"
+            fi
+            cd ..
           fi
-          cd ..
         shell: bash
 
       - name: 📤 Upload de l'exécutable pour la Release
@@ -493,7 +492,7 @@ jobs:
             - 📋 Prérequis : Python 3.8+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
             - 🔧 Environnement virtuel automatique
-            - 🐛 Résolution du problème "No module named pytesseract"
+            - 🐛 Tous les fichiers Python inclus (configlittle.py, etc.)
             - 📦 Dépendances OpenCV incluses
             
             ### 🍎 macOS (Script Python)
@@ -501,6 +500,7 @@ jobs:
             - 📋 Prérequis : Python 3.8+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
             - 🔧 Environnement virtuel automatique
+            - 🐛 Tous les fichiers Python inclus (configlittle.py, etc.)
             
             ---
             
@@ -509,6 +509,7 @@ jobs:
             - ✅ Support OpenCV avec dépendances système
             - ✅ Environnement virtuel obligatoire
             - ✅ Vérifications renforcées des dépendances
+            - ✅ FIX: Tous les modules Python inclus dans le package
             
             🔏 L'exécutable Windows est signé numériquement.
             
