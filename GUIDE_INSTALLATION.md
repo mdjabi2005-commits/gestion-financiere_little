@@ -26,26 +26,37 @@ Téléchargez selon votre système :
 
 ---
 
-### 🐧 Linux (Script Python)
+### 🐧 Linux (Installation Automatique)
 
-#### Prérequis
-```bash
-# Installer Python 3.11+ (si pas déjà installé)
-sudo apt update
-sudo apt install python3 python3-pip
-
-# Installer Tesseract OCR (si besoin)
-sudo apt install tesseract-ocr tesseract-ocr-fra
-```
-
-#### Lancement
+#### Méthode Recommandée : Script Automatique
 ```bash
 # 1. Extraire le ZIP
 unzip GestionFinanciereLittle-Linux.zip
 cd GestionFinanciereLittle-Linux
 
-# 2. Lancer le script (installe Streamlit automatiquement si besoin)
+# 2. Lancer le script (gère tout automatiquement)
 chmod +x run.sh
+./run.sh
+```
+
+Le script va :
+- ✅ Vérifier si Python est installé
+- ✅ **Proposer d'installer Python automatiquement si manquant**
+- ✅ Installer Streamlit automatiquement
+- ✅ Lancer l'application
+
+💡 **Rien à faire manuellement !** Le script vous guide pas à pas.
+
+#### Installation Manuelle (si le script échoue)
+```bash
+# Installer Python 3.11+ (si pas déjà installé)
+sudo apt update
+sudo apt install python3 python3-pip
+
+# Installer Tesseract OCR (optionnel)
+sudo apt install tesseract-ocr tesseract-ocr-fra
+
+# Lancer
 ./run.sh
 ```
 
@@ -53,21 +64,9 @@ chmod +x run.sh
 
 ---
 
-### 🍎 macOS (Script Python)
+### 🍎 macOS (Installation Automatique)
 
-#### Prérequis
-```bash
-# Installer Homebrew (si pas déjà installé)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Installer Python 3.11+
-brew install python@3.11
-
-# Installer Tesseract OCR (si besoin)
-brew install tesseract tesseract-lang
-```
-
-#### Lancement
+#### Méthode Recommandée : Script Automatique
 ```bash
 # 1. Extraire le ZIP
 unzip GestionFinanciereLittle-macOS.zip
@@ -75,6 +74,29 @@ cd GestionFinanciereLittle-macOS
 
 # 2. Lancer le script
 chmod +x run.sh
+./run.sh
+```
+
+Le script va :
+- ✅ Vérifier si Python est installé
+- ✅ **Proposer d'installer Python via Homebrew si manquant**
+- ✅ Installer Streamlit automatiquement
+- ✅ Lancer l'application
+
+💡 **Si Homebrew n'est pas installé**, le script vous dira comment l'installer.
+
+#### Installation Manuelle (si le script échoue)
+```bash
+# Installer Homebrew (si pas déjà installé)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Installer Python 3.11+
+brew install python@3.11
+
+# Installer Tesseract OCR (optionnel)
+brew install tesseract tesseract-lang
+
+# Lancer
 ./run.sh
 ```
 
