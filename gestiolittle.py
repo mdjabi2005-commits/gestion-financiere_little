@@ -1611,12 +1611,12 @@ with st.sidebar:
 
 
     # Afficher la version actuelle
-    if UPDATER_AVAILABLE:
+     if UPDATER_AVAILABLE:
         st.caption(f"Version : {get_current_version()}")
     
-    page = st.radio(
+     page = st.radio(
         "Navigation",
-        ["💸 Transactions", "📊 Voir Transactions", "⚙️ Configuration", "🔄 Mises à jour"]  # NOUVEAU
+        ["💸 Transactions", "📊 Voir Transactions", "⚙️ Configuration", "🔄 Mises à jour"] ) # NOUVEAU
 # ==============================
 # 💸 PAGE TRANSACTIONS
 # ==============================
