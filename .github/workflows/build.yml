@@ -294,10 +294,10 @@ jobs:
           # Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
           python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib --quiet || {
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
-              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib --no-cache-dir || {
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
                   echo "❌ Échec critique de l'installation des dépendances"
                   exit 1
               }
@@ -336,6 +336,7 @@ jobs:
               import cv2
               import numpy
               import matplotlib
+              import requests
               print('✅ Toutes les dépendances sont installées avec succès!')
           except ImportError as e:
               print(f'❌ Erreur d\\'import: {e}')
@@ -472,13 +473,37 @@ jobs:
           fi
         shell: bash
 
-      - name: 📤 Upload de l'exécutable pour la Release
+      - name: 📤 Upload de l'exécutable pour la Release (DRAFT)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          name: "Gestion Financière Little v${{ github.run_number }}"
+          name: "🧪 TEST - Gestion Financière Little v${{ github.run_number }}"
+          draft: true  # ← 🔥 DRAFT MODE ACTIVÉ
+          prerelease: false
           body: |
-            🚀 Nouvelle version générée automatiquement.
+            ## ⚠️ CECI EST UNE DRAFT (VERSION DE TEST)
+            
+            Cette release n'est **PAS ENCORE PUBLIQUE**.
+            Elle est visible **uniquement par vous** (propriétaire du dépôt).
+            
+            ### ✅ ÉTAPES DE TEST AVANT PUBLICATION
+            
+            1. ⬇️ **Télécharger** les 3 fichiers ZIP ci-dessous
+            2. 📦 **Extraire** chaque ZIP dans un dossier de test
+            3. ✅ **Tester** chaque version (Windows, Linux, macOS si possible)
+            4. 🔍 **Vérifier** :
+               - L'application se lance correctement
+               - Toutes les fonctionnalités marchent
+               - Pas d'erreurs ou de bugs
+               - Les dossiers se créent bien
+            5. 📝 **Si tout est OK** :
+               - Cliquez sur "Edit" (en haut à droite)
+               - Cochez "Set as the latest release"
+               - Modifiez les notes de version ci-dessous
+               - Cliquez sur "Publish release" 🎉
+            
+            ---
+            
             ## 📦 Téléchargements par Plateforme
             
             ### 🪟 Windows (Exécutable Standalone)
@@ -492,7 +517,7 @@ jobs:
             - 📋 Prérequis : Python 3.8+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
             - 🔧 Environnement virtuel automatique
-            - 🐛 Tous les fichiers Python inclus (configlittle.py, etc.)
+            - 🐛 Tous les fichiers Python inclus (configlittle.py, auto_updater.py, etc.)
             - 📦 Dépendances OpenCV incluses
             
             ### 🍎 macOS (Script Python)
@@ -500,20 +525,27 @@ jobs:
             - 📋 Prérequis : Python 3.8+
             - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
             - 🔧 Environnement virtuel automatique
-            - 🐛 Tous les fichiers Python inclus (configlittle.py, etc.)
+            - 🐛 Tous les fichiers Python inclus (configlittle.py, auto_updater.py, etc.)
             
             ---
             
-            ## 🆕 Améliorations
-            - ✅ Installation automatique de toutes les dépendances
-            - ✅ Support OpenCV avec dépendances système
-            - ✅ Environnement virtuel obligatoire
-            - ✅ Vérifications renforcées des dépendances
-            - ✅ FIX: Tous les modules Python inclus dans le package
+            ## 🆕 Notes de version (À MODIFIER AVANT PUBLICATION)
             
-            🔏 L'exécutable Windows est signé numériquement.
+            ### Nouveautés
+            - [ ] Décrivez les nouvelles fonctionnalités
+            - [ ] Ajoutez ce qui a été ajouté
             
-            📖 Voir le guide complet : [GUIDE_INSTALLATION.md](https://github.com/mdjabi2005-commits/gestion-financiere_little/blob/main/GUIDE_INSTALLATION.md)
+            ### Corrections de bugs
+            - [ ] Listez les bugs corrigés
+            
+            ### Améliorations
+            - [ ] Décrivez les améliorations
+            
+            ---
+            
+            📖 **Guide complet** : [GUIDE_INSTALLATION.md](https://github.com/mdjabi2005-commits/gestion-financiere_little/blob/main/GUIDE_INSTALLATION.md)
+            
+            🔒 **Note de sécurité** : L'exécutable Windows peut être signalé comme faux positif par certains antivirus (PyInstaller). C'est normal et documenté dans le guide.
           files: |
             dist/GestionFinanciereLittle*.zip
           fail_on_unmatched_files: false
