@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 # ==============================
 GITHUB_REPO = "mdjabi2005-commits/gestion-financiere_little"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-VERSION_ACTUELLE = "v1.0.0"  # À mettre à jour à chaque release
+VERSION_ACTUELLE = "v1.1.0"  # À mettre à jour à chaque release
 
 # Fichiers de configuration
 CONFIG_DIR = Path.home() / ".gestiolittle"
