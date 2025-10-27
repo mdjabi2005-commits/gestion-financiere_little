@@ -23,6 +23,9 @@ import cv2
 import numpy as np
 from dateutil.relativedelta import relativedelta
 
+
+
+
 # ==============================
 # 🔝 AJOUTER EN DÉBUT DE FICHIER (après les imports existants)
 # ==============================
@@ -34,6 +37,14 @@ try:
 except ImportError:
     UPDATER_AVAILABLE = False
     print("⚠️ Système de mise à jour non disponible")
+
+# Import du changelog viewer
+try:
+    from changelog_viewer import display_changelog_page, display_whats_new
+    CHANGELOG_AVAILABLE = True
+except ImportError:
+    CHANGELOG_AVAILABLE = False
+    print("⚠️ Affichage du changelog non disponible")
 
 
 # ==============================
@@ -131,6 +142,10 @@ st.set_page_config(
 # Vérifier les mises à jour au démarrage
 if UPDATER_AVAILABLE:
     show_update_notification()
+
+# ====== NOUVEAU : Afficher les nouveautés ======
+if CHANGELOG_AVAILABLE:
+    display_whats_new()
 
 
 # ==============================
@@ -1686,16 +1701,33 @@ elif page == "⚙️ Configuration":
 elif page == "🔄 Mises à jour":
     st.header("🔄 Mises à jour")
     
-    if UPDATER_AVAILABLE:
-        update_settings_ui()
-    else:
-        st.warning("⚠️ Le système de mise à jour n'est pas disponible.")
-        st.info("""
-        **Pour activer les mises à jour automatiques :**
-        1. Assurez-vous que le fichier `auto_updater.py` est présent
-        2. Installez les dépendances : `pip install requests`
-        3. Relancez l'application
-        """)
+    # Onglets pour séparer les fonctionnalités
+    tab1, tab2 = st.tabs(["🔍 Vérifier les mises à jour", "📜 Historique des versions"])
+    
+    # ===== ONGLET 1 : Vérification des mises à jour =====
+    with tab1:
+        if UPDATER_AVAILABLE:
+            update_settings_ui()
+        else:
+            st.warning("⚠️ Le système de mise à jour n'est pas disponible.")
+            st.info("""
+            **Pour activer les mises à jour automatiques :**
+            1. Assurez-vous que le fichier `auto_updater.py` est présent
+            2. Installez les dépendances : `pip install requests`
+            3. Relancez l'application
+            """)
+    
+    # ===== ONGLET 2 : Historique des versions (NOUVEAU) =====
+    with tab2:
+        if CHANGELOG_AVAILABLE:
+            display_changelog_page()
+        else:
+            st.warning("⚠️ L'affichage du changelog n'est pas disponible.")
+            st.info("""
+            **Pour activer l'historique des versions :**
+            1. Assurez-vous que le fichier `changelog_viewer.py` est présent
+            2. Relancez l'application
+            """)
         
       
 
