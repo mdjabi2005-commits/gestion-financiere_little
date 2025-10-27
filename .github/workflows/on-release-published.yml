@@ -1,0 +1,211 @@
+name: 📝 Mettre à jour CHANGELOG après publication
+
+permissions:
+  contents: write
+
+on:
+  release:
+    types: [published]  # Se déclenche quand vous publiez une draft
+
+jobs:
+  update-changelog:
+    name: Mettre à jour le CHANGELOG
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧰 Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Extraire les informations de la release
+        id: release
+        run: |
+          # Récupérer les informations via l'API GitHub
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          RELEASE_NAME="${{ github.event.release.name }}"
+          RELEASE_BODY="${{ github.event.release.body }}"
+          RELEASE_DATE="${{ github.event.release.published_at }}"
+          
+          echo "tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+          
+          # Sauvegarder le body dans un fichier temporaire
+          echo "$RELEASE_BODY" > /tmp/release_body.md
+          
+          echo "✅ Release détectée : $RELEASE_TAG"
+
+      - name: 📄 Créer ou mettre à jour CHANGELOG.md
+        run: |
+          RELEASE_TAG="${{ steps.release.outputs.tag }}"
+          RELEASE_NAME="${{ steps.release.outputs.name }}"
+          RELEASE_DATE="${{ steps.release.outputs.date }}"
+          
+          # Formater la date (YYYY-MM-DD)
+          FORMATTED_DATE=$(date -d "$RELEASE_DATE" +"%d/%m/%Y" 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$RELEASE_DATE" +"%d/%m/%Y")
+          
+          # Créer le fichier CHANGELOG.md s'il n'existe pas
+          if [ ! -f CHANGELOG.md ]; then
+            cat > CHANGELOG.md << 'EOF'
+          # 📋 Historique des versions
+          
+          Toutes les modifications notables de ce projet seront documentées dans ce fichier.
+          
+          ---
+          
+          EOF
+            echo "✅ CHANGELOG.md créé"
+          fi
+          
+          # Lire le contenu de la release
+          RELEASE_BODY=$(cat /tmp/release_body.md)
+          
+          # Créer l'entrée pour cette version
+          NEW_ENTRY=$(cat << EOF
+          
+          ## [$RELEASE_TAG] - $FORMATTED_DATE
+          
+          $RELEASE_BODY
+          
+          [Voir la release complète sur GitHub](https://github.com/${{ github.repository }}/releases/tag/$RELEASE_TAG)
+          
+          ---
+          
+          EOF
+          )
+          
+          # Insérer la nouvelle entrée au début du changelog (après l'en-tête)
+          # On garde les 4 premières lignes (titre + description) et on insère après
+          {
+            head -n 4 CHANGELOG.md
+            echo "$NEW_ENTRY"
+            tail -n +5 CHANGELOG.md
+          } > CHANGELOG_temp.md
+          
+          mv CHANGELOG_temp.md CHANGELOG.md
+          
+          echo "✅ CHANGELOG.md mis à jour avec $RELEASE_TAG"
+
+      - name: 📊 Créer un résumé JSON pour l'application
+        run: |
+          RELEASE_TAG="${{ steps.release.outputs.tag }}"
+          RELEASE_DATE="${{ steps.release.outputs.date }}"
+          FORMATTED_DATE=$(date -d "$RELEASE_DATE" +"%Y-%m-%d" 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$RELEASE_DATE" +"%Y-%m-%d")
+          
+          # Créer le dossier .app_data s'il n'existe pas
+          mkdir -p .app_data
+          
+          # Lire le body de la release
+          RELEASE_BODY=$(cat /tmp/release_body.md)
+          
+          # Créer/Mettre à jour le fichier releases.json
+          if [ ! -f .app_data/releases.json ]; then
+            echo '{"releases": []}' > .app_data/releases.json
+          fi
+          
+          # Ajouter cette release au JSON (en première position)
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          import sys
+          
+          # Charger le JSON existant
+          with open('.app_data/releases.json', 'r') as f:
+              data = json.load(f)
+          
+          # Lire le body de la release
+          with open('/tmp/release_body.md', 'r') as f:
+              release_body = f.read()
+          
+          # Créer la nouvelle entrée
+          new_release = {
+              "version": "${{ steps.release.outputs.tag }}",
+              "date": "$FORMATTED_DATE",
+              "name": "${{ steps.release.outputs.name }}",
+              "body": release_body,
+              "url": "https://github.com/${{ github.repository }}/releases/tag/${{ steps.release.outputs.tag }}"
+          }
+          
+          # Ajouter en première position (ou remplacer si existe déjà)
+          releases = data.get('releases', [])
+          
+          # Supprimer l'ancienne entrée si elle existe
+          releases = [r for r in releases if r.get('version') != new_release['version']]
+          
+          # Ajouter la nouvelle en premier
+          releases.insert(0, new_release)
+          
+          # Garder seulement les 10 dernières releases
+          releases = releases[:10]
+          
+          data['releases'] = releases
+          
+          # Sauvegarder
+          with open('.app_data/releases.json', 'w') as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          
+          print("✅ releases.json mis à jour")
+          PYTHON_SCRIPT
+          
+          # Rendre le script Python exécutable en remplaçant les variables
+          sed -i "s/\${{ steps.release.outputs.tag }}/$RELEASE_TAG/g" << 'EOF'
+          echo "Script traité"
+          EOF
+
+      - name: 🎨 Générer des statistiques
+        run: |
+          RELEASE_TAG="${{ steps.release.outputs.tag }}"
+          
+          # Compter les différents types de changements
+          RELEASE_BODY=$(cat /tmp/release_body.md)
+          
+          NOUVEAUTES=$(echo "$RELEASE_BODY" | grep -c "🎉\|✨\|feat" || echo "0")
+          CORRECTIONS=$(echo "$RELEASE_BODY" | grep -c "🐛\|fix" || echo "0")
+          AMELIORATIONS=$(echo "$RELEASE_BODY" | grep -c "⚡\|perf" || echo "0")
+          
+          cat > .app_data/stats_${RELEASE_TAG}.json << EOF
+          {
+            "version": "$RELEASE_TAG",
+            "nouveautes": $NOUVEAUTES,
+            "corrections": $CORRECTIONS,
+            "ameliorations": $AMELIORATIONS
+          }
+          EOF
+          
+          echo "✅ Statistiques générées"
+
+      - name: 💾 Commit et push des changements
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add CHANGELOG.md .app_data/
+          
+          # Vérifier s'il y a des changements
+          if git diff --staged --quiet; then
+            echo "Aucun changement à commiter"
+          else
+            git commit -m "docs: mise à jour CHANGELOG pour ${{ steps.release.outputs.tag }} [skip ci]"
+            git push
+            echo "✅ CHANGELOG.md et releases.json mis à jour et pushés"
+          fi
+
+      - name: 🎉 Notification de succès
+        if: success()
+        run: |
+          echo "=================================="
+          echo "✅ CHANGELOG MIS À JOUR !"
+          echo "=================================="
+          echo ""
+          echo "📦 Version : ${{ steps.release.outputs.tag }}"
+          echo "📅 Date : ${{ steps.release.outputs.date }}"
+          echo ""
+          echo "📄 Fichiers mis à jour :"
+          echo "  - CHANGELOG.md"
+          echo "  - .app_data/releases.json"
+          echo ""
+          echo "🎯 Les utilisateurs verront ces changements"
+          echo "    dans l'onglet 'Mises à jour' de l'application"
+          echo ""
+          echo "=================================="
