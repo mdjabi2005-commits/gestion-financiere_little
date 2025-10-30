@@ -36,7 +36,7 @@ try:
     UPDATER_AVAILABLE = True
 except ImportError:
     UPDATER_AVAILABLE = False
-    print("⚠️ Système de mise à jour non disponible")
+    print(" Système de mise à jour non disponible")
 
 # Import du changelog viewer
 try:
@@ -44,7 +44,7 @@ try:
     CHANGELOG_AVAILABLE = True
 except ImportError:
     CHANGELOG_AVAILABLE = False
-    print("⚠️ Affichage du changelog non disponible")
+    print(" Affichage du changelog non disponible")
 
 
 # ==============================
