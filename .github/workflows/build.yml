@@ -386,7 +386,7 @@ jobs:
           block_cipher = None
           
           # Collecter tous les fichiers .py SAUF lancer_gestiolittle.py
-          py_files = [f for f in glob.glob('*.py') if f != 'lancer_gestiolittle.py']
+          py_files = [f for f in glob.glob('*app/.py') if f != 'lancer_gestiolittle.py']
           datas_list = [(f, '.') for f in py_files]
           
           # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
