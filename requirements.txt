@@ -12,4 +12,3 @@ pdfminer.six>=20221105
 
 # Système de mise à jour automatique
 requests>=2.31.0
-
