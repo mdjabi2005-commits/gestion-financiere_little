@@ -1,0 +1,11 @@
+# Ignorer tous les fichiers Python lors du build Netlify
+*.py
+*.pyc
+__pycache__/
+venv/
+.venv/
+env/
+requirements.txt
+.python-version
+pyproject.toml
+setup.py
