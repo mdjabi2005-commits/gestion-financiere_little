@@ -385,17 +385,17 @@ jobs:
           
           block_cipher = None
           
-          # Collecter tous les fichiers .py SAUF lancer_gestiolittle.py
-          py_files = [f for f in glob.glob('*app/.py') if f != 'lancer_gestiolittle.py']
-          datas_list = [(f, '.') for f in py_files]
+          # Collecter tous les fichiers .py dans app/ SAUF le fichier principal
+          py_files = [f for f in glob.glob('app/*.py') if f != 'app/lancer_gestiolittle.py']
+          datas_list = [(f, 'app') for f in py_files]
           
           # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
           if os.path.exists('tesseract'):
               datas_list.append(('tesseract', 'tesseract'))
           
           a = Analysis(
-              ['lancer_gestiolittle.py'],
-              pathex=[],
+              ['app/lancer_gestiolittle.py'],
+              pathex=['app'],
               binaries=[],
               datas=datas_list,
               hiddenimports=['streamlit'],
@@ -435,14 +435,16 @@ jobs:
           # Compiler avec le .spec optimisé
           pyinstaller gestiolittle.spec --clean --noconfirm
           
-          # Copier gestiolittle.py à côté de l'exécutable
-          cp gestiolittle.py dist/
+          # Copier le fichier principal à côté de l'exécutable
+          cp app/lancer_gestiolittle.py dist/
           
           # Copier tesseract UNIQUEMENT pour Windows
           if [[ "$RUNNER_OS" == "Windows" ]] && [ -d "tesseract" ]; then
             cp -r tesseract dist/
           fi
+          
           echo "✅ Application compilée avec succès"
+          
         shell: bash
 
       - name: 📦 Créer le package de distribution
