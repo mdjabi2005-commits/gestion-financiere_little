@@ -451,10 +451,30 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cd dist
-            # Windows : inclure Tesseract
-            7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
+            # Vérifier la présence du fichier principal et du launcher
+            if [ ! -f "GestionFinanciereLittle.exe" ]; then
+              echo "❌ Erreur : exécutable non trouvé dans dist/"
+              exit 1
+            fi
+
+            # Copier le fichier gestiolittle.py si pas déjà présent
+            if [ ! -f "gestiolittle.py" ]; then
+              echo "📄 Copie de gestiolittle.py..."
+              cp ../app/gestiolittle.py .
+            fi
+
+            # Vérifier et inclure le dossier tesseract si présent
+            if [ -d "../tesseract" ]; then
+              echo "📦 Inclusion du dossier tesseract..."
+              cp -r ../tesseract .
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
+            else
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py
+            fi
+
             cd ..
-            echo "✅ Package Windows créé"
+            echo "✅ Package Windows créé avec succès"
+          
           elif [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
             # Linux/macOS : Copier TOUS les fichiers Python nécessaires
             for file in *.py; do
