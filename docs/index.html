@@ -799,6 +799,8 @@ window.autoDownloadLatest = autoDownloadLatest;
 function renderRelease(release) {
   const date = new Date(release.created_at).toLocaleDateString('fr-FR');
   let buttons = '';
+
+  // ===== Boutons de téléchargement =====
   if (release.assets?.length) {
     release.assets.forEach(a => {
       const n = a.name.toLowerCase();
@@ -813,6 +815,14 @@ function renderRelease(release) {
     buttons = '<p style="color:var(--text-light);">❌ Aucun fichier à télécharger.</p>';
   }
 
+  // ===== Notes de version =====
+  const notes = release.body 
+    ? release.body
+        .replace(/\r?\n/g, '<br>') // sauts de ligne
+        .replace(/#{1,6}\s*(.+)/g, '<h4>$1</h4>') // titres markdown
+    : '<em>Aucune note de version fournie.</em>';
+
+  // ===== Affichage dans la page =====
   document.getElementById('releaseBox').innerHTML = `
     <div class="release-header">
       <div>
@@ -820,14 +830,17 @@ function renderRelease(release) {
         <div class="release-date">📅 Publiée le ${date}</div>
       </div>
     </div>
+
     <div class="download-buttons">${buttons}</div>
-    <div style="margin-top:1rem;">
-      <a href="${release.html_url}" target="_blank" style="color:var(--primary);text-decoration:none;">
-        📋 Voir les notes de version sur GitHub →
-      </a>
+
+    <div style="margin-top:1.5rem; background:#f9fafb; border-left:4px solid var(--primary); padding:1rem 1.25rem; border-radius:0.5rem;">
+      <h3 style="color:var(--primary); margin-bottom:0.5rem;">📝 Notes de version</h3>
+      <div style="color:var(--text-light); line-height:1.6;">${notes}</div>
     </div>
+
   `;
 }
+
 
 // ===== Antivirus =====
 function showAntivirusInstructions(av) {
