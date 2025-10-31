@@ -12,7 +12,7 @@ import shutil
 import sqlite3
 import pandas as pd
 import pytesseract
-import os
+import sys
 pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__), "tesseract", "tesseract.exe")
 from PIL import Image
 import re
@@ -23,6 +23,11 @@ import cv2
 import numpy as np
 from dateutil.relativedelta import relativedelta
 
+
+base_path = os.path.dirname(os.path.abspath(__file__))
+app_path = os.path.join(base_path, "app")
+if app_path not in sys.path:
+    sys.path.append(app_path)
 
 
 
