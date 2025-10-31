@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Oct 12 19:43:10 2025
-
-@author: djabi"""
-
-
+@author: djabi
+"""
 
 from difflib import get_close_matches
 import os
@@ -13,115 +11,116 @@ import sqlite3
 import pandas as pd
 import pytesseract
 import sys
-pytesseract.pytesseract.tesseract_cmd = os.path.join(os.path.dirname(__file__), "tesseract", "tesseract.exe")
+
+# 🔥 CORRECTION CRITIQUE : Configuration du PYTHONPATH et Tesseract
+def setup_environment():
+    """Configure l'environnement Python et Tesseract"""
+    
+    # 1. Ajouter app/ au PYTHONPATH
+    if getattr(sys, 'frozen', False):
+        # Si exécutable PyInstaller
+        base_path = sys._MEIPASS
+    else:
+        # Si lancé depuis Python
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    # Ajouter le dossier parent au path
+    parent_dir = os.path.dirname(base_path)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    
+    # Ajouter le dossier app/ si présent
+    app_dir = os.path.join(base_path, 'app')
+    if os.path.exists(app_dir) and app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    
+    # 2. Configurer Tesseract
+    if getattr(sys, 'frozen', False):
+        # Si exécutable PyInstaller
+        tesseract_path = os.path.join(sys._MEIPASS, "tesseract", "tesseract.exe")
+    else:
+        # Si développement
+        tesseract_path = os.path.join(os.path.dirname(__file__), "tesseract", "tesseract.exe")
+    
+    if os.path.exists(tesseract_path):
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        print(f" Tesseract trouvé : {tesseract_path}")
+    else:
+        # Tesseract n'est pas dans le dossier local, essayer le PATH système
+        tesseract_system = shutil.which("tesseract")
+        if tesseract_system:
+            pytesseract.pytesseract.tesseract_cmd = tesseract_system
+            print(f" Tesseract système trouvé : {tesseract_system}")
+        else:
+            print(f" Tesseract non trouvé. Chemin testé : {tesseract_path}")
+
+# Appeler la configuration au démarrage
+setup_environment()
+
+# 🔥 CORRECTION : Import conditionnel de configlittle
+try:
+    from configlittle import DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
+    from configlittle import load_config, save_config
+    print(" Import configlittle réussi (import direct)")
+except ImportError:
+    try:
+        from app.configlittle import DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
+        from app.configlittle import load_config, save_config
+        print(" Import configlittle réussi (avec préfixe app.)")
+    except ImportError as e:
+        print(f" ERREUR CRITIQUE : Impossible d'importer configlittle")
+        print(f"   Erreur : {e}")
+        print(f"   Dossier courant : {os.getcwd()}")
+        print(f"   sys.path : {sys.path}")
+        print(f"   Fichiers présents : {os.listdir('.')}")
+        import streamlit as st
+        st.error(f"""
+         ERREUR CRITIQUE : Module configlittle introuvable
+        
+        **Diagnostic :**
+        - Dossier courant : `{os.getcwd()}`
+        - Fichiers présents : {os.listdir('.')}
+        
+        **Solutions :**
+        1. Vérifiez que `configlittle.py` est présent dans le même dossier que l'exécutable
+        2. Si vous lancez depuis Spyder, vérifiez que vous êtes dans le bon dossier
+        3. Essayez de lancer depuis le terminal : `cd app && python gestiolittle.py`
+        """)
+        sys.exit(1)
+
+# Imports normaux continuent...
 from PIL import Image
 import re
 import streamlit as st
-from datetime import datetime,date,timedelta
+from datetime import datetime, date, timedelta
 from dateutil import parser
 import cv2
 import numpy as np
 from dateutil.relativedelta import relativedelta
-
-
-# ==============================
-# 🔝 AJOUTER EN DÉBUT DE FICHIER (après les imports existants)
-# ==============================
 
 # Import du système de mise à jour
 try:
     from auto_updater import show_update_notification, update_settings_ui, get_current_version
     UPDATER_AVAILABLE = True
 except ImportError:
-    UPDATER_AVAILABLE = False
-    print(" Système de mise à jour non disponible")
+    try:
+        from app.auto_updater import show_update_notification, update_settings_ui, get_current_version
+        UPDATER_AVAILABLE = True
+    except ImportError:
+        UPDATER_AVAILABLE = False
+        print(" Système de mise à jour non disponible")
 
 # Import du changelog viewer
 try:
-    from app.changelog_viewer import display_changelog_page, display_whats_new
+    from changelog_viewer import display_changelog_page, display_whats_new
     CHANGELOG_AVAILABLE = True
 except ImportError:
-    CHANGELOG_AVAILABLE = False
-    print(" Affichage du changelog non disponible")
-
-
-# ==============================
-# ⚙️ CONFIGURATION AUTOMATIQUE DE TESSERACT
-# ==============================
-import platform, subprocess
-
-def config_tesseract():
-    system = platform.system()
-    tesseract_path = None
-
-    if system == "Windows":
-        if getattr(sys, "frozen", False):
-            base_path = sys._MEIPASS
-        else:
-            base_path = os.path.dirname(os.path.abspath(__file__))
-        tesseract_path = os.path.join(base_path, "tesseract", "tesseract.exe")
-
-        if not os.path.exists(tesseract_path):
-            st.error("⚠️ Tesseract n’a pas été trouvé dans le dossier 'tesseract/'.")
-            return False
-
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
-        return True
-
-    tesseract_path = shutil.which("tesseract")
-
-    if tesseract_path:
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
-        return True
-
-    st.warning("⚠️ Tesseract n'est pas installé sur ce système.")
-    install_auto = st.button("🛠️ Installer automatiquement Tesseract")
-
-    if install_auto:
-        try:
-            if system == "Linux":
-                with st.spinner("Installation de Tesseract en cours..."):
-                    subprocess.run(["sudo", "apt", "update"], check=True)
-                    subprocess.run(["sudo", "apt", "install", "-y", "tesseract-ocr", "tesseract-ocr-fra"], check=True)
-            elif system == "Darwin":
-                if shutil.which("brew"):
-                    with st.spinner("Installation de Tesseract via Homebrew..."):
-                        subprocess.run(["brew", "install", "tesseract"], check=True)
-                        subprocess.run(["brew", "install", "tesseract-lang"], check=True)
-                else:
-                    st.error("❌ Homebrew n'est pas installé. Installe-le d'abord depuis https://brew.sh")
-                    return False
-            else:
-                st.error("⚠️ L’installation automatique n’est pas disponible pour ce système.")
-                return False
-
-            tesseract_path = shutil.which("tesseract")
-            if tesseract_path:
-                pytesseract.pytesseract.tesseract_cmd = tesseract_path
-                st.success(f"✅ Tesseract a été installé avec succès ({tesseract_path}) !")
-                return True
-            else:
-                st.error("❌ L’installation semble avoir échoué. Réessaie manuellement.")
-
-        except subprocess.CalledProcessError as e:
-            st.error(f"❌ Échec de l’installation : {e}")
-        except Exception as e:
-            st.error(f"❌ Erreur inattendue : {e}")
-
-    st.info("""
-    💡 Pour installer manuellement Tesseract :
-    - Sur **Linux** : `sudo apt install tesseract-ocr tesseract-ocr-fra`
-    - Sur **macOS** : `brew install tesseract`
-    """)
-    return False
-
-# 🚀 Vérifie immédiatement
-TESSERACT_OK = config_tesseract()
-
-if not TESSERACT_OK:
-    st.stop()  # ⛔ Stoppe le chargement si Tesseract n'est pas dispo
-
-
+    try:
+        from app.changelog_viewer import display_changelog_page, display_whats_new
+        CHANGELOG_AVAILABLE = True
+    except ImportError:
+        CHANGELOG_AVAILABLE = False
+        print(" Affichage du changelog non disponible")
 
 # ==============================
 # 📄 MODIFIER LA CONFIGURATION STREAMLIT
@@ -133,24 +132,7 @@ st.set_page_config(
     page_icon="💰"
 )
 
-# ==============================
-# 🔔 AJOUTER APRÈS st.set_page_config()
-# ==============================
 
-# Vérifier les mises à jour au démarrage
-if UPDATER_AVAILABLE:
-    show_update_notification()
-
-# ====== NOUVEAU : Afficher les nouveautés ======
-if CHANGELOG_AVAILABLE:
-    display_whats_new()
-
-
-# ==============================
-# 📂 CONFIGURATION DES DOSSIERS
-# ==============================
-from configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
-from configlittle import load_config,save_config
 def get_db_connection():
     """Retourne une connexion SQLite cohérente avec DB_PATH."""
     return sqlite3.connect(DB_PATH)
@@ -1728,4 +1710,3 @@ elif page == "🔄 Mises à jour":
             """)
         
       
-
