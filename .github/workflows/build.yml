@@ -568,11 +568,15 @@ jobs:
 
             # Vérifier et inclure le dossier tesseract si présent
             if [ -d "tesseract" ]; then
-              echo "📦 Inclusion du dossier tesseract..."
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py tesseract/
+              echo "📦 Inclusion du dossier tesseract et des fichiers d’installation..."
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
             else
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py
+              echo "📦 Création du ZIP avec les fichiers d’installation..."
+               7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
             fi
+
+            echo "📁 Vérification du contenu du ZIP final..."
+            7z l GestionFinanciereLittle-Windows.zip
 
             cd ..
             echo "✅ Package Windows créé avec succès"
