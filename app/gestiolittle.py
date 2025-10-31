@@ -24,20 +24,13 @@ import numpy as np
 from dateutil.relativedelta import relativedelta
 
 
-base_path = os.path.dirname(os.path.abspath(__file__))
-app_path = os.path.join(base_path, "app")
-if app_path not in sys.path:
-    sys.path.append(app_path)
-
-
-
 # ==============================
 # 🔝 AJOUTER EN DÉBUT DE FICHIER (après les imports existants)
 # ==============================
 
 # Import du système de mise à jour
 try:
-    from app.auto_updater import show_update_notification, update_settings_ui, get_current_version
+    from auto_updater import show_update_notification, update_settings_ui, get_current_version
     UPDATER_AVAILABLE = True
 except ImportError:
     UPDATER_AVAILABLE = False
@@ -55,7 +48,7 @@ except ImportError:
 # ==============================
 # ⚙️ CONFIGURATION AUTOMATIQUE DE TESSERACT
 # ==============================
-import platform, subprocess, sys
+import platform, subprocess
 
 def config_tesseract():
     system = platform.system()
@@ -156,8 +149,8 @@ if CHANGELOG_AVAILABLE:
 # ==============================
 # 📂 CONFIGURATION DES DOSSIERS
 # ==============================
-from app.configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
-from app.configlittle import load_config,save_config
+from configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
+from configlittle import load_config,save_config
 def get_db_connection():
     """Retourne une connexion SQLite cohérente avec DB_PATH."""
     return sqlite3.connect(DB_PATH)
