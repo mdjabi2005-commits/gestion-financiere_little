@@ -32,7 +32,7 @@ from dateutil.relativedelta import relativedelta
 
 # Import du système de mise à jour
 try:
-    from auto_updater import show_update_notification, update_settings_ui, get_current_version
+    from app.auto_updater import show_update_notification, update_settings_ui, get_current_version
     UPDATER_AVAILABLE = True
 except ImportError:
     UPDATER_AVAILABLE = False
@@ -40,7 +40,7 @@ except ImportError:
 
 # Import du changelog viewer
 try:
-    from changelog_viewer import display_changelog_page, display_whats_new
+    from app.changelog_viewer import display_changelog_page, display_whats_new
     CHANGELOG_AVAILABLE = True
 except ImportError:
     CHANGELOG_AVAILABLE = False
@@ -151,8 +151,8 @@ if CHANGELOG_AVAILABLE:
 # ==============================
 # 📂 CONFIGURATION DES DOSSIERS
 # ==============================
-from configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
-from configlittle import load_config,save_config
+from app.configlittle import  DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR, REVENUS_A_TRAITER, REVENUS_TRAITES
+from app.configlittle import load_config,save_config
 def get_db_connection():
     """Retourne une connexion SQLite cohérente avec DB_PATH."""
     return sqlite3.connect(DB_PATH)
