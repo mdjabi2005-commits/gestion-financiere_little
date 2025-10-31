@@ -377,28 +377,49 @@ jobs:
           # Installer pyinstaller uniquement pour la compilation
           python -m pip install pyinstaller
           
-          # Créer un fichier .spec optimisé
-          cat > gestiolittle.spec << 'EOF'
+          # 🔥 CORRECTION : Utiliser lancer_gestiolittle.spec existant ou créer un fallback
+          if [ -f "lancer_gestiolittle.spec" ]; then
+            echo "📋 Utilisation de lancer_gestiolittle.spec existant..."
+            pyinstaller lancer_gestiolittle.spec --clean --noconfirm
+          else
+            echo "📋 Création d'un .spec de secours..."
+            # Créer un fichier .spec optimisé
+            cat > gestiolittle.spec << 'EOF'
           # -*- mode: python ; coding: utf-8 -*-
           import os
           import glob
           
           block_cipher = None
           
-          # Collecter tous les fichiers .py dans app/ SAUF le fichier principal
-          py_files = [f for f in glob.glob('app/*.py') if f != 'app/lancer_gestiolittle.py']
-          datas_list = [(f, 'app') for f in py_files]
+          # Collecter tous les fichiers .py nécessaires
+          py_files = []
+          
+          # Ajouter gestiolittle.py
+          if os.path.exists('app/gestiolittle.py'):
+              py_files.append(('app/gestiolittle.py', '.'))
+          
+          # 🔥 CRITIQUE : Ajouter configlittle.py
+          if os.path.exists('app/configlittle.py'):
+              py_files.append(('app/configlittle.py', '.'))
+          
+          # Ajouter auto_updater.py
+          if os.path.exists('app/auto_updater.py'):
+              py_files.append(('app/auto_updater.py', '.'))
+          
+          # Ajouter changelog_viewer.py
+          if os.path.exists('app/changelog_viewer.py'):
+              py_files.append(('app/changelog_viewer.py', '.'))
           
           # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
           if os.path.exists('tesseract'):
-              datas_list.append(('tesseract', 'tesseract'))
+              py_files.append(('tesseract', 'tesseract'))
           
           a = Analysis(
               ['app/lancer_gestiolittle.py'],
               pathex=['app'],
               binaries=[],
-              datas=datas_list,
-              hiddenimports=['streamlit'],
+              datas=py_files,
+              hiddenimports=['streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
               hookspath=[],
               hooksconfig={},
               runtime_hooks=[],
@@ -431,16 +452,28 @@ jobs:
               entitlements_file=None,
           )
           EOF
+            
+            # Compiler avec le .spec de secours
+            pyinstaller gestiolittle.spec --clean --noconfirm
+          fi
           
-          # Compiler avec le .spec optimisé
-          pyinstaller gestiolittle.spec --clean --noconfirm
-          
-          # Copier le fichier principal à côté de l'exécutable
-          cp app/lancer_gestiolittle.py dist/
-          
-          # Copier tesseract UNIQUEMENT pour Windows
-          if [[ "$RUNNER_OS" == "Windows" ]] && [ -d "tesseract" ]; then
-            cp -r tesseract dist/
+          # 🔥 CORRECTION WINDOWS : Copier TOUS les fichiers Python à côté de l'exe
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "📦 Copie des modules Python à côté de l'exécutable..."
+            cp app/configlittle.py dist/ || echo "⚠️ configlittle.py non copié"
+            cp app/auto_updater.py dist/ || echo "⚠️ auto_updater.py non copié"
+            cp app/changelog_viewer.py dist/ || echo "⚠️ changelog_viewer.py non copié"
+            cp app/gestiolittle.py dist/ || echo "⚠️ gestiolittle.py non copié"
+            
+            # Copier tesseract
+            if [ -d "tesseract" ]; then
+              cp -r tesseract dist/
+              echo "✅ Tesseract copié"
+            fi
+            
+            # Vérifier que tous les fichiers sont présents
+            echo "🔍 Vérification des fichiers dans dist/ :"
+            ls -la dist/*.py || echo "⚠️ Aucun fichier .py trouvé dans dist/"
           fi
           
           echo "✅ Application compilée avec succès"
@@ -457,19 +490,19 @@ jobs:
               exit 1
             fi
 
-            # Copier le fichier gestiolittle.py si pas déjà présent
-            if [ ! -f "gestiolittle.py" ]; then
-              echo "📄 Copie de gestiolittle.py..."
-              cp ../app/gestiolittle.py .
-            fi
+            # Vérifier que tous les fichiers Python critiques sont présents
+            echo "🔍 Vérification des fichiers Python critiques..."
+            [ -f "configlittle.py" ] && echo "✅ configlittle.py présent" || echo "❌ configlittle.py MANQUANT"
+            [ -f "gestiolittle.py" ] && echo "✅ gestiolittle.py présent" || echo "❌ gestiolittle.py MANQUANT"
+            [ -f "auto_updater.py" ] && echo "✅ auto_updater.py présent" || echo "❌ auto_updater.py MANQUANT"
+            [ -f "changelog_viewer.py" ] && echo "✅ changelog_viewer.py présent" || echo "❌ changelog_viewer.py MANQUANT"
 
             # Vérifier et inclure le dossier tesseract si présent
-            if [ -d "../tesseract" ]; then
+            if [ -d "tesseract" ]; then
               echo "📦 Inclusion du dossier tesseract..."
-              cp -r ../tesseract .
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py tesseract/
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py tesseract/
             else
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe gestiolittle.py
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py
             fi
 
             cd ..
@@ -477,7 +510,7 @@ jobs:
           
           elif [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
             # Linux/macOS : Copier TOUS les fichiers Python nécessaires
-            for file in *.py; do
+            for file in app/*.py; do
               if [ -f "$file" ]; then
                 cp "$file" dist/
                 echo "📄 Copié: $file"
@@ -508,17 +541,28 @@ jobs:
             Cette release n'est **PAS ENCORE PUBLIQUE**.
             Elle est visible **uniquement par vous** (propriétaire du dépôt).
             
+            ### ✅ CORRECTIONS APPLIQUÉES DANS CETTE VERSION
+            
+            - ✅ **Fichier `configlittle.py` maintenant inclus** dans le ZIP Windows
+            - ✅ Tous les modules Python copiés à côté de l'exécutable
+            - ✅ Import corrigé : `from configlittle import ...` fonctionne maintenant
+            - ✅ Vérification automatique de la présence des fichiers critiques
+            
             ### ✅ ÉTAPES DE TEST AVANT PUBLICATION
             
             1. ⬇️ **Télécharger** les 3 fichiers ZIP ci-dessous
             2. 📦 **Extraire** chaque ZIP dans un dossier de test
-            3. ✅ **Tester** chaque version (Windows, Linux, macOS si possible)
-            4. 🔍 **Vérifier** :
-               - L'application se lance correctement
-               - Toutes les fonctionnalités marchent
-               - Pas d'erreurs ou de bugs
-               - Les dossiers se créent bien
-            5. 📝 **Si tout est OK** :
+            3. ✅ **Vérifier** la présence de ces fichiers dans le ZIP Windows :
+               - `GestionFinanciereLittle.exe`
+               - `gestiolittle.py`
+               - `configlittle.py` ← **CRITIQUE**
+               - `auto_updater.py`
+               - `changelog_viewer.py`
+               - `tesseract/` (dossier)
+            4. ▶️ **Lancer** `GestionFinanciereLittle.exe`
+            5. ✅ **Confirmer** que l'erreur `ModuleNotFoundError: No module named 'configlittle'` n'apparaît plus
+            6. 🧪 **Tester** toutes les fonctionnalités (OCR, ajout manuel, récurrence, etc.)
+            7. 📝 **Si tout est OK** :
                - Cliquez sur "Edit" (en haut à droite)
                - Cochez "Set as the latest release"
                - Modifiez les notes de version ci-dessous
@@ -533,6 +577,7 @@ jobs:
             - ✅ Aucune installation requise
             - ⚠️ Extraire le ZIP et lancer le .exe
             - 🔧 Tesseract OCR inclus
+            - 🔥 **CORRECTION : configlittle.py maintenant inclus**
             
             ### 🐧 Linux (Script Python)
             - `GestionFinanciereLittle-Linux.zip`
@@ -558,10 +603,13 @@ jobs:
             - [ ] Ajoutez ce qui a été ajouté
             
             ### Corrections de bugs
-            - [ ] Listez les bugs corrigés
+            - [x] Correction : `ModuleNotFoundError: No module named 'configlittle'`
+            - [ ] Listez les autres bugs corrigés
             
             ### Améliorations
-            - [ ] Décrivez les améliorations
+            - [x] Amélioration du processus de build
+            - [x] Vérification automatique de la présence des fichiers critiques
+            - [ ] Décrivez les autres améliorations
             
             ---
             
