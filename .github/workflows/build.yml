@@ -483,6 +483,7 @@ jobs:
 
       - name: ⚙️ Ajouter installateur automatique Windows
         if: runner.os == 'Windows'
+        shell: bash
         run: |
           echo "🪄 Création de l'installateur PowerShell et du launcher .bat..."
           
