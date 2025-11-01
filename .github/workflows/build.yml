@@ -561,8 +561,11 @@ jobs:
         run: |
           set -e
 
-          # Dernier tag (ou vide si aucun)
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if git describe --tags --abbrev=0 >/tmp/last_tag 2>/dev/null; then
+            LAST_TAG=$(cat /tmp/last_tag)
+          else
+            LAST_TAG=""
+          fi
           if [ -n "$LAST_TAG" ]; then
             RANGE="${LAST_TAG}..HEAD"
           else
