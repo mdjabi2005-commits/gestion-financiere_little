@@ -1,8 +1,52 @@
 @echo off
-setlocal
-set "SCRIPT_DIR=%~dp0"
-set "PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+REM ====================================
+REM Lanceur Gestion Financière Little
+REM ====================================
 
-"%PS%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install_and_run_windows.ps1"
-endlocal
-pause
+SETLOCAL EnableDelayedExpansion
+
+REM Définir le dossier du script
+SET "SCRIPT_DIR=%~dp0"
+CD /D "%SCRIPT_DIR%"
+
+REM Titre de la fenêtre
+TITLE Gestion Financiere Little - Lanceur
+
+ECHO.
+ECHO ============================================
+ECHO   Gestion Financiere Little - Setup
+ECHO ============================================
+ECHO.
+
+REM Vérifier si PowerShell est disponible
+WHERE powershell >nul 2>nul
+IF %ERRORLEVEL% NEQ 0 (
+    ECHO [ERREUR] PowerShell n'est pas disponible sur ce systeme.
+    ECHO.
+    ECHO Veuillez installer PowerShell ou lancer gestiolittle.py manuellement.
+    PAUSE
+    EXIT /B 1
+)
+
+ECHO [INFO] Lancement du script d'installation PowerShell...
+ECHO.
+
+REM Lancer le script PowerShell avec les bons privilèges
+PowerShell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install_and_run_windows.ps1"
+
+REM Vérifier le code de sortie
+IF %ERRORLEVEL% NEQ 0 (
+    ECHO.
+    ECHO [ERREUR] Le script PowerShell a rencontre une erreur.
+    ECHO Code de sortie : %ERRORLEVEL%
+    ECHO.
+    PAUSE
+    EXIT /B %ERRORLEVEL%
+)
+
+ECHO.
+ECHO [INFO] Script termine avec succes.
+ECHO.
+
+ENDLOCAL
+PAUSE
