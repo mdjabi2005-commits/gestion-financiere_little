@@ -59,3 +59,4 @@ jobs:
           new_body="${header}${body}"
           echo "🧩 Ajout du résumé en haut du changelog..."
           gh release edit "${{ env.TAG_NAME }}" --notes "$new_body"
+
