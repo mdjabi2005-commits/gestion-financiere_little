@@ -554,6 +554,7 @@ jobs:
             V=$(cat version.txt | tr -d ' \r\n')
             echo "VERSION=$V" >> $GITHUB_ENV
           fi
+        shell: bash
 
       - name: 📝 Générer titre + notes (conventional commits)
         id: notes
