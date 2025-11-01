@@ -624,6 +624,7 @@ jobs:
           } > /tmp/release_notes.md
 
           echo "title=${TITLE}" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: 📤 Upload de l'exécutable pour la Release (DRAFT)
         uses: softprops/action-gh-release@v2
