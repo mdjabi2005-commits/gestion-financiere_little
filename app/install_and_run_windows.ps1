@@ -1,77 +1,61 @@
-# =============================
-# 🚀 INSTALLATEUR AUTOMATIQUE GUI
-# Gestion Financière Little
-# =============================
-
-Add-Type -AssemblyName PresentationFramework
-
-function Show-Message {
-    param ($title, $message, $type = "Info")
-    [System.Windows.MessageBox]::Show($message, $title, [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::$type)
-}
-
-function Show-Progress {
-    param($message)
-    Write-Host ""
-    Write-Host "🕐 $message..."
-}
-
-function Download-File {
-    param ($url, $destination)
-    $client = New-Object System.Net.WebClient
-    $client.DownloadFile($url, $destination)
-}
-
-# 1️⃣ Vérification des droits administrateur
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Show-Message "Droits administrateur requis" "❌ Ce script doit être lancé en tant qu'administrateur.`nClique droit → Exécuter avec PowerShell (Administrateur)" "Error"
+# --- relance en admin si nécessaire ---
+$admin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+if (-not $admin) {
+    Start-Process powershell -Verb RunAs -ArgumentList "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
     exit
 }
 
-# 2️⃣ Vérifier Python
-Show-Progress "Vérification de Python"
-$pythonInstalled = Get-Command python -ErrorAction SilentlyContinue
+$root = Split-Path -Parent $PSCommandPath
+Set-Location $root
 
-if (-not $pythonInstalled) {
-    $answer = [System.Windows.MessageBox]::Show("Python n'est pas installé.`nVoulez-vous l'installer automatiquement ?", "Installation de Python", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Question)
-    if ($answer -eq "No") { exit }
+function Have($cmd) { $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue) }
 
+Write-Host "[1/5] Vérification de Python..."
+if (-not (Have "python")) {
     $url = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe"
-    $installer = "$env:TEMP\python_installer.exe"
-    Show-Progress "Téléchargement de Python 3.13..."
-    Download-File $url $installer
+    $tmp = Join-Path $env:TEMP "python_installer.exe"
+    (New-Object System.Net.WebClient).DownloadFile($url, $tmp)
+    Start-Process -FilePath $tmp -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
+    Remove-Item $tmp -ErrorAction SilentlyContinue
+    if (-not (Have "python")) { Write-Host "Python introuvable après installation."; Read-Host "Entrée pour fermer"; exit 1 }
+}
+Write-Host "OK"
 
-    Show-Progress "Installation silencieuse de Python"
-    Start-Process -FilePath $installer -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
-    Remove-Item $installer -ErrorAction SilentlyContinue
-    Show-Message "Installation terminée" "✅ Python 3.13 a été installé avec succès !" "Information"
+Write-Host "[2/5] Réparation/MAJ de pip..."
+python -m ensurepip --upgrade | Out-Null
+python -m pip install --upgrade pip setuptools wheel | Out-Null
+Write-Host "OK"
+
+Write-Host "[3/5] Installation des dépendances (cela peut durer)..."
+$pkgs = @(
+    "streamlit","pandas","pytesseract","Pillow","python-dateutil",
+    "opencv-python-headless","numpy","matplotlib","pdfminer.six","requests"
+)
+python -m pip install --upgrade $pkgs | Out-Null
+Write-Host "OK"
+
+# Optionnel : vérifier tesseract.exe local si tu l’embarques
+$tessLocal = Join-Path $root "tesseract\tesseract.exe"
+if (Test-Path $tessLocal) {
+    $env:PATH = "$($root)\tesseract;$env:PATH"
 }
 
-# 3️⃣ Vérifier pip
-Show-Progress "Vérification de pip"
-try {
-    python -m ensurepip --upgrade | Out-Null
-    python -m pip install --upgrade pip setuptools wheel | Out-Null
-} catch {
-    Show-Message "Erreur pip" "❌ Impossible d'installer pip automatiquement.`nVeuillez réessayer après redémarrage du PC." "Error"
-    exit
-}
+Write-Host "[4/5] Vérifications rapides d'import..."
+$check = @"
+try:
+    import streamlit, pandas, pytesseract, PIL, dateutil, cv2, numpy, matplotlib, requests
+    print("OK")
+except Exception as e:
+    print("ERR:", e)
+"@
+$result = python -c $check
+if ($result -notmatch "^OK") { Write-Host $result; Read-Host "Erreur d'import. Entrée pour fermer"; exit 1 }
+Write-Host "OK"
 
-# 4️⃣ Installer les dépendances
-Show-Progress "Installation des dépendances (cela peut prendre quelques minutes)"
-try {
-    python -m pip install --upgrade streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests | Out-Null
-} catch {
-    Show-Message "Erreur" "❌ L'installation des dépendances a échoué.`nVérifiez votre connexion internet." "Error"
-    exit
-}
-Show-Message "Dépendances installées" "✅ Toutes les dépendances ont été installées avec succès !" "Information"
+Write-Host "[5/5] Lancement de l'application..."
+# IMPORTANT : chemin explicite vers gestiolittle.py
+$main = Join-Path $root "gestiolittle.py"
+if (-not (Test-Path $main)) { Write-Host "gestiolittle.py introuvable dans $root"; Read-Host "Entrée pour fermer"; exit 1 }
 
-# 5️⃣ Lancer l’application
-Show-Progress "Lancement de Gestion Financière Little"
-try {
-    Start-Process "python" "-m streamlit run gestiolittle.py --server.headless true"
-    Show-Message "Application lancée" "🚀 Gestion Financière Little a été démarrée avec succès !" "Information"
-} catch {
-    Show-Message "Erreur" "❌ Impossible de démarrer l'application." "Error"
-}
+Start-Process "python" "-m streamlit run `"$main`" --server.headless true"
+Write-Host "Application démarrée. Vous pouvez fermer cette fenêtre."
