@@ -1,0 +1,60 @@
+name: 🚀 Mettre à jour la release publiée
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧩 Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: 🧠 Installer la CLI GitHub
+        uses: cli/cli-action@v2
+
+      - name: 📦 Extraire le tag et le corps de la release
+        id: release_info
+        run: |
+          echo "TAG_NAME=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+          echo "BODY=${{ github.event.release.body }}" >> $GITHUB_ENV
+
+      - name: 🔍 Déterminer le type de release
+        id: detect_type
+        run: |
+          body="${{ github.event.release.body }}"
+          if echo "$body" | grep -qi "feat"; then
+            echo "TYPE=feat" >> $GITHUB_ENV
+            echo "EMOJI=✨" >> $GITHUB_ENV
+            echo "DESC=Nouvelles fonctionnalités" >> $GITHUB_ENV
+          elif echo "$body" | grep -qi "fix"; then
+            echo "TYPE=fix" >> $GITHUB_ENV
+            echo "EMOJI=🧩" >> $GITHUB_ENV
+            echo "DESC=Corrections de bugs" >> $GITHUB_ENV
+          elif echo "$body" | grep -qi "perf"; then
+            echo "TYPE=perf" >> $GITHUB_ENV
+            echo "EMOJI=⚙️" >> $GITHUB_ENV
+            echo "DESC=Optimisations et améliorations" >> $GITHUB_ENV
+          else
+            echo "TYPE=other" >> $GITHUB_ENV
+            echo "EMOJI=🔧" >> $GITHUB_ENV
+            echo "DESC=Mise à jour de maintenance" >> $GITHUB_ENV
+          fi
+
+      - name: 🏷️ Renommer automatiquement la release
+        run: |
+          title="${{ env.EMOJI }} Gestion Financière Little ${{ env.TAG_NAME }} – ${{ env.DESC }}"
+          echo "Nouveau titre : $title"
+          gh release edit "${{ env.TAG_NAME }}" --title "$title"
+
+      - name: 🪄 Ajouter un encart résumé au début du changelog
+        run: |
+          body="${{ github.event.release.body }}"
+          header="### 📝 Résumé : ${{ env.DESC }}\n\n---\n\n"
+          new_body="${header}${body}"
+          gh release edit "${{ env.TAG_NAME }}" --notes "$new_body"

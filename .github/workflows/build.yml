@@ -1,0 +1,643 @@
+name: 🚀 Build & Release Gestion Financière Little
+
+permissions:
+  contents: write
+  actions: read
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build et Release multi-plateforme
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: 🧰 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: 📥 Installer Tesseract OCR pour Windows uniquement
+        if: runner.os == 'Windows'
+        run: |
+          # Télécharger et installer Tesseract pour Windows
+          choco install tesseract -y
+          # Créer le dossier tesseract local
+          mkdir -p tesseract
+          # Copier Tesseract depuis l'installation système
+          cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
+          echo "✅ Tesseract installé et copié pour Windows"
+        shell: bash
+      
+      - name: 📝 Créer le dossier dist
+        run: |
+          mkdir -p dist
+          echo "✅ Dossier dist créé"
+        shell: bash
+
+      - name: 📝 Créer script de lancement pour Linux/macOS
+        if: runner.os != 'Windows'
+        run: |
+          cat > dist/run.sh << 'RUNSCRIPT'
+          #!/bin/bash
+          # Script de lancement Gestion Financière Little
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  🚀 Gestion Financière Little"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          # Détection spécifique de MX Linux et dérivés Debian
+          detect_linux_distro() {
+              if [ -f /etc/os-release ]; then
+                  . /etc/os-release
+                  # Détection spécifique pour MX Linux
+                  if [ -f /etc/mx-version ]; then
+                      echo "MX Linux"
+                  else
+                      echo "$NAME"
+                  fi
+              elif command -v lsb_release &> /dev/null; then
+                  lsb_release -d | cut -f2
+              else
+                  echo "Unknown"
+              fi
+          }
+          
+          DISTRO=$(detect_linux_distro)
+          echo "🐧 Distribution détectée: $DISTRO"
+          echo ""
+          
+          # Fonction pour installer Tesseract OCR
+          install_tesseract() {
+              echo "📦 Installation de Tesseract OCR..."
+              case "$DISTRO" in
+                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                      sudo apt-get update
+                      sudo apt-get install -y tesseract-ocr tesseract-ocr-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      sudo dnf install -y tesseract tesseract-langpack-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"Arch"*|*"Manjaro"*)
+                      sudo pacman -S --noconfirm tesseract tesseract-data-fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+                  *"macOS"*|*"Darwin"*)
+                      if ! command -v brew &> /dev/null; then
+                          echo "📦 Installation de Homebrew..."
+                          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                      fi
+                      brew install tesseract tesseract-lang/fra || {
+                          echo "❌ Impossible d'installer Tesseract OCR"
+                          return 1
+                      }
+                      ;;
+              esac
+              echo "✅ Tesseract OCR installé avec succès !"
+              return 0
+          }
+
+          # Fonction pour installer les dépendances OpenCV
+          install_opencv_deps() {
+              echo "📦 Installation des dépendances OpenCV..."
+              case "$DISTRO" in
+                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                      sudo apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libgl1-mesa-glx || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      sudo dnf install -y glib2 libSM libXrender libXext mesa-libGL || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+                  *"Arch"*|*"Manjaro"*)
+                      sudo pacman -S --noconfirm glib2 libsm libxrender libxext mesa || {
+                          echo "❌ Impossible d'installer les dépendances OpenCV"
+                          return 1
+                      }
+                      ;;
+              esac
+              echo "✅ Dépendances OpenCV installées avec succès !"
+              return 0
+          }
+          
+          # Vérifier la version de Python
+          check_python_version() {
+              python3 -c "import sys; exit(0) if sys.version_info >= (3, 8) else exit(1)" || {
+                  echo "❌ Python 3.8+ requis. Version actuelle: $(python3 --version)"
+                  return 1
+              }
+              return 0
+          }
+          
+          # Vérifier Python
+          if ! command -v python3 &> /dev/null; then
+              echo "⚠️  Python 3 n'est pas installé sur votre système."
+              echo ""
+              read -p "❓ Voulez-vous que je l'installe automatiquement ? (o/N) " response
+              
+              if [[ "$response" =~ ^[OoYy]$ ]]; then
+                  case "$DISTRO" in
+                      *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                          sudo apt-get update || {
+                              echo "❌ Échec de la mise à jour des paquets"
+                              exit 1
+                          }
+                          sudo apt-get install -y python3 python3-pip python3-venv python3-full || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo apt install python3 python3-pip python3-venv"
+                              exit 1
+                          }
+                          ;;
+                      *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                          sudo dnf install -y python3 python3-pip python3-virtualenv || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo dnf install python3 python3-pip"
+                              exit 1
+                          }
+                          ;;
+                      *"Arch"*|*"Manjaro"*)
+                          sudo pacman -S --noconfirm python python-pip python-virtualenv || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : sudo pacman -S python python-pip"
+                              exit 1
+                          }
+                          ;;
+                      *"macOS"*|*"Darwin"*)
+                          if ! command -v brew &> /dev/null; then
+                              echo "📦 Installation de Homebrew..."
+                              /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                          fi
+                          brew install python@3.11 || {
+                              echo "❌ Échec de l'installation automatique."
+                              echo "📋 Essayez manuellement : brew install python@3.11"
+                              exit 1
+                          }
+                          ;;
+                      *)
+                          echo "❌ Distribution non supportée pour l'installation automatique."
+                          echo "📋 Installez Python manuellement pour votre distribution."
+                          exit 1
+                          ;;
+                  esac
+                  echo "✅ Python installé avec succès !"
+              else
+                  echo ""
+                  echo "📋 Installez Python manuellement, puis relancez ce script."
+                  exit 1
+              fi
+          fi
+          
+          # Vérifier la version de Python
+          check_python_version || exit 1
+          echo "✅ Python détecté: $(python3 --version)"
+          echo ""
+          
+          # Vérifier et installer Tesseract OCR
+          if ! command -v tesseract &> /dev/null; then
+              echo "🔍 Tesseract OCR non détecté."
+              echo ""
+              read -p "❓ Voulez-vous installer Tesseract OCR (nécessaire pour l'OCR) ? (O/n) " tesseract_response
+              
+              if [[ "$tesseract_response" =~ ^[OoYy]*$ ]] || [ -z "$tesseract_response" ]; then
+                  install_tesseract || {
+                      echo "⚠️  Tesseract OCR n'est pas installé. L'OCR ne fonctionnera pas."
+                  }
+              else
+                  echo "⚠️  Tesseract OCR non installé. L'OCR ne fonctionnera pas."
+              fi
+          else
+              echo "✅ Tesseract OCR détecté: $(tesseract --version | head -n1)"
+          fi
+
+          # Installer les dépendances OpenCV
+          echo ""
+          echo "🔍 Installation des dépendances OpenCV..."
+          install_opencv_deps || {
+              echo "⚠️  Les dépendances OpenCV ne sont pas installées. Certaines fonctionnalités peuvent ne pas fonctionner."
+          }
+          echo ""
+          
+          # Utilisation d'un environnement virtuel
+          VENV_DIR=".little_finance_env"
+          echo "🔧 Configuration de l'environnement Python..."
+          
+          # Vérifier si l'environnement existe déjà
+          if [ ! -d "$VENV_DIR" ]; then
+              echo "📦 Création de l'environnement virtuel Python..."
+              
+              # Vérifier si python3-venv est installé
+              if ! python3 -c "import venv" 2>/dev/null; then
+                  echo "⚠️  Le module venv n'est pas disponible."
+                  echo "📦 Installation de python3-venv..."
+                  
+                  case "$DISTRO" in
+                      *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                          sudo apt-get install -y python3-venv python3-full || {
+                              echo "❌ Impossible d'installer python3-venv"
+                              echo "💡 Essayez: sudo apt install python3-venv python3-full"
+                              exit 1
+                          }
+                          ;;
+                      *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                          sudo dnf install -y python3-virtualenv || {
+                              echo "❌ Impossible d'installer python3-virtualenv"
+                              exit 1
+                          }
+                          ;;
+                      *"Arch"*|*"Manjaro"*)
+                          sudo pacman -S --noconfirm python-virtualenv || {
+                              echo "❌ Impossible d'installer python-virtualenv"
+                              exit 1
+                          }
+                          ;;
+                      *"macOS"*|*"Darwin"*)
+                          echo "✅ venv devrait être disponible avec Python"
+                          ;;
+                  esac
+              fi
+              
+              python3 -m venv "$VENV_DIR" || {
+                  echo "❌ Impossible de créer l'environnement virtuel"
+                  exit 1
+              }
+              echo "✅ Environnement virtuel créé !"
+          else
+              echo "✅ Environnement virtuel existant détecté"
+          fi
+          
+          # Activer l'environnement virtuel
+          source "$VENV_DIR/bin/activate"
+          echo "✅ Environnement virtuel activé"
+          
+          # Installation de TOUTES les dépendances Python
+          echo "📦 Installation des dépendances Python..."
+          python -m pip install --upgrade pip --quiet
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
+              echo "❌ Erreur lors de l'installation des dépendances"
+              echo "🔁 Nouvelle tentative avec des options étendues..."
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
+                  echo "❌ Échec critique de l'installation des dépendances"
+                  exit 1
+              }
+          }
+          echo "✅ Dépendances installées dans l'environnement virtuel !"
+          
+          # Vérification CRITIQUE que pytesseract est bien installé
+          echo "🔍 Vérification de l'installation de pytesseract..."
+          python -c "import pytesseract; print('✅ pytesseract importé avec succès')" || {
+              echo "❌ pytesseract non installé, tentative de réinstallation..."
+              python -m pip install pytesseract --force-reinstall --no-cache-dir || {
+                  echo "❌ Échec critique de l'installation de pytesseract"
+                  echo "💡 Le module OCR ne fonctionnera pas"
+              }
+          }
+
+          # Vérification de OpenCV
+          echo "🔍 Vérification de l'installation de OpenCV..."
+          python -c "import cv2; print('✅ OpenCV importé avec succès')" || {
+              echo "❌ OpenCV non installé, tentative de réinstallation..."
+              python -m pip install opencv-python-headless --force-reinstall --no-cache-dir || {
+                  echo "❌ Échec critique de l'installation de OpenCV"
+                  echo "💡 Le traitement d'image ne fonctionnera pas"
+              }
+          }
+          
+          # Vérification finale de toutes les dépendances
+          echo "🔍 Vérification finale des dépendances..."
+          python -c "
+          try:
+              import streamlit
+              import pandas
+              import pytesseract
+              import PIL
+              import dateutil
+              import cv2
+              import numpy
+              import matplotlib
+              import requests
+              print('✅ Toutes les dépendances sont installées avec succès!')
+          except ImportError as e:
+              print(f'❌ Erreur d\\'import: {e}')
+              exit(1)
+          " || {
+              echo "❌ Certaines dépendances ne sont pas correctement installées"
+              exit 1
+          }
+          
+          # Lancer l'application
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ▶️  Lancement de l'application..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "💡 L'application va s'ouvrir dans votre navigateur"
+          echo "💡 Pour arrêter : Fermez ce terminal (Ctrl+C)"
+          echo "💡 Environnement: $VENV_DIR"
+          echo ""
+          
+          sleep 2
+          
+          # Lancer Streamlit depuis l'environnement virtuel
+          python -m streamlit run gestiolittle.py --server.port 8501 --server.headless true
+
+          # Si Streamlit se ferme (erreur ou arrêt manuel)
+          echo ""
+          echo "🔧 Pour relancer l'application plus tard :"
+          echo "   ./run.sh"
+          echo ""
+          RUNSCRIPT
+          
+          chmod +x dist/run.sh
+          echo "✅ Script run.sh créé avec succès"
+        shell: bash
+
+      - name: 🏗️ Compiler l'application (optimisé antivirus)
+        run: |
+          # Installer pyinstaller uniquement pour la compilation
+          python -m pip install pyinstaller
+          
+          # 🔥 CORRECTION : Utiliser lancer_gestiolittle.spec existant ou créer un fallback
+          if [ -f "lancer_gestiolittle.spec" ]; then
+            echo "📋 Utilisation de lancer_gestiolittle.spec existant..."
+            pyinstaller lancer_gestiolittle.spec --clean --noconfirm
+          else
+            echo "📋 Création d'un .spec de secours..."
+            # Créer un fichier .spec optimisé
+            cat > gestiolittle.spec << 'EOF'
+          # -*- mode: python ; coding: utf-8 -*-
+          import os
+          import glob
+          
+          block_cipher = None
+          
+          # Collecter tous les fichiers .py nécessaires
+          py_files = []
+          
+          # Ajouter gestiolittle.py
+          if os.path.exists('app/gestiolittle.py'):
+              py_files.append(('app/gestiolittle.py', '.'))
+          
+          # 🔥 CRITIQUE : Ajouter configlittle.py
+          if os.path.exists('app/configlittle.py'):
+              py_files.append(('app/configlittle.py', '.'))
+          
+          # Ajouter auto_updater.py
+          if os.path.exists('app/auto_updater.py'):
+              py_files.append(('app/auto_updater.py', '.'))
+          
+          # Ajouter changelog_viewer.py
+          if os.path.exists('app/changelog_viewer.py'):
+              py_files.append(('app/changelog_viewer.py', '.'))
+          
+          # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
+          if os.path.exists('tesseract'):
+              py_files.append(('tesseract', 'tesseract'))
+          
+          a = Analysis(
+              ['app/lancer_gestiolittle.py'],
+              pathex=['app'],
+              binaries=[],
+              datas=py_files,
+              hiddenimports=['streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
+              hookspath=[],
+              hooksconfig={},
+              runtime_hooks=[],
+              excludes=['pytest', 'unittest', 'test', '_pytest', 'setuptools', 'pip', 'wheel'],
+              win_no_prefer_redirects=False,
+              win_private_assemblies=False,
+              cipher=block_cipher,
+              noarchive=False,
+          )
+          
+          pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+          
+          exe = EXE(
+              pyz,
+              a.scripts,
+              a.binaries,
+              a.zipfiles,
+              a.datas,
+              [],
+              name='GestionFinanciereLittle',
+              debug=False,
+              bootloader_ignore_signals=False,
+              strip=False,
+              upx=False,
+              console=True,
+              disable_windowed_traceback=False,
+              argv_emulation=False,
+              target_arch=None,
+              codesign_identity=None,
+              entitlements_file=None,
+          )
+          EOF
+            
+            # Compiler avec le .spec de secours
+            pyinstaller gestiolittle.spec --clean --noconfirm
+          fi
+          
+          # 🔥 CORRECTION WINDOWS : Copier TOUS les fichiers Python à côté de l'exe
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "📦 Copie des modules Python à côté de l'exécutable..."
+            cp app/configlittle.py dist/ || echo "⚠️ configlittle.py non copié"
+            cp app/auto_updater.py dist/ || echo "⚠️ auto_updater.py non copié"
+            cp app/changelog_viewer.py dist/ || echo "⚠️ changelog_viewer.py non copié"
+            cp app/gestiolittle.py dist/ || echo "⚠️ gestiolittle.py non copié"
+            
+            # Copier tesseract
+            if [ -d "tesseract" ]; then
+              cp -r tesseract dist/
+              echo "✅ Tesseract copié"
+            fi
+            
+            # Vérifier que tous les fichiers sont présents
+            echo "🔍 Vérification des fichiers dans dist/ :"
+            ls -la dist/*.py || echo "⚠️ Aucun fichier .py trouvé dans dist/"
+          fi
+          
+          echo "✅ Application compilée avec succès"
+          
+        shell: bash
+
+
+      - name: ⚙️ Ajouter installateur automatique Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "🪄 Copie de l'installateur PowerShell et du launcher .bat depuis le dépôt..."
+          mkdir -p dist
+          cp app/install_and_run_windows.ps1 dist/ || { echo "❌ Fichier app/install_and_run_windows.ps1 introuvable"; exit 1; }
+          cp app/Lancer_GFL.bat               dist/ || { echo "❌ Fichier app/Lancer_GFL.bat introuvable"; exit 1; }
+          echo "✅ Installateur et launcher copiés dans dist/"
+
+
+
+      - name: 📦 Créer le package de distribution
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cd dist
+            # Vérifier la présence du fichier principal et du launcher
+            if [ ! -f "GestionFinanciereLittle.exe" ]; then
+              echo "❌ Erreur : exécutable non trouvé dans dist/"
+              exit 1
+            fi
+
+            # Vérifier que tous les fichiers Python critiques sont présents
+            echo "🔍 Vérification des fichiers Python critiques..."
+            [ -f "configlittle.py" ] && echo "✅ configlittle.py présent" || echo "❌ configlittle.py MANQUANT"
+            [ -f "gestiolittle.py" ] && echo "✅ gestiolittle.py présent" || echo "❌ gestiolittle.py MANQUANT"
+            [ -f "auto_updater.py" ] && echo "✅ auto_updater.py présent" || echo "❌ auto_updater.py MANQUANT"
+            [ -f "changelog_viewer.py" ] && echo "✅ changelog_viewer.py présent" || echo "❌ changelog_viewer.py MANQUANT"
+
+            # Vérifier et inclure le dossier tesseract si présent
+            if [ -d "tesseract" ]; then
+              echo "📦 Inclusion du dossier tesseract et des fichiers d’installation..."
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
+            else
+              echo "📦 Création du ZIP avec les fichiers d’installation..."
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
+            fi
+
+            echo "📁 Vérification du contenu du ZIP final..."
+            7z l GestionFinanciereLittle-Windows.zip
+
+            cd ..
+            echo "✅ Package Windows créé avec succès"
+          
+          elif [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
+            # Linux/macOS : Copier TOUS les fichiers Python nécessaires
+            for file in app/*.py; do
+              if [ -f "$file" ]; then
+                cp "$file" dist/
+                echo "📄 Copié: $file"
+              fi
+            done
+            cd dist
+            if [[ "$RUNNER_OS" == "Linux" ]]; then
+              zip -r GestionFinanciereLittle-Linux.zip *.py run.sh
+              echo "✅ Package Linux créé avec tous les fichiers Python"
+            else
+              zip -r GestionFinanciereLittle-macOS.zip *.py run.sh
+              echo "✅ Package macOS créé avec tous les fichiers Python"
+            fi
+            cd ..
+          fi
+        shell: bash
+
+      - name: 🔢 Lire la version depuis VERSION.txt
+        id: ver
+        run: |
+          if [ ! -f version.txt ]; then
+            echo "VERSION=0.0.0" >> $GITHUB_ENV
+          else
+            V=$(cat version.txt | tr -d ' \r\n')
+            echo "VERSION=$V" >> $GITHUB_ENV
+          fi
+        shell: bash
+
+      - name: 📝 Générer titre + notes (conventional commits)
+        id: notes
+        run: |
+          set -e
+
+          if git describe --tags --abbrev=0 >/tmp/last_tag 2>/dev/null; then
+            LAST_TAG=$(cat /tmp/last_tag)
+          else
+            LAST_TAG=""
+          fi
+          if [ -n "$LAST_TAG" ]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+
+          # Récupérer les messages de commit
+          git log --pretty=format:%s $RANGE > /tmp/commits.txt || true
+
+          # Flags par type
+          HAS_BREAK=$(grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt || true)
+          HAS_FEAT=$(grep -Ei '^feat(\(|:)' /tmp/commits.txt || true)
+          HAS_FIX=$(grep -Ei '^fix(\(|:)' /tmp/commits.txt || true)
+          HAS_PERF=$(grep -Ei '^perf(\(|:)' /tmp/commits.txt || true)
+          HAS_REFACTOR=$(grep -Ei '^refactor(\(|:)' /tmp/commits.txt || true)
+          HAS_DOCS=$(grep -Ei '^docs(\(|:)' /tmp/commits.txt || true)
+          HAS_CHORE=$(grep -Ei '^chore(\(|:)' /tmp/commits.txt || true)
+
+          # Titre dynamique
+          TITLE="🔧 Maintenance"
+          if [ -n "$HAS_BREAK" ]; then
+            TITLE="💥 Changements majeurs"
+          elif [ -n "$HAS_FEAT" ] && [ -n "$HAS_FIX" ]; then
+            TITLE="✨ Nouvelles fonctionnalités & 🐛 Corrections"
+          elif [ -n "$HAS_FEAT" ]; then
+            TITLE="✨ Nouvelles fonctionnalités"
+          elif [ -n "$HAS_FIX" ]; then
+            TITLE="🐛 Corrections de bugs"
+          elif [ -n "$HAS_PERF" ]; then
+            TITLE="⚡ Améliorations de performances"
+          elif [ -n "$HAS_REFACTOR" ]; then
+            TITLE="🧹 Refactor"
+          elif [ -n "$HAS_DOCS" ]; then
+            TITLE="📝 Documentation"
+          fi
+
+          # Corps : regrouper par section
+          body() {
+            SEC="$1"; PAT="$2"
+            MATCHES=$(grep -E "$PAT" /tmp/commits.txt | sed -E 's/^[a-z]+(\([^)]+\))?:\s*//' || true)
+            if [ -n "$MATCHES" ]; then
+              echo "### $SEC"
+              echo "$MATCHES" | sed 's/^/- /'
+              echo
+            fi
+          }
+
+          {
+            echo "## ${TITLE} — ${{ env.VERSION }}"
+            echo
+            [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
+              grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
+            body "✨ Features" '^feat(\(|:)'
+            body "🐛 Fixes" '^fix(\(|:)'
+            body "⚡ Perf" '^perf(\(|:)'
+            body "🧹 Refactor" '^refactor(\(|:)'
+            body "📝 Docs" '^docs(\(|:)'
+            body "🔧 Chore" '^chore(\(|:)'
+          } > /tmp/release_notes.md
+
+          echo "title=${TITLE}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: 📤 Upload de l'exécutable pour la Release (DRAFT)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: "Gestion Financière Little ${{ env.VERSION }} — ${{ steps.notes.outputs.title }}"
+          draft: true
+          prerelease: false
+          body_path: /tmp/release_notes.md
+          files: |
+            dist/GestionFinanciereLittle*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
