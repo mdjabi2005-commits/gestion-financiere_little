@@ -219,12 +219,25 @@ Write-Host ""
 
 Start-Sleep -Seconds 2
 
-Start-Process "python" "-m streamlit run `"$mainScript`" --server.port 8501 --server.headless true"
-
-Show-Message "Gestion Financiere Little" "Application demarree avec succes ! Elle devrait s'ouvrir dans votre navigateur dans quelques secondes." "Information"
-
-Write-Host "Application lancee"
-Write-Host "Acces : http://localhost:8501"
 Write-Host ""
-Write-Host "Gardez cette fenetre ouverte tant que vous utilisez l'application"
+Write-Host "🚀 Lancement de l'application Streamlit..."
+Write-Host "💡 L'application va s'ouvrir dans votre navigateur (http://localhost:8501)"
+Write-Host "💡 Gardez cette fenêtre ouverte tant que vous l'utilisez."
 Write-Host ""
+Start-Sleep -Seconds 2
+
+# Lancer Streamlit dans la même fenêtre (bloquant)
+try {
+    python -m streamlit run "`"$mainScript`"" --server.port 8501 --server.headless true
+}
+catch {
+    Show-Message "Erreur de lancement" "Impossible de démarrer Streamlit. Vérifiez l'installation." "Error"
+    Read-Host "Appuyez sur Entrée pour fermer"
+    exit 1
+}
+
+# Quand Streamlit se ferme, garder la console ouverte
+Write-Host ""
+Write-Host "🛑 L'application a été arrêtée."
+Write-Host "Appuyez sur une touche pour fermer cette fenêtre."
+Pause
