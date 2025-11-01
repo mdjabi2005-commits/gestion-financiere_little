@@ -545,96 +545,94 @@ jobs:
           fi
         shell: bash
 
+      - name: 🔢 Lire la version depuis VERSION.txt
+        id: ver
+        run: |
+          if [ ! -f version.txt ]; then
+            echo "VERSION=0.0.0" >> $GITHUB_ENV
+          else
+            V=$(cat version.txt | tr -d ' \r\n')
+            echo "VERSION=$V" >> $GITHUB_ENV
+          fi
+
+      - name: 📝 Générer titre + notes (conventional commits)
+        id: notes
+        run: |
+          set -e
+
+          # Dernier tag (ou vide si aucun)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+
+          # Récupérer les messages de commit
+          git log --pretty=format:%s $RANGE > /tmp/commits.txt || true
+
+          # Flags par type
+          HAS_BREAK=$(grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt || true)
+          HAS_FEAT=$(grep -Ei '^feat(\(|:)' /tmp/commits.txt || true)
+          HAS_FIX=$(grep -Ei '^fix(\(|:)' /tmp/commits.txt || true)
+          HAS_PERF=$(grep -Ei '^perf(\(|:)' /tmp/commits.txt || true)
+          HAS_REFACTOR=$(grep -Ei '^refactor(\(|:)' /tmp/commits.txt || true)
+          HAS_DOCS=$(grep -Ei '^docs(\(|:)' /tmp/commits.txt || true)
+          HAS_CHORE=$(grep -Ei '^chore(\(|:)' /tmp/commits.txt || true)
+
+          # Titre dynamique
+          TITLE="🔧 Maintenance"
+          if [ -n "$HAS_BREAK" ]; then
+            TITLE="💥 Changements majeurs"
+          elif [ -n "$HAS_FEAT" ] && [ -n "$HAS_FIX" ]; then
+            TITLE="✨ Nouvelles fonctionnalités & 🐛 Corrections"
+          elif [ -n "$HAS_FEAT" ]; then
+            TITLE="✨ Nouvelles fonctionnalités"
+          elif [ -n "$HAS_FIX" ]; then
+            TITLE="🐛 Corrections de bugs"
+          elif [ -n "$HAS_PERF" ]; then
+            TITLE="⚡ Améliorations de performances"
+          elif [ -n "$HAS_REFACTOR" ]; then
+            TITLE="🧹 Refactor"
+          elif [ -n "$HAS_DOCS" ]; then
+            TITLE="📝 Documentation"
+          fi
+
+          # Corps : regrouper par section
+          body() {
+            SEC="$1"; PAT="$2"
+            MATCHES=$(grep -E "$PAT" /tmp/commits.txt | sed -E 's/^[a-z]+(\([^)]+\))?:\s*//')
+            if [ -n "$MATCHES" ]; then
+              echo "### $SEC"
+              echo "$MATCHES" | sed 's/^/- /'
+              echo
+            fi
+          }
+
+          {
+            echo "## ${TITLE} — v${{ env.VERSION }}"
+            echo
+            [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
+              grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
+            body "✨ Features" '^feat(\(|:)'
+            body "🐛 Fixes" '^fix(\(|:)'
+            body "⚡ Perf" '^perf(\(|:)'
+            body "🧹 Refactor" '^refactor(\(|:)'
+            body "📝 Docs" '^docs(\(|:)'
+            body "🔧 Chore" '^chore(\(|:)'
+          } > /tmp/release_notes.md
+
+          echo "title=${TITLE}" >> $GITHUB_OUTPUT
+
       - name: 📤 Upload de l'exécutable pour la Release (DRAFT)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: "🧪 TEST - Gestion Financière Little v${{ github.run_number }}"
-          draft: true  # ← 🔥 DRAFT MODE ACTIVÉ
+          tag_name: v${{ env.VERSION }}
+          name: "Gestion Financière Little v${{ env.VERSION }} — ${{ steps.notes.outputs.title }}"
+          draft: true
           prerelease: false
-          body: |
-            ## ⚠️ CECI EST UNE DRAFT (VERSION DE TEST)
-            
-            Cette release n'est **PAS ENCORE PUBLIQUE**.
-            Elle est visible **uniquement par vous** (propriétaire du dépôt).
-            
-            ### ✅ CORRECTIONS APPLIQUÉES DANS CETTE VERSION
-            
-            - ✅ **Fichier `configlittle.py` maintenant inclus** dans le ZIP Windows
-            - ✅ Tous les modules Python copiés à côté de l'exécutable
-            - ✅ Import corrigé : `from configlittle import ...` fonctionne maintenant
-            - ✅ Vérification automatique de la présence des fichiers critiques
-            
-            ### ✅ ÉTAPES DE TEST AVANT PUBLICATION
-            
-            1. ⬇️ **Télécharger** les 3 fichiers ZIP ci-dessous
-            2. 📦 **Extraire** chaque ZIP dans un dossier de test
-            3. ✅ **Vérifier** la présence de ces fichiers dans le ZIP Windows :
-               - `GestionFinanciereLittle.exe`
-               - `gestiolittle.py`
-               - `configlittle.py` ← **CRITIQUE**
-               - `auto_updater.py`
-               - `changelog_viewer.py`
-               - `tesseract/` (dossier)
-            4. ▶️ **Lancer** `GestionFinanciereLittle.exe`
-            5. ✅ **Confirmer** que l'erreur `ModuleNotFoundError: No module named 'configlittle'` n'apparaît plus
-            6. 🧪 **Tester** toutes les fonctionnalités (OCR, ajout manuel, récurrence, etc.)
-            7. 📝 **Si tout est OK** :
-               - Cliquez sur "Edit" (en haut à droite)
-               - Cochez "Set as the latest release"
-               - Modifiez les notes de version ci-dessous
-               - Cliquez sur "Publish release" 🎉
-            
-            ---
-            
-            ## 📦 Téléchargements par Plateforme
-            
-            ### 🪟 Windows (Exécutable Standalone)
-            - `GestionFinanciereLittle-Windows.zip`
-            - ✅ Aucune installation requise
-            - ⚠️ Extraire le ZIP et lancer le .exe
-            - 🔧 Tesseract OCR inclus
-            - 🔥 **CORRECTION : configlittle.py maintenant inclus**
-            
-            ### 🐧 Linux (Script Python)
-            - `GestionFinanciereLittle-Linux.zip`
-            - 📋 Prérequis : Python 3.8+
-            - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
-            - 🔧 Environnement virtuel automatique
-            - 🐛 Tous les fichiers Python inclus (configlittle.py, auto_updater.py, etc.)
-            - 📦 Dépendances OpenCV incluses
-            
-            ### 🍎 macOS (Script Python)
-            - `GestionFinanciereLittle-macOS.zip`
-            - 📋 Prérequis : Python 3.8+
-            - ▶️ Lancer : `chmod +x run.sh && ./run.sh`
-            - 🔧 Environnement virtuel automatique
-            - 🐛 Tous les fichiers Python inclus (configlittle.py, auto_updater.py, etc.)
-            
-            ---
-            
-            ## 🆕 Notes de version (À MODIFIER AVANT PUBLICATION)
-            
-            ### Nouveautés
-            - [ ] Décrivez les nouvelles fonctionnalités
-            - [ ] Ajoutez ce qui a été ajouté
-            
-            ### Corrections de bugs
-            - [x] Correction : `ModuleNotFoundError: No module named 'configlittle'`
-            - [ ] Listez les autres bugs corrigés
-            
-            ### Améliorations
-            - [x] Amélioration du processus de build
-            - [x] Vérification automatique de la présence des fichiers critiques
-            - [ ] Décrivez les autres améliorations
-            
-            ---
-            
-            📖 **Guide complet** : [GUIDE_INSTALLATION.md](https://github.com/mdjabi2005-commits/gestion-financiere_little/blob/main/GUIDE_INSTALLATION.md)
-            
-            🔒 **Note de sécurité** : L'exécutable Windows peut être signalé comme faux positif par certains antivirus (PyInstaller). C'est normal et documenté dans le guide.
+          body_path: /tmp/release_notes.md
           files: |
             dist/GestionFinanciereLittle*.zip
-          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
