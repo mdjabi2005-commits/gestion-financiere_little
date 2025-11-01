@@ -5,6 +5,7 @@ Vérifie les nouvelles versions sur GitHub et propose l'installation automatique
 """
 
 import os
+
 import sys
 import json
 import shutil
