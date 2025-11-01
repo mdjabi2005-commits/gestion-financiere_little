@@ -605,7 +605,7 @@ jobs:
           # Corps : regrouper par section
           body() {
             SEC="$1"; PAT="$2"
-            MATCHES=$(grep -E "$PAT" /tmp/commits.txt | sed -E 's/^[a-z]+(\([^)]+\))?:\s*//')
+            MATCHES=$(grep -E "$PAT" /tmp/commits.txt | sed -E 's/^[a-z]+(\([^)]+\))?:\s*//' || true)
             if [ -n "$MATCHES" ]; then
               echo "### $SEC"
               echo "$MATCHES" | sed 's/^/- /'
@@ -614,7 +614,7 @@ jobs:
           }
 
           {
-            echo "## ${TITLE} — v${VERSION}"
+            echo "## ${TITLE} — v${{ env.VERSION }}"
             echo
             [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
               grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
