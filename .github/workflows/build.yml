@@ -483,70 +483,14 @@ jobs:
 
       - name: ⚙️ Ajouter installateur automatique Windows
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          Write-Host "🪄 Création de l'installateur PowerShell et du launcher .bat..."
+          echo "🪄 Copie de l'installateur PowerShell et du launcher .bat depuis le dépôt..."
+          mkdir -p dist
+          cp app/install_and_run_windows.ps1 dist/ || { echo "❌ Fichier app/install_and_run_windows.ps1 introuvable"; exit 1; }
+          cp app/Lancer_GFL.bat               dist/ || { echo "❌ Fichier app/Lancer_GFL.bat introuvable"; exit 1; }
+          echo "✅ Installateur et launcher copiés dans dist/"
 
-          # Créer le dossier dist si besoin
-          if (-not (Test-Path dist)) {
-            New-Item -ItemType Directory -Path dist | Out-Null
-          }
-
-          # Créer le script PowerShell
-          @"
-          # =============================
-          # 🚀 INSTALLATEUR AUTOMATIQUE GUI
-          # Gestion Financière Little
-          # =============================
-          Add-Type -AssemblyName PresentationFramework
-          function Show-Message {
-              param ($title, $message, $type = "Info")
-              [System.Windows.MessageBox]::Show($message, $title, [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::$type)
-          }
-          function Show-Progress { param($m) ; Write-Host ""; Write-Host "🕐 $m..." }
-          function Download-File { param ($u, $d) ; $c = New-Object System.Net.WebClient ; $c.DownloadFile($u, $d) }
-
-          if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-              Show-Message "Droits administrateur requis" "❌ Ce script doit être lancé en tant qu'administrateur.`nClique droit → Exécuter avec PowerShell (Administrateur)" "Error"
-              exit
-          }
-
-          Show-Progress "Vérification de Python"
-          $pythonInstalled = Get-Command python -ErrorAction SilentlyContinue
-          if (-not $pythonInstalled) {
-              $ans = [System.Windows.MessageBox]::Show("Python n'est pas installé.`nVoulez-vous l'installer automatiquement ?", "Installation de Python", [System.Windows.MessageBoxButton]::YesNo, [System.Windows.MessageBoxImage]::Question)
-              if ($ans -eq "No") { exit }
-              $url = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe"
-              $installer = "$env:TEMP\\python_installer.exe"
-              Show-Progress "Téléchargement de Python 3.13..."
-              (New-Object System.Net.WebClient).DownloadFile($url, $installer)
-              Show-Progress "Installation silencieuse de Python"
-              Start-Process -FilePath $installer -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
-              Remove-Item $installer -ErrorAction SilentlyContinue
-              Show-Message "Installation terminée" "✅ Python 3.13 a été installé avec succès !" "Information"
-          }
-
-          Show-Progress "Vérification de pip"
-          python -m ensurepip --upgrade | Out-Null
-          python -m pip install --upgrade pip setuptools wheel | Out-Null
-
-          Show-Progress "Installation des dépendances (cela peut prendre quelques minutes)"
-          python -m pip install --upgrade streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests | Out-Null
-          Show-Message "Dépendances installées" "✅ Toutes les dépendances ont été installées avec succès !" "Information"
-
-          Show-Progress "Lancement de Gestion Financière Little"
-          Start-Process "python" "-m streamlit run gestiolittle.py --server.headless true"
-          Show-Message "Application lancée" "🚀 Gestion Financière Little a été démarrée avec succès !" "Information"
-          "@ | Out-File -Encoding UTF8 dist/install_and_run_windows.ps1
-
-          # Créer le launcher BAT
-          @"
-          @echo off
-          powershell -ExecutionPolicy Bypass -File "install_and_run_windows.ps1"
-          pause
-          "@ | Out-File -Encoding ASCII dist/Lancer_GFL.bat
-
-          Write-Host "✅ Installateur et launcher ajoutés dans dist/"
 
 
       - name: 📦 Créer le package de distribution
@@ -572,7 +516,7 @@ jobs:
               7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
             else
               echo "📦 Création du ZIP avec les fichiers d’installation..."
-               7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
             fi
 
             echo "📁 Vérification du contenu du ZIP final..."
