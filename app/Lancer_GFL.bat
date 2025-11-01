@@ -1,6 +1,6 @@
 @echo off
 <<<<<<< HEAD
-title  Lancement Gestion Financière Little
+title  Lancement Gestion Financiere Little
 color 0A
 
 echo ==========================================================
