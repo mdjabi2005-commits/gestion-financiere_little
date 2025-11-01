@@ -10,6 +10,12 @@ Set-Location $root
 
 function Have($cmd) { $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue) }
 
+function Show-Message {
+    param ($title, $message, $type = "Information")
+    Add-Type -AssemblyName PresentationFramework
+    [System.Windows.MessageBox]::Show($message, $title, [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::$type)
+}
+
 Write-Host "[1/5] Vérification de Python..."
 if (-not (Have "python")) {
     $url = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe"
@@ -17,30 +23,32 @@ if (-not (Have "python")) {
     (New-Object System.Net.WebClient).DownloadFile($url, $tmp)
     Start-Process -FilePath $tmp -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
     Remove-Item $tmp -ErrorAction SilentlyContinue
-    if (-not (Have "python")) { Write-Host "Python introuvable après installation."; Read-Host "Entrée pour fermer"; exit 1 }
+    if (-not (Have "python")) {
+        Show-Message "Erreur" "Python n'a pas pu être installé."
+        Read-Host "Entrée pour fermer"
+        exit 1
+    }
 }
-Write-Host "OK"
+Write-Host "Python OK"
 
-Write-Host "[2/5] Réparation/MAJ de pip..."
+Write-Host "[2/5] Mise à jour de pip..."
 python -m ensurepip --upgrade | Out-Null
 python -m pip install --upgrade pip setuptools wheel | Out-Null
-Write-Host "OK"
 
-Write-Host "[3/5] Installation des dépendances (cela peut durer)..."
+Write-Host "[3/5] Installation des dépendances..."
 $pkgs = @(
     "streamlit","pandas","pytesseract","Pillow","python-dateutil",
     "opencv-python-headless","numpy","matplotlib","pdfminer.six","requests"
 )
 python -m pip install --upgrade $pkgs | Out-Null
-Write-Host "OK"
+Write-Host "Modules installés."
 
-# Optionnel : vérifier tesseract.exe local si tu l’embarques
 $tessLocal = Join-Path $root "tesseract\tesseract.exe"
 if (Test-Path $tessLocal) {
     $env:PATH = "$($root)\tesseract;$env:PATH"
 }
 
-Write-Host "[4/5] Vérifications rapides d'import..."
+Write-Host "[4/5] Test des imports..."
 $check = @"
 try:
     import streamlit, pandas, pytesseract, PIL, dateutil, cv2, numpy, matplotlib, requests
@@ -49,13 +57,19 @@ except Exception as e:
     print("ERR:", e)
 "@
 $result = python -c $check
-if ($result -notmatch "^OK") { Write-Host $result; Read-Host "Erreur d'import. Entrée pour fermer"; exit 1 }
-Write-Host "OK"
+if ($result -notmatch "^OK") {
+    Show-Message "Erreur" "Un module Python est manquant : $result"
+    Read-Host "Entrée pour fermer"
+    exit 1
+}
 
-Write-Host "[5/5] Lancement de l'application..."
-# IMPORTANT : chemin explicite vers gestiolittle.py
+Write-Host "[5/5] Lancement..."
 $main = Join-Path $root "gestiolittle.py"
-if (-not (Test-Path $main)) { Write-Host "gestiolittle.py introuvable dans $root"; Read-Host "Entrée pour fermer"; exit 1 }
+if (-not (Test-Path $main)) {
+    Show-Message "Erreur" "Fichier gestiolittle.py introuvable."
+    Read-Host "Entrée pour fermer"
+    exit 1
+}
 
 Start-Process "python" "-m streamlit run `"$main`" --server.headless true"
-Write-Host "Application démarrée. Vous pouvez fermer cette fenêtre."
+Show-Message "Lancement" "Gestion Financière Little a démarré."
