@@ -28,28 +28,45 @@ IF %ERRORLEVEL% NEQ 0 (
     EXIT /B 1
 )
 
-ECHO [INFO] Lancement du script d'installation PowerShell...
-ECHO.
-
-REM --- Vérifie si Python est installé ---
+REM Vérifier si Python est installé
 where python >nul 2>nul
-if %errorlevel%==0 (
-    echo  Python detecte ! Lancement direct de l'application...
+IF %ERRORLEVEL%==0 (
+    ECHO [INFO] Python détecté !
+    ECHO [INFO] Vérification de la présence de Streamlit...
+    
+    REM Vérifie si Streamlit est installé
+    python -m pip show streamlit >nul 2>nul
+    IF %ERRORLEVEL% NEQ 0 (
+        ECHO [AVERTISSEMENT] Streamlit non détecté. Installation automatique...
+        python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests
+        IF %ERRORLEVEL% NEQ 0 (
+            ECHO [ERREUR] Impossible d'installer Streamlit automatiquement.
+            ECHO Vérifiez votre connexion Internet ou installez-le manuellement :
+            ECHO     python -m pip install streamlit
+            PAUSE
+            EXIT /B 1
+        )
+        ECHO [OK] Streamlit installé avec succès.
+    ) ELSE (
+        ECHO [OK] Streamlit déjà présent.
+    )
+    
+    ECHO [INFO] Lancement de l'application...
     timeout /t 1 >nul
     python -m streamlit run gestiolittle.py --server.headless true
     PAUSE
-    exit /b
-) else (
-    echo  Python n'est pas détecté sur ce système.
-    echo  Lancement de l'installateur automatique...
-    echo.
+    EXIT /B
+) ELSE (
+    ECHO [INFO] Python n'est pas détecté sur ce système.
+    ECHO [INFO] Lancement de l'installateur automatique...
+    ECHO.
     PowerShell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install_and_run_windows.ps1"
 )
 
 REM Vérifier le code de sortie du PowerShell
 IF %ERRORLEVEL% NEQ 0 (
     ECHO.
-    ECHO [ERREUR] Le script PowerShell a rencontre une erreur.
+    ECHO [ERREUR] Le script PowerShell a rencontré une erreur.
     ECHO Code de sortie : %ERRORLEVEL%
     ECHO.
     PAUSE
@@ -57,7 +74,7 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 ECHO.
-ECHO [INFO] Script termine avec succes.
+ECHO [INFO] Script terminé avec succès.
 ECHO.
 PAUSE
 ENDLOCAL
