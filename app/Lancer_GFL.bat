@@ -34,7 +34,7 @@ ECHO.
 REM --- Vérifie si Python est installé ---
 where python >nul 2>nul
 if %errorlevel%==0 (
-    echo  Python détecté ! Lancement direct de l'application...
+    echo  Python detecte ! Lancement direct de l'application...
     timeout /t 1 >nul
     python -m streamlit run gestiolittle.py --server.headless true
     PAUSE
