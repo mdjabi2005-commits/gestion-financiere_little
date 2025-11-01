@@ -611,7 +611,7 @@ jobs:
           }
 
           {
-            echo "## ${TITLE} — v${{ env.VERSION }}"
+            echo "## ${TITLE} — v${VERSION}"
             echo
             [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
               grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
