@@ -614,7 +614,7 @@ jobs:
           }
 
           {
-            echo "## ${TITLE} — v${{ env.VERSION }}"
+            echo "## ${TITLE} — ${{ env.VERSION }}"
             echo
             [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
               grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
@@ -633,7 +633,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
-          name: "Gestion Financière Little v${{ env.VERSION }} — ${{ steps.notes.outputs.title }}"
+          name: "Gestion Financière Little ${{ env.VERSION }} — ${{ steps.notes.outputs.title }}"
           draft: true
           prerelease: false
           body_path: /tmp/release_notes.md
