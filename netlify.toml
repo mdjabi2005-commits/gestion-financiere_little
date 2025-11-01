@@ -1,0 +1,9 @@
+[build]
+  # Pas de commande de build (site HTML statique)
+  command = ""
+  
+  # Dossier à publier
+  publish = "docs"
+  
+  # Pas d'installation de dépendances
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ."

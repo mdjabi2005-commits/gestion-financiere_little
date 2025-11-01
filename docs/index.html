@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestion Financière Little - Gérez vos finances simplement</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --primary: #667eea;
+  --primary-dark: #5568d3;
+  --secondary: #764ba2;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --text-light: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.logo-icon {
+  font-size: 2rem;
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav a:hover {
+  color: var(--primary);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  opacity: 0.95;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* OS Detection */
+.os-detected {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 2px solid var(--success);
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.os-detected-icon {
+  font-size: 2rem;
+}
+
+/* Steps Grid */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.step-card {
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.step-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.step-number {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  opacity: 0.2;
+}
+
+.step-card h3 {
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+}
+
+.step-card code {
+  background: var(--bg);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--primary);
+}
+
+/* Antivirus Section */
+.antivirus-selector {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.antivirus-selector select {
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  min-width: 300px;
+}
+
+.antivirus-instructions {
+  background: var(--bg);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary);
+}
+
+.antivirus-instructions h3 {
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.antivirus-instructions ol {
+  margin-left: 1.5rem;
+}
+
+.antivirus-instructions li {
+  margin-bottom: 0.75rem;
+}
+
+/* Release Box */
+.release-box {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid var(--warning);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.release-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.release-version {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.release-date {
+  color: var(--text-light);
+  font-size: 0.875rem;
+}
+
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* Features Grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: 0.75rem;
+  transition: all 0.3s;
+}
+
+.feature-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-4px);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+/* Alert Boxes */
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border-left: 4px solid var(--warning);
+  color: #78350f;
+}
+
+.alert-info {
+  background: #dbeafe;
+  border-left: 4px solid #3b82f6;
+  color: #1e3a8a;
+}
+
+.alert-success {
+  background: #d1fae5;
+  border-left: 4px solid var(--success);
+  color: #065f46;
+}
+
+/* Footer */
+.footer {
+  background: var(--text);
+  color: white;
+  text-align: center;
+  padding: 3rem 2rem;
+  margin-top: 4rem;
+}
+
+.footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav {
+    display: none;
+  }
+  
+  .hero h1 {
+    font-size: 2rem;
+  }
+  
+  .hero p {
+    font-size: 1rem;
+  }
+  
+  .steps-grid,
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Smooth scroll offset */
+html {
+  scroll-padding-top: 80px;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <span class="logo-icon">💰</span>
+      <span>Gestion Financière Little</span>
+    </a>
+    <nav>
+      <ul class="nav">
+        <li><a href="#telecharger">Télécharger</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+        <li><a href="#aide">Aide</a></li>
+      </ul>
+    </nav>
+    <button class="btn btn-primary" onclick="autoDownloadLatest()">Télécharger</button>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>Gérez vos finances en toute simplicité</h1>
+  <p>Une application gratuite, sécurisée et sans connexion internet pour suivre vos dépenses et revenus au quotidien.</p>
+  <div class="hero-actions">
+    <button class="btn btn-primary" onclick="scrollToDownload()">📥 Télécharger maintenant</button>
+    <a href="#fonctionnalites" class="btn btn-secondary">✨ Découvrir les fonctionnalités</a>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="container" id="fonctionnalites">
+  <h2 class="section-title">✨ Pourquoi choisir Gestion Financière Little ?</h2>
+  
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>100% Privé</h3>
+      <p>Vos données restent sur votre ordinateur. Aucune connexion internet requise.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">📸</div>
+      <h3>Scanner OCR</h3>
+      <p>Scannez vos tickets de caisse automatiquement avec l'OCR intégré.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Tableaux de bord</h3>
+      <p>Visualisez vos dépenses et revenus avec des graphiques clairs.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">🔁</div>
+      <h3>Récurrence</h3>
+      <p>Gérez facilement vos abonnements et charges récurrentes.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">💾</div>
+      <h3>Export CSV</h3>
+      <p>Exportez vos données pour une analyse approfondie.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">🆓</div>
+      <h3>Gratuit</h3>
+      <p>Application totalement gratuite et open-source.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Download Section -->
+<section class="container" id="telecharger">
+  <div class="card">
+    <h2 class="section-title">📥 Télécharger la dernière version</h2>
+    
+    <div class="os-detected" id="osDetected" style="display: none;">
+      <span class="os-detected-icon">✅</span>
+      <div>
+        <strong>Système détecté : <span id="detectedOS"></span></strong>
+        <p style="margin: 0; color: var(--text-light);">Cliquez ci-dessous pour télécharger la version adaptée</p>
+      </div>
+    </div>
+    
+    <div class="release-box" id="releaseBox">
+      <div style="text-align: center; color: var(--text-light);">
+        <p>⏳ Chargement de la dernière version depuis GitHub...</p>
+      </div>
+    </div>
+    
+    <div class="alert alert-info">
+      <span style="font-size: 1.5rem;">ℹ️</span>
+      <div>
+        <strong>Première installation ?</strong>
+        <p style="margin: 0.5rem 0 0;">Suivez le guide d'installation ci-dessous pour installer l'application en quelques minutes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Installation Guide -->
+<section class="container" id="installation">
+  <div class="card">
+    <h2 class="section-title">🚀 Guide d'installation</h2>
+    
+    <p style="color: var(--text-light); margin-bottom: 2rem;">
+      Choisissez votre système d'exploitation pour voir les instructions détaillées :
+    </p>
+    
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+      <button class="btn btn-primary" onclick="showInstallGuide('windows')">🪟 Windows</button>
+      <button class="btn btn-secondary" onclick="showInstallGuide('macos')">🍎 macOS</button>
+      <button class="btn btn-secondary" onclick="showInstallGuide('linux')">🐧 Linux</button>
+    </div>
+    
+    <!-- Windows Guide -->
+    <div id="guide-windows" style="display: none;">
+      <h3 style="color: var(--primary); margin-bottom: 1rem;">Installation sur Windows</h3>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Télécharger</h3>
+          <p>Téléchargez le fichier <code>.zip</code> Windows depuis la section ci-dessus.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Extraire</h3>
+          <p>Faites un clic droit → <strong>Extraire tout</strong> pour décompresser le fichier.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Lancer</h3>
+          <p>Double-cliquez sur <code>GestionFinanciereLittle.exe</code> pour démarrer l'application.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <h3>Windows SmartScreen</h3>
+          <p>Si une alerte apparaît, cliquez sur <strong>"Informations complémentaires"</strong> puis <strong>"Exécuter quand même"</strong>.</p>
+        </div>
+      </div>
+      
+      <div class="alert alert-warning" style="margin-top: 2rem;">
+        <span style="font-size: 1.5rem;">⚠️</span>
+        <div>
+          <strong>Alerte antivirus possible</strong>
+          <p style="margin: 0.5rem 0 0;">L'application peut être signalée comme suspecte par certains antivirus. C'est un <strong>faux positif</strong> courant avec PyInstaller. L'application est 100% sûre et open-source.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- macOS Guide -->
+    <div id="guide-macos" style="display: none;">
+      <h3 style="color: var(--primary); margin-bottom: 1rem;">Installation sur macOS</h3>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Télécharger</h3>
+          <p>Téléchargez le fichier <code>.zip</code> macOS depuis la section ci-dessus.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Extraire</h3>
+          <p>Double-cliquez sur le fichier ZIP pour l'extraire automatiquement.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Lancer le script</h3>
+          <p>Ouvrez le Terminal, naviguez vers le dossier et lancez : <code>./run.sh</code></p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <h3>Installation auto</h3>
+          <p>Le script installe Python et les dépendances automatiquement si nécessaire.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Linux Guide -->
+    <div id="guide-linux" style="display: none;">
+      <h3 style="color: var(--primary); margin-bottom: 1rem;">Installation sur Linux</h3>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Télécharger</h3>
+          <p>Téléchargez le fichier <code>.zip</code> Linux depuis la section ci-dessus.</p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Extraire</h3>
+          <p>Dans un terminal : <code>unzip GestionFinanciereLittle-Linux.zip</code></p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Rendre exécutable</h3>
+          <p>Lancez : <code>chmod +x run.sh</code></p>
+        </div>
+        
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <h3>Lancer</h3>
+          <p>Démarrez l'application : <code>./run.sh</code></p>
+        </div>
+      </div>
+      
+      <div class="alert alert-info" style="margin-top: 2rem;">
+        <span style="font-size: 1.5rem;">💡</span>
+        <div>
+          <strong>Installation automatique</strong>
+          <p style="margin: 0.5rem 0 0;">Le script <code>run.sh</code> détecte votre distribution et installe automatiquement Python et Tesseract OCR si nécessaire.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Antivirus Help -->
+<section class="container" id="aide">
+  <div class="card">
+    <h2 class="section-title">🛡️ Gérer les alertes antivirus</h2>
+    
+    <div class="alert alert-warning">
+      <span style="font-size: 1.5rem;">⚠️</span>
+      <div>
+        <strong>Pourquoi mon antivirus réagit ?</strong>
+        <p style="margin: 0.5rem 0 0;">
+          Cette application est <strong>100% sûre</strong> mais compilée avec PyInstaller, un outil aussi utilisé par des malwares. 
+          C'est un <strong>faux positif très courant</strong> pour les applications Python.
+        </p>
+      </div>
+    </div>
+    
+    <div style="margin: 2rem 0;">
+      <h3 style="margin-bottom: 1rem;">✅ Preuves de sécurité :</h3>
+      <ul style="margin-left: 2rem; line-height: 1.8;">
+        <li>Code source ouvert et vérifiable sur <a href="https://github.com/mdjabi2005-commits/gestion-financiere_little" target="_blank">GitHub</a></li>
+        <li>Compilé automatiquement par GitHub Actions (processus transparent)</li>
+        <li>Aucune connexion internet requise</li>
+        <li>Toutes vos données restent locales sur votre PC</li>
+      </ul>
+    </div>
+    
+    <div class="antivirus-selector">
+      <label for="antivirusSelect" style="display: block; font-weight: 600; margin-bottom: 1rem;">
+        Sélectionnez votre antivirus pour voir les instructions :
+      </label>
+      <select id="antivirusSelect" onchange="showAntivirusInstructions(this.value)">
+        <option value="">— Choisir un antivirus —</option>
+        <option value="defender">Windows Defender</option>
+        <option value="avast">Avast / AVG</option>
+        <option value="kaspersky">Kaspersky</option>
+        <option value="norton">Norton</option>
+        <option value="bitdefender">Bitdefender</option>
+        <option value="mcafee">McAfee</option>
+      </select>
+    </div>
+    
+    <div id="antivirusInstructions"></div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p style="margin-bottom: 1rem;">
+    <strong>Gestion Financière Little</strong> - Application gratuite de gestion financière personnelle
+  </p>
+  <p style="margin-bottom: 1rem;">
+    📧 Contact : <a href="mailto:lamoms954@gmail.com">lamoms954@gmail.com</a>
+  </p>
+  <p style="margin-bottom: 1rem;">
+    💻 Code source : <a href="https://github.com/mdjabi2005-commits/gestion-financiere_little" target="_blank">GitHub</a>
+  </p>
+  <p style="color: var(--text-light); font-size: 0.875rem;">
+    © 2025 Gestion Financière Little - Tous droits réservés
+  </p>
+</footer>
+
+<script>
+// ===== Configuration =====
+const REPO = 'mdjabi2005-commits/gestion-financiere_little';
+let latestRelease = null;
+let detectedOS = null;
+
+// ===== Détection de l'OS =====
+function detectOS() {
+  const platform = navigator.platform.toLowerCase();
+  const ua = navigator.userAgent.toLowerCase();
+  if (platform.includes('win') || ua.includes('windows')) return 'Windows';
+  if (platform.includes('mac') || ua.includes('mac')) return 'macOS';
+  if (platform.includes('linux')) return 'Linux';
+  return null;
+}
+
+// ===== Scroll to Download =====
+function scrollToDownload() {
+  const el = document.getElementById('telecharger');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+window.scrollToDownload = scrollToDownload;
+
+// ===== Affichage du guide d'installation =====
+function showInstallGuide(os) {
+  // Cacher tous les guides
+  document.querySelectorAll('[id^="guide-"]').forEach(el => el.style.display = 'none');
+  // Afficher le bon
+  const guide = document.getElementById(`guide-${os}`);
+  if (guide) guide.style.display = 'block';
+}
+window.showInstallGuide = showInstallGuide;
+
+// ===== Récupération de la dernière release =====
+async function fetchLatestRelease() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases`);
+    if (!res.ok) throw new Error('GitHub API error');
+    const releases = await res.json();
+    const published = releases.filter(r => !r.draft && !r.prerelease);
+    if (!published.length) {
+      document.getElementById('releaseBox').innerHTML = '<p>Aucune version disponible.</p>';
+      return;
+    }
+    latestRelease = published[0];
+    renderRelease(latestRelease);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('releaseBox').innerHTML = '<p>❌ Erreur de chargement des versions.</p>';
+  }
+}
+// ===== Téléchargement automatique selon l'OS =====
+async function autoDownloadLatest() {
+  // Si la release n'est pas encore chargée, on attend un peu
+  if (!latestRelease) {
+    console.log("⏳ Attente du chargement de la release...");
+    await fetchLatestRelease();
+  }
+
+  if (!latestRelease || !latestRelease.assets?.length) {
+    alert("Aucune version disponible pour le moment.");
+    return;
+  }
+
+  // Trouver l'asset correspondant à l'OS détecté
+  const target = latestRelease.assets.find(a => {
+    const name = a.name.toLowerCase();
+    if (detectedOS === 'Windows') return name.includes('win') || name.includes('windows');
+    if (detectedOS === 'macOS') return name.includes('mac') || name.includes('macos');
+    if (detectedOS === 'Linux') return name.includes('linux');
+    return false;
+  });
+
+  if (!target) {
+    alert(`Aucun fichier de téléchargement trouvé pour ${detectedOS}.`);
+    return;
+  }
+
+  // Déclencher le téléchargement
+  const link = document.createElement('a');
+  link.href = target.browser_download_url;
+  link.download = target.name;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  console.log(`💾 Téléchargement lancé pour ${detectedOS}:`, target.name);
+}
+window.autoDownloadLatest = autoDownloadLatest;
+
+
+// ===== Affichage de la release =====
+function renderRelease(release) {
+  const date = new Date(release.created_at).toLocaleDateString('fr-FR');
+  let buttons = '';
+
+  // ===== Boutons de téléchargement =====
+  if (release.assets?.length) {
+    release.assets.forEach(a => {
+      const n = a.name.toLowerCase();
+      let icon = '📦', os = '', cls = 'btn-secondary';
+      if (n.includes('win')) { icon = '🪟'; os = 'Windows'; if (detectedOS === 'Windows') cls = 'btn-primary'; }
+      else if (n.includes('mac')) { icon = '🍎'; os = 'macOS'; if (detectedOS === 'macOS') cls = 'btn-primary'; }
+      else if (n.includes('linux')) { icon = '🐧'; os = 'Linux'; if (detectedOS === 'Linux') cls = 'btn-primary'; }
+      const size = (a.size / 1024 / 1024).toFixed(1);
+      buttons += `<a href="${a.browser_download_url}" class="btn ${cls}" download>${icon} Télécharger ${os} (${size} MB)</a>`;
+    });
+  } else {
+    buttons = '<p style="color:var(--text-light);">❌ Aucun fichier à télécharger.</p>';
+  }
+
+  // ===== Notes de version =====
+  const notes = release.body 
+    ? release.body
+        .replace(/\r?\n/g, '<br>') // sauts de ligne
+        .replace(/#{1,6}\s*(.+)/g, '<h4>$1</h4>') // titres markdown
+    : '<em>Aucune note de version fournie.</em>';
+
+  // ===== Affichage dans la page =====
+  document.getElementById('releaseBox').innerHTML = `
+    <div class="release-header">
+      <div>
+        <div class="release-version">Version ${release.tag_name}</div>
+        <div class="release-date">📅 Publiée le ${date}</div>
+      </div>
+    </div>
+
+    <div class="download-buttons">${buttons}</div>
+
+    <div style="margin-top:1.5rem; background:#f9fafb; border-left:4px solid var(--primary); padding:1rem 1.25rem; border-radius:0.5rem;">
+      <h3 style="color:var(--primary); margin-bottom:0.5rem;">📝 Notes de version</h3>
+      <div style="color:var(--text-light); line-height:1.6;">${notes}</div>
+    </div>
+
+  `;
+}
+
+
+// ===== Antivirus =====
+function showAntivirusInstructions(av) {
+  const c = document.getElementById('antivirusInstructions');
+  if (!av) { c.innerHTML = ''; return; }
+  const d = {
+    defender: {
+      title: 'Windows Defender',
+      steps: [
+        'Ouvrez <strong>Sécurité Windows</strong>',
+        'Cliquez sur <strong>Protection contre les virus et menaces</strong>',
+        'Ajoutez le dossier de l’application à la liste des exclusions.'
+      ]
+    },
+    avast: {
+      title: 'Avast / AVG',
+      steps: [
+        'Ouvrez <strong>Avast</strong>',
+        'Menu → Paramètres → <strong>Exceptions</strong>',
+        'Ajoutez le dossier du programme dans la liste.'
+      ]
+    }
+  };
+  const info = d[av];
+  if (!info) { c.innerHTML = ''; return; }
+  c.innerHTML = `
+    <div class="antivirus-instructions">
+      <h3>${info.title}</h3>
+      <ol>${info.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    </div>`;
+}
+window.showAntivirusInstructions = showAntivirusInstructions;
+
+// ===== Initialisation =====
+document.addEventListener('DOMContentLoaded', () => {
+  detectedOS = detectOS();
+
+  if (detectedOS) {
+    const box = document.getElementById('osDetected');
+    box.style.display = 'flex';
+    document.getElementById('detectedOS').textContent = detectedOS;
+
+    // 💬 Proposer d'afficher automatiquement le guide adapté
+    setTimeout(() => {
+      if (confirm(`Souhaitez-vous afficher le guide d'installation pour ${detectedOS} ?`)) {
+        showInstallGuide(detectedOS.toLowerCase());
+        scrollToDownload();
+      }
+    }, 1000);
+  }
+
+  fetchLatestRelease();
+});
+</script>
+</body>
+</html>
