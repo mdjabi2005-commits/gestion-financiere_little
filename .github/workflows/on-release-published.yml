@@ -1,5 +1,4 @@
-          
-     name: 🚀 Mettre à jour la release publiée
+name: 🚀 Mettre à jour la release publiée
 
 on:
   release:
@@ -29,7 +28,6 @@ jobs:
         id: detect_type
         run: |
           body="${{ github.event.release.body }}"
-
           if echo "$body" | grep -qi "feat"; then
             echo "TYPE=feat" >> $GITHUB_ENV
             echo "EMOJI=✨" >> $GITHUB_ENV
@@ -52,15 +50,11 @@ jobs:
         run: |
           title="${{ env.EMOJI }} Gestion Financière Little ${{ env.TAG_NAME }} – ${{ env.DESC }}"
           echo "Nouveau titre : $title"
-
-          gh release edit "${{ env.TAG_NAME }}" \
-            --title "$title"
+          gh release edit "${{ env.TAG_NAME }}" --title "$title"
 
       - name: 🪄 Ajouter un encart résumé au début du changelog
         run: |
           body="${{ github.event.release.body }}"
           header="### 📝 Résumé : ${{ env.DESC }}\n\n---\n\n"
           new_body="${header}${body}"
-
-          gh release edit "${{ env.TAG_NAME }}" \
-            --notes "$new_body"
+          gh release edit "${{ env.TAG_NAME }}" --notes "$new_body"
