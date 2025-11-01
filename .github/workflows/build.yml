@@ -483,11 +483,17 @@ jobs:
 
       - name: ⚙️ Ajouter installateur automatique Windows
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          echo "🪄 Création de l'installateur PowerShell et du launcher .bat..."
-          
-          cat > dist/install_and_run_windows.ps1 << 'EOF'
+          Write-Host "🪄 Création de l'installateur PowerShell et du launcher .bat..."
+
+          # Créer le dossier dist si besoin
+          if (-not (Test-Path dist)) {
+            New-Item -ItemType Directory -Path dist | Out-Null
+          }
+
+          # Créer le script PowerShell
+          @"
           # =============================
           # 🚀 INSTALLATEUR AUTOMATIQUE GUI
           # Gestion Financière Little
@@ -513,7 +519,7 @@ jobs:
               $url = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe"
               $installer = "$env:TEMP\\python_installer.exe"
               Show-Progress "Téléchargement de Python 3.13..."
-              Download-File $url $installer
+              (New-Object System.Net.WebClient).DownloadFile($url, $installer)
               Show-Progress "Installation silencieuse de Python"
               Start-Process -FilePath $installer -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
               Remove-Item $installer -ErrorAction SilentlyContinue
@@ -531,16 +537,16 @@ jobs:
           Show-Progress "Lancement de Gestion Financière Little"
           Start-Process "python" "-m streamlit run gestiolittle.py --server.headless true"
           Show-Message "Application lancée" "🚀 Gestion Financière Little a été démarrée avec succès !" "Information"
-          EOF
+          "@ | Out-File -Encoding UTF8 dist/install_and_run_windows.ps1
 
-          # Petit launcher pour double-clic
-          cat > dist/Lancer_GFL.bat << 'EOF'
+          # Créer le launcher BAT
+          @"
           @echo off
           powershell -ExecutionPolicy Bypass -File "install_and_run_windows.ps1"
           pause
-          EOF
+          "@ | Out-File -Encoding ASCII dist/Lancer_GFL.bat
 
-          echo "✅ Installateur et launcher ajoutés dans dist/"
+          Write-Host "✅ Installateur et launcher ajoutés dans dist/"
 
 
       - name: 📦 Créer le package de distribution
@@ -562,11 +568,15 @@ jobs:
 
             # Vérifier et inclure le dossier tesseract si présent
             if [ -d "tesseract" ]; then
-              echo "📦 Inclusion du dossier tesseract..."
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py tesseract/
+              echo "📦 Inclusion du dossier tesseract et des fichiers d’installation..."
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
             else
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py
+              echo "📦 Création du ZIP avec les fichiers d’installation..."
+               7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
             fi
+
+            echo "📁 Vérification du contenu du ZIP final..."
+            7z l GestionFinanciereLittle-Windows.zip
 
             cd ..
             echo "✅ Package Windows créé avec succès"
