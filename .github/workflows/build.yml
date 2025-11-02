@@ -403,11 +403,11 @@ jobs:
               import cv2
               import PIL
               from PyInstaller.utils.hooks import collect_all
-              datas_st, binaries_streamlit, hiddenimports_streamlit = collect_all('streamlit')
+              datas_st, binaries_st, hiddenimports_st = collect_all('st')
               datas_cv, bins_cv, hidden_cv = collect_all('cv2')
               datas_pl, bins_pl, hidden_pl = collect_all('PIL')
           except ImportError:
-              datas_st, binaries_streamlit, hiddenimports_streamlit = [], [], []
+              datas_st, binaries_st, hiddenimports_st = [], [], []
               datas_cv, bins_cv, hidden_cv = [], [], []
               datas_pl, bins_pl, hidden_pl = [], [], []
 
