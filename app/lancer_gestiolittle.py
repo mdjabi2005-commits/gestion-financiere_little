@@ -215,7 +215,7 @@ def launch_streamlit(app_path, port):
 # 🚀 Point d’entrée principal unifié
 # ====================================================
 def main():
-    print("🚀 Démarrage de Gestion Financière Little")
+    print(" Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
 
     # Premier lancement (si tu gardes ta routine interactive)
