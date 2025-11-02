@@ -384,6 +384,7 @@ jobs:
 
       - name: 🏗️ Compiler les deux versions Windows (Portable + Lite)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           echo "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
 
@@ -457,7 +458,7 @@ jobs:
 
           echo ""
           echo "✅ Compilation Windows (Portable + Lite) terminée avec succès"
-        shell: bash
+        
         
       - name: 🔍 Vérification post-build de Tesseract embarqué
         if: runner.os == 'Windows'
