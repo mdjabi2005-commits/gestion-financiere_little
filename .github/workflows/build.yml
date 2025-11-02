@@ -374,6 +374,14 @@ jobs:
           echo "✅ Script run.sh créé avec succès"
         shell: bash
 
+      - name: 🧱 Installation des dépendances Python avant le build
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests
+          echo "✅ Toutes les dépendances nécessaires au build sont installées"
+        shell: bash
+
+
       - name: 🏗️ Compiler l'application (optimisé antivirus)
         run: |
           # Installer pyinstaller uniquement pour la compilation
@@ -390,8 +398,12 @@ jobs:
           # -*- mode: python ; coding: utf-8 -*-
           import os
           import glob
-          import streamlit as st
-          from PyInstaller.utils.hooks import collect_all
+          try:
+              import streamlit as st
+              from PyInstaller.utils.hooks import collect_all
+              datas_streamlit, binaries_streamlit, hiddenimports_streamlit = collect_all('streamlit')
+          except ImportError:
+              datas_streamlit, binaries_streamlit, hiddenimports_streamlit = [], [], []
 
           datas_streamlit, binaries_streamlit, hiddenimports_streamlit = collect_all('streamlit')
           
