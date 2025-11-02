@@ -418,18 +418,20 @@ jobs:
           
           a = Analysis(
               ['app/lancer_gestiolittle.py'],
-              pathex=['app'],
-              binaries=[('tesseract', 'tesseract')],
-              datas=py_files,
-              hiddenimports=['streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
-              hookspath=[],
-              hooksconfig={},
-              runtime_hooks=[],
-              excludes=['pytest', 'unittest', 'test', '_pytest', 'setuptools', 'pip', 'wheel'],
-              win_no_prefer_redirects=False,
-              win_private_assemblies=False,
-              cipher=block_cipher,
-              noarchive=False,
+                pathex=['app'],
+                binaries=binaries_streamlit + [('tesseract', 'tesseract')],
+                datas=py_files + datas_streamlit,
+                hiddenimports=hiddenimports_streamlit + [
+                'streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 
+                'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
+                hookspath=[],
+                hooksconfig={},
+                runtime_hooks=[],
+                excludes=['pytest', 'unittest', 'test', '_pytest', 'setuptools', 'pip', 'wheel'],
+                win_no_prefer_redirects=False,
+                win_private_assemblies=False,
+                cipher=block_cipher,
+                noarchive=False,
           )
           
           pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
