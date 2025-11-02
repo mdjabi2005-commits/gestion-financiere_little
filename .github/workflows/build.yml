@@ -382,132 +382,81 @@ jobs:
         shell: bash
 
 
-      - name: 🏗️ Compiler l'application (optimisé antivirus)
+      - name: 🏗️ Compiler les deux versions Windows (Portable + Lite)
+        if: runner.os == 'Windows'
         run: |
-          # Installer pyinstaller uniquement pour la compilation
-          python -m pip install pyinstaller
-          
-          # 🔥 CORRECTION : Utiliser lancer_gestiolittle.spec existant ou créer un fallback
-          if [ -f "lancer_gestiolittle.spec" ]; then
-            echo "📋 Utilisation de lancer_gestiolittle.spec existant..."
-            pyinstaller lancer_gestiolittle.spec --clean --noconfirm
-          else
-            echo "📋 Création d'un .spec de secours..."
-            # Créer un fichier .spec optimisé
-            cat > gestiolittle.spec << 'EOF'
-          # -*- mode: python ; coding: utf-8 -*-
-          import os
-          import glob
-          try:
-              import streamlit as st
-              import cv2
-              import PIL
-              from PyInstaller.utils.hooks import collect_all
-              datas_st, bins_st, hidden_st = collect_all('st')
-              datas_cv, bins_cv, hidden_cv = collect_all('cv2')
-              datas_pl, bins_pl, hidden_pl = collect_all('PIL')
-          except ImportError:
-              datas_st, binaries_st, hiddenimports_st = [], [], []
-              datas_cv, bins_cv, hidden_cv = [], [], []
-              datas_pl, bins_pl, hidden_pl = [], [], []
+          echo "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
 
-          all_datas = datas_st + datas_cv + datas_pl
-          all_bins = bins_st + bins_cv + bins_pl
-          all_hidden = hidden_st + hidden_cv + hidden_pl
-          
-          block_cipher = None
-          
-          # Collecter tous les fichiers .py nécessaires
-          py_files = []
-          
-          # Ajouter gestiolittle.py
-          if os.path.exists('app/gestiolittle.py'):
-              py_files.append(('app/gestiolittle.py', '.'))
-          
-          # 🔥 CRITIQUE : Ajouter configlittle.py
-          if os.path.exists('app/configlittle.py'):
-              py_files.append(('app/configlittle.py', '.'))
-          
-          # Ajouter auto_updater.py
-          if os.path.exists('app/auto_updater.py'):
-              py_files.append(('app/auto_updater.py', '.'))
-          
-          # Ajouter changelog_viewer.py
-          if os.path.exists('app/changelog_viewer.py'):
-              py_files.append(('app/changelog_viewer.py', '.'))
-          
-          # Ajouter le dossier tesseract s'il existe (uniquement pour Windows)
-          if os.path.exists('tesseract'):
-              py_files.append(('tesseract', 'tesseract'))
-          
-          a = Analysis(
-              ['app/lancer_gestiolittle.py'],
-                pathex=['app'],
-                binaries=all_bins + [('tesseract', 'tesseract')],
-                datas=py_files + all_datas,
-                hiddenimports=all_hidden + [
-                'streamlit', 'pandas', 'numpy', 'matplotlib', 'pytesseract',
-                'cv2', 'PIL', 'dateutil', 'requests', 'configlittle',
-                'auto_updater', 'changelog_viewer'
-                ],
-                hookspath=[],
-                hooksconfig={},
-                runtime_hooks=[],
-                excludes=['pytest', 'unittest', 'test', '_pytest', 'setuptools', 'pip', 'wheel'],
-                win_no_prefer_redirects=False,
-                win_private_assemblies=False,
-                cipher=block_cipher,
-                noarchive=False,
-          )
-          
-          pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-          
-          exe = EXE(
-              pyz,
-              a.scripts,
-              a.binaries,
-              a.zipfiles,
-              a.datas,
-              [],
-              name='GestionFinanciereLittle',
-              debug=False,
-              bootloader_ignore_signals=False,
-              strip=False,
-              upx=False,
-              console=True,
-              disable_windowed_traceback=False,
-              argv_emulation=False,
-              target_arch=None,
-              codesign_identity=None,
-              entitlements_file=None,
-          )
-          EOF
-            
-            # Compiler avec le .spec de secours
-            pyinstaller gestiolittle.spec --clean --noconfirm
+          # Installer PyInstaller
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔹 VERSION PORTABLE (autonome, sans installateur ni questions)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          pyinstaller app/lancer_gestiolittle.py ^
+            --noconfirm --clean ^
+            --onefile --console ^
+            --name "GestionFinanciereLittle_Portable" ^
+            --add-data "app;app" ^
+            --add-data "tesseract;tesseract" ^
+            --hidden-import streamlit ^
+            --hidden-import pandas ^
+            --hidden-import numpy ^
+            --hidden-import matplotlib ^
+            --hidden-import pytesseract ^
+            --hidden-import Pillow ^
+            --hidden-import opencv-python-headless ^
+            --hidden-import pdfminer.six ^
+            --hidden-import requests
+
+          echo ""
+          echo "✅ Compilation de la version Portable terminée"
+          echo ""
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔹 VERSION LITE (avec installateur et questions)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          pyinstaller app/lancer_gestiolite.py ^
+            --noconfirm --clean ^
+            --onefile --console ^
+            --name "GestionFinanciereLittle_Lite" ^
+            --exclude-module pytest ^
+            --exclude-module setuptools ^
+            --exclude-module pip ^
+            --exclude-module wheel
+
+          echo ""
+          echo "✅ Compilation de la version Lite terminée"
+          echo ""
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📦 Copie des fichiers additionnels"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          mkdir -p dist
+          cp app/configlittle.py dist/ || echo "⚠️ configlittle.py non copié"
+          cp app/auto_updater.py dist/ || echo "⚠️ auto_updater.py non copié"
+          cp app/changelog_viewer.py dist/ || echo "⚠️ changelog_viewer.py non copié"
+          cp app/gestiolittle.py dist/ || echo "⚠️ gestiolittle.py non copié"
+
+          # Copier tesseract (si présent)
+          if [ -d "tesseract" ]; then
+            cp -r tesseract dist/
+            echo "✅ Dossier Tesseract copié dans dist/"
+          else
+            echo "⚠️ Aucun dossier Tesseract trouvé"
           fi
-          
-          # 🔥 CORRECTION WINDOWS : Copier TOUS les fichiers Python à côté de l'exe
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "📦 Copie des modules Python à côté de l'exécutable..."
-            cp app/configlittle.py dist/ || echo "⚠️ configlittle.py non copié"
-            cp app/auto_updater.py dist/ || echo "⚠️ auto_updater.py non copié"
-            cp app/changelog_viewer.py dist/ || echo "⚠️ changelog_viewer.py non copié"
-            cp app/gestiolittle.py dist/ || echo "⚠️ gestiolittle.py non copié"
-            
-            # Copier tesseract
-            if [ -d "tesseract" ]; then
-              cp -r tesseract dist/
-              echo "✅ Tesseract copié"
-            fi
-            
-            # Vérifier que tous les fichiers sont présents
-            echo "🔍 Vérification des fichiers dans dist/ :"
-            ls -la dist/*.py || echo "⚠️ Aucun fichier .py trouvé dans dist/"
-          fi
-          
-          echo "✅ Application compilée avec succès"
-          
+
+          echo ""
+          echo "🔍 Vérification du contenu de dist/"
+          ls -la dist/ || echo "⚠️ Aucun contenu trouvé"
+
+          echo ""
+          echo "✅ Compilation Windows (Portable + Lite) terminée avec succès"
         shell: bash
         
       - name: 🔍 Vérification post-build de Tesseract embarqué
@@ -524,69 +473,107 @@ jobs:
 
 
 
-      - name: ⚙️ Ajouter installateur automatique Windows
-        if: runner.os == 'Windows'
+      - name: 📦 Créer les packages de distribution (Windows, Linux, macOS)
         shell: bash
         run: |
-          echo "🪄 Copie de l'installateur PowerShell et du launcher .bat depuis le dépôt..."
-          mkdir -p dist
-          cp app/install_and_run_windows.ps1 dist/ || { echo "❌ Fichier app/install_and_run_windows.ps1 introuvable"; exit 1; }
-          cp app/Lancer_GFL.bat               dist/ || { echo "❌ Fichier app/Lancer_GFL.bat introuvable"; exit 1; }
-          echo "✅ Installateur et launcher copiés dans dist/"
+          echo "📦 Préparation des packages de distribution..."
 
-
-
-      - name: 📦 Créer le package de distribution
-        run: |
+          # ==============================
+          # 🪟 WINDOWS : Portable + Lite
+          # ==============================
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cd dist
-            # Vérifier la présence du fichier principal et du launcher
-            if [ ! -f "GestionFinanciereLittle.exe" ]; then
-              echo "❌ Erreur : exécutable non trouvé dans dist/"
-              exit 1
-            fi
 
-            # Vérifier que tous les fichiers Python critiques sont présents
-            echo "🔍 Vérification des fichiers Python critiques..."
-            [ -f "configlittle.py" ] && echo "✅ configlittle.py présent" || echo "❌ configlittle.py MANQUANT"
-            [ -f "gestiolittle.py" ] && echo "✅ gestiolittle.py présent" || echo "❌ gestiolittle.py MANQUANT"
-            [ -f "auto_updater.py" ] && echo "✅ auto_updater.py présent" || echo "❌ auto_updater.py MANQUANT"
-            [ -f "changelog_viewer.py" ] && echo "✅ changelog_viewer.py présent" || echo "❌ changelog_viewer.py MANQUANT"
+            # ---------- VERSION PORTABLE ----------
+            if [ -f "GestionFinanciereLittle_Portable.exe" ]; then
+              echo "📦 Création du package Windows Portable..."
 
-            # Vérifier et inclure le dossier tesseract si présent
-            if [ -d "tesseract" ]; then
-              echo "📦 Inclusion du dossier tesseract et des fichiers d’installation..."
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
-            else
-              echo "📦 Création du ZIP avec les fichiers d’installation..."
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 
-            fi
-
-            echo "📁 Vérification du contenu du ZIP final..."
-            7z l GestionFinanciereLittle-Windows.zip
-
-            cd ..
-            echo "✅ Package Windows créé avec succès"
-          
-          elif [[ "$RUNNER_OS" == "Linux" ]] || [[ "$RUNNER_OS" == "macOS" ]]; then
-            # Linux/macOS : Copier TOUS les fichiers Python nécessaires
-            for file in app/*.py; do
-              if [ -f "$file" ]; then
-                cp "$file" dist/
-                echo "📄 Copié: $file"
+              # Copier Tesseract embarqué depuis le dépôt
+              if [ -d "../tesseract" ]; then
+                echo "📂 Copie du dossier Tesseract depuis le dépôt..."
+                cp -r ../tesseract ./
               fi
-            done
-            cd dist
-            if [[ "$RUNNER_OS" == "Linux" ]]; then
-              zip -r GestionFinanciereLittle-Linux.zip *.py run.sh
-              echo "✅ Package Linux créé avec tous les fichiers Python"
+
+              7z a -tzip GestionFinanciereLittle-Windows-Portable.zip \
+                GestionFinanciereLittle_Portable.exe *.py tesseract/
+
+              echo "✅ Package Portable créé avec Tesseract embarqué"
             else
-              zip -r GestionFinanciereLittle-macOS.zip *.py run.sh
-              echo "✅ Package macOS créé avec tous les fichiers Python"
+              echo "❌ Erreur : GestionFinanciereLittle_Portable.exe introuvable"
             fi
+
+            # ---------- VERSION LITE ----------
+            if [ -f "GestionFinanciereLittle_Lite.exe" ]; then
+              echo "📦 Création du package Windows Lite..."
+
+              # Copier installateur et launcher
+              if [ -f "../app/install_and_run_windows.ps1" ] && [ -f "../app/Lancer_GFL.bat" ]; then
+                cp ../app/install_and_run_windows.ps1 .
+                cp ../app/Lancer_GFL.bat .
+                echo "✅ Installateur PowerShell et launcher .BAT copiés"
+              else
+                echo "⚠️ Fichiers d’installation manquants"
+              fi
+
+              # Copier Tesseract embarqué (sécurité OCR)
+              if [ -d "../tesseract" ]; then
+                cp -r ../tesseract ./
+                echo "✅ Dossier Tesseract embarqué ajouté dans la version Lite"
+              fi
+
+              7z a -tzip GestionFinanciereLittle-Windows-Lite.zip \
+                GestionFinanciereLittle_Lite.exe *.py *.bat *.ps1 tesseract/
+
+              echo "✅ Package Lite créé (Tesseract embarqué + installateur)"
+            else
+              echo "❌ Erreur : GestionFinanciereLittle_Lite.exe introuvable"
+            fi
+
             cd ..
           fi
-        shell: bash
+
+
+          # ==============================
+          # 🐧 LINUX
+          # ==============================
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            echo "📦 Création du package Linux..."
+            mkdir -p dist/linux
+            cp app/*.py dist/linux/
+            cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"
+            echo "#!/bin/bash" > dist/linux/run.sh
+            echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
+            chmod +x dist/linux/run.sh
+            cd dist/linux
+            zip -r ../GestionFinanciereLittle-Linux.zip ./
+            cd ../..
+            echo "✅ Package Linux créé avec succès (Tesseract inclus)"
+          fi
+
+
+          # ==============================
+          # 🍎 MACOS
+          # ==============================
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            echo "📦 Création du package macOS..."
+            mkdir -p dist/macos
+            cp app/*.py dist/macos/
+            cp -r tesseract dist/macos/ || echo "⚠️ Dossier Tesseract non trouvé (macOS)"
+            echo "#!/bin/bash" > dist/macos/run.sh
+            echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/macos/run.sh
+            chmod +x dist/macos/run.sh
+            cd dist/macos
+            zip -r ../GestionFinanciereLittle-macOS.zip ./
+            cd ../..
+            echo "✅ Package macOS créé avec succès (Tesseract inclus)"
+          fi
+
+
+          echo ""
+          echo "📁 Vérification du contenu final :"
+          ls -la dist/*.zip || echo "⚠️ Aucun ZIP trouvé"
+          echo ""
+          echo "✅ Tous les packages de distribution ont été générés avec Tesseract embarqué"
 
       - name: 🔢 Lire la version depuis VERSION.txt
         id: ver
@@ -684,3 +671,4 @@ jobs:
             dist/GestionFinanciereLittle*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
