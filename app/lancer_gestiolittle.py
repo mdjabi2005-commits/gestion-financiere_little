@@ -31,26 +31,6 @@ except Exception:
     pass
 
 
-
-# ====================================================
-# 🗂️ Création automatique du dossier .streamlit/config.toml
-# ====================================================
-home_dir = os.path.expanduser("~")
-streamlit_dir = os.path.join(home_dir, ".streamlit")
-os.makedirs(streamlit_dir, exist_ok=True)
-
-config_file = os.path.join(streamlit_dir, "config.toml")
-if not os.path.exists(config_file):
-    with open(config_file, "w", encoding="utf-8") as f:
-        f.write(
-            "[server]\n"
-            "headless = true\n"
-            "enableCORS = false\n"
-            "enableXsrfProtection = false\n"
-        )
-    print("📝 Fichier config.toml créé avec succès.")
-
-
 # ====================================================
 # 📘 Ouverture automatique du guide d’installation
 # ====================================================
@@ -147,106 +127,55 @@ def find_app_path(base_path):
     sys.exit(1)
 
 
-def find_streamlit_executable():
-    """Cherche l’exécutable Streamlit."""
-    python_dir = os.path.dirname(sys.executable)
-    scripts_dir = os.path.join(python_dir, "Scripts")
-    candidates = [
-        shutil.which("streamlit"),
-        os.path.join(scripts_dir, "streamlit.exe"),
-        os.path.join(scripts_dir, "STREAMLIT.EXE"),
-        os.path.join(scripts_dir, "streamlit.cmd"),
-        os.path.join(scripts_dir, "STREAMLIT.CMD"),
-    ]
-    for path in candidates:
-        if path and os.path.exists(path):
-            return path
-    return None
+def launch_streamlit(app_path, port=8501):
+    """
+    Lance Streamlit depuis le CLI embarqué dans le bundle PyInstaller.
+    Si cli.py est introuvable, affiche un message d’erreur clair.
+    """
 
+    # Vérifie que _MEIPASS existe (donc qu’on est dans un bundle PyInstaller)
+    if not hasattr(sys, "_MEIPASS"):
+        print("⚠️ Environnement PyInstaller non détecté.")
+        print("💡 Utilisez cette fonction uniquement dans la version portable.")
+        return
 
-def launch_streamlit(app_path, port):
-    """Lance Streamlit et crée un diagnostic complet si le serveur échoue."""
-    import platform
-    import datetime
+    # Chemin attendu vers le Streamlit embarqué
+    streamlit_cli = os.path.join(sys._MEIPASS, "streamlit","web", "cli.py")
 
-    streamlit_exe = find_streamlit_executable()
-    if not streamlit_exe:
-        print("❌ Streamlit introuvable. Vérifie ton installation Python.")
-        input("Appuie sur Entrée pour fermer…")
-        sys.exit(1)
+    if not os.path.exists(streamlit_cli):
+        print("❌ Le module Streamlit n’a pas été trouvé dans le bundle (_MEIPASS).")
+        print(f"📂 Emplacement attendu : {streamlit_cli}")
+        print("💡 Essayez de reconstruire l’exécutable avec --hidden-import streamlit")
+        return
 
-    # Infos système
-    sys_info = {
-        "OS": platform.system(),
-        "Version": platform.version(),
-        "Machine": platform.machine(),
-        "Python": sys.version,
-        "Executable": sys.executable,
-        "App path": app_path,
-        "Streamlit": streamlit_exe,
-        "Port": port,
-        "Datetime": datetime.datetime.now().isoformat()
-    }
-
-    print(f"🚀 Lancement de Streamlit depuis : {streamlit_exe}")
-    print(f"📁 Application : {app_path}")
-    print(f"🌐 Port choisi : {port}")
-
-    # Commande de lancement
+    # Commande de lancement directe
     cmd = [
-        sys.executable, "-m", "streamlit", "run", app_path,
+        sys.executable,          # Python embarqué
+        streamlit_cli,           # Le vrai point d’entrée Streamlit
+        "run",                   # Commande Streamlit
+        app_path,                # Ton application principale
         "--server.port", str(port),
-        "--logger.level", "debug"
+        "--server.headless", "true"
     ]
 
-    log_file = os.path.join(os.getcwd(), "streamlit_start.log")
-    debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
+    print("🚀 Lancement de Streamlit embarqué…")
+    print(f"🧩 Commande : {' '.join(cmd)}")
 
-    # Écrire le fichier debug avant lancement
-    with open(debug_file, "w", encoding="utf-8") as dbg:
-        dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE\n")
-        dbg.write("=" * 60 + "\n")
-        for key, val in sys_info.items():
-            dbg.write(f"{key}: {val}\n")
-        dbg.write("=" * 60 + "\n\n")
+    try:
+        # Lancer le serveur Streamlit
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        time.sleep(3)
 
-    print(f"🧾 Log Streamlit : {log_file}")
-    print(f"🧩 Fichier debug : {debug_file}")
+        # Lecture du log initial (optionnel)
+        for i in range(10):
+            line = process.stdout.readline()
+            if not line:
+                break
+            print("📄", line.strip())
 
-    # Lancer Streamlit
-    with open(log_file, "w", encoding="utf-8") as lf:
-        process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
-
-    print("⏳ Attente du lancement du serveur Streamlit...")
-    if wait_for_port(port, timeout=30):
-        print("✅ Serveur prêt ! Ouverture du navigateur…")
-        webbrowser.open(f"http://localhost:{port}")
-    else:
-        print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
-        print("🔍 Création du rapport de débogage complet…")
-
-        try:
-            with open(log_file, "r", encoding="utf-8") as f:
-                log_content = f.read()
-        except Exception as e:
-            log_content = f"❌ Impossible de lire le log : {e}"
-
-        # Ajouter les logs au fichier debug
-        with open(debug_file, "a", encoding="utf-8") as dbg:
-            dbg.write("\n\n📜 CONTENU DU LOG STREAMLIT\n")
-            dbg.write("-" * 60 + "\n")
-            dbg.write(log_content[-10000:] if len(log_content) > 10000 else log_content)
-            dbg.write("\n" + "-" * 60 + "\nFin du rapport\n")
-
-        print("📄 Rapport de débogage généré : streamlit_start_debug.txt")
-        print("\n📋 Aperçu du log (dernières lignes) :\n")
-        print(log_content[-2000:] if len(log_content) > 2000 else log_content)
-
-        input("\nAppuie sur Entrée pour fermer…")
-        sys.exit(1)
-
-    return process
-
+        print("✅ Streamlit a été lancé avec succès.")
+    except Exception as e:
+        print(f"❌ Erreur lors du lancement de Streamlit : {e}")
 
 # ====================================================
 # 🧠 Point d’entrée principal unifié
