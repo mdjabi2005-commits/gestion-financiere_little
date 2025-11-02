@@ -30,53 +30,6 @@ except Exception:
     # En mode compilé, les flux peuvent déjà être redirigés
     pass
 
-# ====================================================
-# 🔧 Vérification de Python et Streamlit
-# ====================================================
-def run_powershell_script(script_path):
-    """Exécute un script PowerShell (install_and_run_windows.ps1)."""
-    if not os.path.exists(script_path):
-        print(f"⚠️ Script PowerShell introuvable : {script_path}")
-        input("Appuie sur Entrée pour quitter...")
-        sys.exit(1)
-    print("\n🪄 Lancement de l’installation automatique via PowerShell...")
-    subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], shell=True)
-    print("\n✅ Installation terminée.\n")
-
-
-def install_streamlit_and_deps():
-    """Installe Streamlit et toutes les dépendances Python nécessaires."""
-    print("\n📦 Installation de Streamlit et des dépendances...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-    subprocess.run([
-        sys.executable, "-m", "pip", "install",
-        "streamlit", "pandas", "pytesseract", "Pillow",
-        "python-dateutil", "opencv-python-headless",
-        "numpy", "matplotlib", "pdfminer.six", "requests"
-    ])
-    print("✅ Modules installés avec succès.\n")
-
-
-def interactive_installation():
-    """Demande à l’utilisateur ce qu’il possède déjà et installe en conséquence."""
-    print("🧩 Configuration initiale de Gestion Financière Little\n")
-    python_answer = input("Avez-vous déjà Python installé sur votre ordinateur ? (oui/non) : ").strip().lower()
-
-    if python_answer != "oui":
-        print("\n🐍 Python va être installé automatiquement.")
-        ps1_path = os.path.join(os.path.dirname(sys.executable), "install_and_run_windows.ps1")
-        run_powershell_script(ps1_path)
-        return  # tout sera géré par le script PowerShell
-
-    streamlit_answer = input("Avez-vous déjà le module Streamlit installé (si vous ne savez pas, mettez 'non') ? (oui/non) : ").strip().lower()
-
-    if streamlit_answer != "oui":
-        install_streamlit_and_deps()
-    else:
-        print("✅ Parfait, Streamlit semble déjà installé.\n")
-
-    print("🎉 Configuration terminée ! Lancement de l’application...")
-    time.sleep(1)
 
 
 # ====================================================
