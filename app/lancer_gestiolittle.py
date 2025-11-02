@@ -228,20 +228,20 @@ def main():
     # 1) Choisir un port libre et le communiquer à Streamlit
     port = find_free_port(8501)
     os.environ["STREAMLIT_SERVER_PORT"] = str(port)
-    print(f"🚀 Streamlit démarrera sur le port {port}")
+    print(f" Streamlit démarrera sur le port {port}")
 
     # 2) Lancer l'app
     base_path = get_base_path()
     app_path = find_app_path(base_path)
     launch_streamlit(app_path, port)
 
-    print("✅ Application lancée avec succès.")
-    print("💡 Ferme cette fenêtre pour arrêter l'application.")
+    print(" Application lancée avec succès.")
+    print(" Ferme cette fenêtre pour arrêter l'application.")
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n🛑 Arrêt de l'application...")
+        print("\n Arrêt de l'application...")
         sys.exit(0)
 
 if __name__ == "__main__":
