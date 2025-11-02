@@ -1,5 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+🚀 Lancer Gestion Financière Little
+-----------------------------------
+Ce script vérifie la configuration Python/Streamlit,
+crée le fichier config.toml si nécessaire,
+et lance l’application Streamlit sur un port libre.
+"""
+
 import os
 import sys
+import io
 import subprocess
 import webbrowser
 import time
@@ -9,18 +19,28 @@ import json
 from pathlib import Path
 
 # ====================================================
+# ⚙️ Correction d'encodage console (Windows / PyInstaller)
+# ====================================================
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding="utf-8", errors="replace")
+except Exception:
+    # En mode compilé, les flux peuvent déjà être redirigés
+    pass
+
+# ====================================================
 # 🔧 Vérification de Python et Streamlit
 # ====================================================
 def run_powershell_script(script_path):
     """Exécute un script PowerShell (install_and_run_windows.ps1)."""
     if not os.path.exists(script_path):
-        print(f"❌ Script PowerShell introuvable : {script_path}")
+        print(f"⚠️ Script PowerShell introuvable : {script_path}")
         input("Appuie sur Entrée pour quitter...")
         sys.exit(1)
-    print("\n🚀 Lancement de l’installation automatique via PowerShell...")
-    subprocess.run([
-        "powershell", "-ExecutionPolicy", "Bypass", "-File", script_path
-    ], shell=True)
+    print("\n🪄 Lancement de l’installation automatique via PowerShell...")
+    subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path], shell=True)
     print("\n✅ Installation terminée.\n")
 
 
@@ -43,12 +63,12 @@ def interactive_installation():
     python_answer = input("Avez-vous déjà Python installé sur votre ordinateur ? (oui/non) : ").strip().lower()
 
     if python_answer != "oui":
-        print("\n📦 Python va être installé automatiquement.")
+        print("\n🐍 Python va être installé automatiquement.")
         ps1_path = os.path.join(os.path.dirname(sys.executable), "install_and_run_windows.ps1")
         run_powershell_script(ps1_path)
         return  # tout sera géré par le script PowerShell
 
-    streamlit_answer = input("Avez-vous déjà le module Streamlit installé (Si vous n'êtes pas sur mettez non) ? (oui/non) : ").strip().lower()
+    streamlit_answer = input("Avez-vous déjà le module Streamlit installé (si vous ne savez pas, mettez 'non') ? (oui/non) : ").strip().lower()
 
     if streamlit_answer != "oui":
         install_streamlit_and_deps()
@@ -59,7 +79,9 @@ def interactive_installation():
     time.sleep(1)
 
 
-# Crée un répertoire .streamlit si inexistant (pour éviter l'erreur serveur)
+# ====================================================
+# 🗂️ Création automatique du dossier .streamlit/config.toml
+# ====================================================
 home_dir = os.path.expanduser("~")
 streamlit_dir = os.path.join(home_dir, ".streamlit")
 os.makedirs(streamlit_dir, exist_ok=True)
@@ -67,15 +89,20 @@ os.makedirs(streamlit_dir, exist_ok=True)
 config_file = os.path.join(streamlit_dir, "config.toml")
 if not os.path.exists(config_file):
     with open(config_file, "w", encoding="utf-8") as f:
-        f.write("[server]\nheadless = true\nenableCORS = false\nenableXsrfProtection = false\n")
+        f.write(
+            "[server]\n"
+            "headless = true\n"
+            "enableCORS = false\n"
+            "enableXsrfProtection = false\n"
+        )
+    print("📝 Fichier config.toml créé avec succès.")
 
 
 # ====================================================
 # 📘 Ouverture automatique du guide d’installation
 # ====================================================
-
 def ouvrir_guide_installation():
-    """Ouvre le guide d'installation si c'est le premier lancement"""
+    """Ouvre le guide d'installation au premier lancement ou périodiquement."""
     config_dir = Path.home() / ".gestiolittle"
     config_file = config_dir / "config.json"
     config_dir.mkdir(exist_ok=True)
@@ -94,11 +121,11 @@ def ouvrir_guide_installation():
     ouvrir_guide = False
 
     if premier_lancement:
-        print("🎉 Premier lancement - Ouverture du guide d'installation...")
+        print("📖 Premier lancement – ouverture du guide d’installation...")
         ouvrir_guide = True
         config["premier_lancement"] = False
     elif lancements % 10 == 0:
-        print("📖 Rappel - Ouverture du guide d'installation...")
+        print("📖 Rappel – ouverture du guide d’installation...")
         ouvrir_guide = True
 
     with open(config_file, 'w', encoding='utf-8') as f:
@@ -112,18 +139,16 @@ def ouvrir_guide_installation():
                 subprocess.run(["open", str(guide_path)])
             else:
                 subprocess.run(["xdg-open", str(guide_path)])
-            print("📚 Guide d'installation ouvert !")
-            time.sleep(2)
+            print("✅ Guide d’installation ouvert !")
         except Exception as e:
-            print(f"❌ Impossible d'ouvrir le guide: {e}")
+            print(f"❌ Impossible d'ouvrir le guide : {e}")
+
 
 # ====================================================
 # 🌐 Gestion du lancement Streamlit
 # ====================================================
-# -----------------------------
-# 🔍 Trouver un port libre
-# -----------------------------
 def find_free_port(start=8501):
+    """Trouve un port libre à partir du port de base."""
     port = start
     while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -131,8 +156,9 @@ def find_free_port(start=8501):
                 return port
         port += 1
 
-def wait_for_port(port, timeout=30):  # (petit bonus: timeout à 30s)
-    """Attend que le port Streamlit soit ouvert (jusqu'à timeout secondes)."""
+
+def wait_for_port(port, timeout=30):
+    """Attend que le port Streamlit soit ouvert (jusqu’à timeout secondes)."""
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -142,27 +168,34 @@ def wait_for_port(port, timeout=30):  # (petit bonus: timeout à 30s)
             time.sleep(0.5)
     return False
 
+
 def get_base_path():
+    """Retourne le chemin de base, compatible PyInstaller."""
     if getattr(sys, 'frozen', False):
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
+
 def find_app_path(base_path):
+    """Localise gestiolittle.py."""
     candidates = [
         os.path.join(base_path, "gestiolittle.py"),
         os.path.join(os.path.dirname(base_path), "gestiolittle.py"),
-        os.path.join(os.getcwd(), "gestiolittle.py")
+        os.path.join(os.getcwd(), "gestiolittle.py"),
     ]
     for path in candidates:
         if os.path.exists(path):
             return path
+
     print("❌ Impossible de trouver gestiolittle.py")
     for p in candidates:
         print(f"   - {p}")
     input("\nAppuie sur Entrée pour fermer…")
     sys.exit(1)
 
+
 def find_streamlit_executable():
+    """Cherche l’exécutable Streamlit."""
     python_dir = os.path.dirname(sys.executable)
     scripts_dir = os.path.join(python_dir, "Scripts")
     candidates = [
@@ -177,6 +210,7 @@ def find_streamlit_executable():
             return path
     return None
 
+
 def launch_streamlit(app_path, port):
     """Lance Streamlit et ouvre le navigateur quand le serveur est prêt."""
     streamlit_exe = find_streamlit_executable()
@@ -185,17 +219,15 @@ def launch_streamlit(app_path, port):
         input("Appuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    print(f"Lancement de Streamlit depuis : {streamlit_exe}")
-    print(f"Application : {app_path}")
-    print(f"Port choisi : {port}")
+    print(f"🚀 Lancement de Streamlit depuis : {streamlit_exe}")
+    print(f"📁 Application : {app_path}")
+    print(f"🌐 Port choisi : {port}")
 
-    # Toujours forcer le port choisi
     if sys.platform == "win32":
         cmd = [sys.executable, "-m", "streamlit", "run", app_path, "--server.port", str(port)]
     else:
         cmd = [streamlit_exe, "run", app_path, "--server.port", str(port)]
 
-    # (optionnel) consigner les logs dans un fichier si besoin de debug
     log_file = os.path.join(os.getcwd(), "streamlit_start.log")
     with open(log_file, "w", encoding="utf-8") as lf:
         process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
@@ -204,45 +236,45 @@ def launch_streamlit(app_path, port):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
         webbrowser.open(f"http://localhost:{port}")
     else:
-        print("⚠️ Le serveur Streamlit ne s'est pas lancé correctement.")
-        print(f"(Regarde le log : {log_file})")
+        print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
+        print(f"🔍 Consulte le log : {log_file}")
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
     return process
 
+
 # ====================================================
-# 🚀 Point d’entrée principal unifié
+# 🧠 Point d’entrée principal unifié
 # ====================================================
 def main():
-    print(" Démarrage de Gestion Financière Little")
+    print("🚀 Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
 
-    # Premier lancement (si tu gardes ta routine interactive)
     setup_done_flag = "setup_done.txt"
     if not os.path.exists(setup_done_flag):
         interactive_installation()
         with open(setup_done_flag, "w") as f:
             f.write("done")
 
-    # 1) Choisir un port libre et le communiquer à Streamlit
     port = find_free_port(8501)
     os.environ["STREAMLIT_SERVER_PORT"] = str(port)
-    print(f" Streamlit démarrera sur le port {port}")
+    print(f"🌍 Streamlit démarrera sur le port {port}")
 
-    # 2) Lancer l'app
     base_path = get_base_path()
     app_path = find_app_path(base_path)
     launch_streamlit(app_path, port)
 
-    print(" Application lancée avec succès.")
-    print(" Ferme cette fenêtre pour arrêter l'application.")
+    print("✅ Application lancée avec succès.")
+    print("💡 Ferme cette fenêtre pour arrêter l’application.")
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n Arrêt de l'application...")
+        print("\n🛑 Arrêt de l’application...")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
+
