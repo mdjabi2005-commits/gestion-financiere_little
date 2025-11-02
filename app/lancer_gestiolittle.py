@@ -59,6 +59,17 @@ def interactive_installation():
     time.sleep(1)
 
 
+# Crée un répertoire .streamlit si inexistant (pour éviter l'erreur serveur)
+home_dir = os.path.expanduser("~")
+streamlit_dir = os.path.join(home_dir, ".streamlit")
+os.makedirs(streamlit_dir, exist_ok=True)
+
+config_file = os.path.join(streamlit_dir, "config.toml")
+if not os.path.exists(config_file):
+    with open(config_file, "w", encoding="utf-8") as f:
+        f.write("[server]\nheadless = true\nenableCORS = false\nenableXsrfProtection = false\n")
+
+
 # ====================================================
 # 📘 Ouverture automatique du guide d’installation
 # ====================================================
@@ -109,8 +120,18 @@ def ouvrir_guide_installation():
 # ====================================================
 # 🌐 Gestion du lancement Streamlit
 # ====================================================
+# -----------------------------
+# 🔍 Trouver un port libre
+# -----------------------------
+def find_free_port(start=8501):
+    port = start
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", port)) != 0:
+                return port
+        port += 1
 
-def wait_for_port(port, timeout=20):
+def wait_for_port(port, timeout=30):  # (petit bonus: timeout à 30s)
     """Attend que le port Streamlit soit ouvert (jusqu'à timeout secondes)."""
     start = time.time()
     while time.time() - start < timeout:
@@ -122,13 +143,11 @@ def wait_for_port(port, timeout=20):
     return False
 
 def get_base_path():
-    """Retourne le chemin de base, même si le programme est compilé avec PyInstaller."""
     if getattr(sys, 'frozen', False):
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
 
 def find_app_path(base_path):
-    """Cherche le fichier gestiolittle.py à partir de l'emplacement courant."""
     candidates = [
         os.path.join(base_path, "gestiolittle.py"),
         os.path.join(os.path.dirname(base_path), "gestiolittle.py"),
@@ -137,58 +156,56 @@ def find_app_path(base_path):
     for path in candidates:
         if os.path.exists(path):
             return path
-
     print("❌ Impossible de trouver gestiolittle.py")
-    print("Chemins testés :")
     for p in candidates:
         print(f"   - {p}")
     input("\nAppuie sur Entrée pour fermer…")
     sys.exit(1)
 
 def find_streamlit_executable():
-    """Cherche streamlit.exe ou streamlit.cmd dans le même Python."""
     python_dir = os.path.dirname(sys.executable)
     scripts_dir = os.path.join(python_dir, "Scripts")
-
-    # Essaye plusieurs variantes possibles
     candidates = [
-        shutil.which("streamlit"),  # classique
+        shutil.which("streamlit"),
         os.path.join(scripts_dir, "streamlit.exe"),
         os.path.join(scripts_dir, "STREAMLIT.EXE"),
         os.path.join(scripts_dir, "streamlit.cmd"),
         os.path.join(scripts_dir, "STREAMLIT.CMD"),
     ]
-
     for path in candidates:
         if path and os.path.exists(path):
             return path
-
     return None
 
-
-def launch_streamlit(app_path, port=8501):
-    """Lance Streamlit proprement et ouvre le navigateur quand le serveur est prêt."""
+def launch_streamlit(app_path, port):
+    """Lance Streamlit et ouvre le navigateur quand le serveur est prêt."""
     streamlit_exe = find_streamlit_executable()
     if not streamlit_exe:
         print("❌ Streamlit introuvable, même dans le dossier Python actuel.")
         input("Appuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    print(f"Lancement de Streamlit à partir de : {streamlit_exe}")
+    print(f"Lancement de Streamlit depuis : {streamlit_exe}")
     print(f"Application : {app_path}")
+    print(f"Port choisi : {port}")
 
+    # Toujours forcer le port choisi
     if sys.platform == "win32":
         cmd = [sys.executable, "-m", "streamlit", "run", app_path, "--server.port", str(port)]
     else:
         cmd = [streamlit_exe, "run", app_path, "--server.port", str(port)]
 
-    process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # (optionnel) consigner les logs dans un fichier si besoin de debug
+    log_file = os.path.join(os.getcwd(), "streamlit_start.log")
+    with open(log_file, "w", encoding="utf-8") as lf:
+        process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
 
     if wait_for_port(port, timeout=30):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
         webbrowser.open(f"http://localhost:{port}")
     else:
         print("⚠️ Le serveur Streamlit ne s'est pas lancé correctement.")
+        print(f"(Regarde le log : {log_file})")
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
@@ -197,24 +214,26 @@ def launch_streamlit(app_path, port=8501):
 # ====================================================
 # 🚀 Point d’entrée principal unifié
 # ====================================================
-
-
 def main():
-    """Point d’entrée principal."""
     print("🚀 Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
 
-    # Vérifie si on doit configurer au premier lancement
+    # Premier lancement (si tu gardes ta routine interactive)
     setup_done_flag = "setup_done.txt"
     if not os.path.exists(setup_done_flag):
         interactive_installation()
         with open(setup_done_flag, "w") as f:
             f.write("done")
 
-   # 3️⃣ Lancer l'application Streamlit
+    # 1) Choisir un port libre et le communiquer à Streamlit
+    port = find_free_port(8501)
+    os.environ["STREAMLIT_SERVER_PORT"] = str(port)
+    print(f"🚀 Streamlit démarrera sur le port {port}")
+
+    # 2) Lancer l'app
     base_path = get_base_path()
     app_path = find_app_path(base_path)
-    launch_streamlit(app_path)
+    launch_streamlit(app_path, port)
 
     print("✅ Application lancée avec succès.")
     print("💡 Ferme cette fenêtre pour arrêter l'application.")
@@ -224,7 +243,6 @@ def main():
     except KeyboardInterrupt:
         print("\n🛑 Arrêt de l'application...")
         sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

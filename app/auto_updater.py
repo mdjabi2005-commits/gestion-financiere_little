@@ -26,7 +26,7 @@ GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # Source unique de vérité pour la version
 VERSION_FILE = Path("version.txt")
-VERSION_ACTUELLE = "v0.2.1"  # Valeur par défaut si le fichier n'existe pas
+VERSION_ACTUELLE = "v0.2.4"  # Valeur par défaut si le fichier n'existe pas
 
 
 # ==============================
