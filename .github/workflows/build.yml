@@ -381,83 +381,88 @@ jobs:
           echo "✅ Toutes les dépendances nécessaires au build sont installées"
         shell: bash
 
-
       - name: 🏗️ Compiler les deux versions Windows (Portable + Lite)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          echo "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
+          Write-Host "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
 
           # Installer PyInstaller
           python -m pip install --upgrade pip
           python -m pip install pyinstaller
 
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔹 VERSION PORTABLE (autonome, sans installateur ni questions)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host ""
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "🔹 VERSION PORTABLE (autonome, sans installateur ni questions)"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          pyinstaller app/lancer_gestiolittle.py ^
-            --noconfirm --clean ^
-            --onefile --console ^
-            --name "GestionFinanciereLittle_Portable" ^
-            --add-data "app;app" ^
-            --add-data "tesseract;tesseract" ^
-            --hidden-import streamlit ^
-            --hidden-import pandas ^
-            --hidden-import numpy ^
-            --hidden-import matplotlib ^
-            --hidden-import pytesseract ^
-            --hidden-import Pillow ^
-            --hidden-import opencv-python-headless ^
-            --hidden-import pdfminer.six ^
+          & pyinstaller `
+            "app/lancer_gestiolittle.py" `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --console `
+            --name GestionFinanciereLittle_Portable `
+            --add-data "app;app" `
+            --add-data "tesseract;tesseract" `
+            --hidden-import streamlit `
+            --hidden-import pandas `
+            --hidden-import numpy `
+            --hidden-import matplotlib `
+            --hidden-import pytesseract `
+            --hidden-import Pillow `
+            --hidden-import opencv-python-headless `
+            --hidden-import pdfminer.six `
             --hidden-import requests
 
-          echo ""
-          echo "✅ Compilation de la version Portable terminée"
-          echo ""
+          Write-Host ""
+          Write-Host "✅ Compilation de la version Portable terminée"
+          Write-Host ""
 
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔹 VERSION LITE (avec installateur et questions)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "🔹 VERSION LITE (avec installateur et questions)"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          pyinstaller app/lancer_gestiolite.py ^
-            --noconfirm --clean ^
-            --onefile --console ^
-            --name "GestionFinanciereLittle_Lite" ^
-            --exclude-module pytest ^
-            --exclude-module setuptools ^
-            --exclude-module pip ^
+          & pyinstaller `
+            "app/lancer_gestiolite.py" `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --console `
+            --name GestionFinanciereLittle_Lite `
+            --exclude-module pytest `
+            --exclude-module setuptools `
+            --exclude-module pip `
             --exclude-module wheel
 
-          echo ""
-          echo "✅ Compilation de la version Lite terminée"
-          echo ""
+          Write-Host ""
+          Write-Host "✅ Compilation de la version Lite terminée"
+          Write-Host ""
 
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📦 Copie des fichiers additionnels"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "📦 Copie des fichiers additionnels"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          mkdir -p dist
-          cp app/configlittle.py dist/ || echo "⚠️ configlittle.py non copié"
-          cp app/auto_updater.py dist/ || echo "⚠️ auto_updater.py non copié"
-          cp app/changelog_viewer.py dist/ || echo "⚠️ changelog_viewer.py non copié"
-          cp app/gestiolittle.py dist/ || echo "⚠️ gestiolittle.py non copié"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item app/configlittle.py dist/ -ErrorAction SilentlyContinue
+          Copy-Item app/auto_updater.py dist/ -ErrorAction SilentlyContinue
+          Copy-Item app/changelog_viewer.py dist/ -ErrorAction SilentlyContinue
+          Copy-Item app/gestiolittle.py dist/ -ErrorAction SilentlyContinue
 
-          # Copier tesseract (si présent)
-          if [ -d "tesseract" ]; then
-            cp -r tesseract dist/
-            echo "✅ Dossier Tesseract copié dans dist/"
-          else
-            echo "⚠️ Aucun dossier Tesseract trouvé"
-          fi
+          if (Test-Path "tesseract") {
+            Copy-Item -Recurse -Force tesseract dist/
+            Write-Host "✅ Dossier Tesseract copié dans dist/"
+          } else {
+            Write-Host "⚠️ Aucun dossier Tesseract trouvé"
+          }
 
-          echo ""
-          echo "🔍 Vérification du contenu de dist/"
-          ls -la dist/ || echo "⚠️ Aucun contenu trouvé"
+          Write-Host ""
+          Write-Host "🔍 Vérification du contenu de dist/"
+          Get-ChildItem dist/
 
-          echo ""
-          echo "✅ Compilation Windows (Portable + Lite) terminée avec succès"
+          Write-Host ""
+          Write-Host "✅ Compilation Windows (Portable + Lite) terminée avec succès"
+
         
         
       - name: 🔍 Vérification post-build de Tesseract embarqué
