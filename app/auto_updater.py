@@ -22,58 +22,26 @@ from datetime import datetime, timedelta
 # ==============================
 GITHUB_REPO = "mdjabi2005-commits/gestion-financiere_little"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-VERSION_ACTUELLE = "v1.1.0"  # À mettre à jour à chaque release
 
-# Fichiers de configuration
-CONFIG_DIR = Path.home() / ".gestiolittle"
-CONFIG_DIR.mkdir(exist_ok=True)
-UPDATE_CONFIG_FILE = CONFIG_DIR / "update_config.json"
-VERSION_FILE = CONFIG_DIR / "version.json"
+
+# Source unique de vérité pour la version
+VERSION_FILE = Path("version.txt")
+VERSION_ACTUELLE = "v0.2.1"  # Valeur par défaut si le fichier n'existe pas
 
 
 # ==============================
 # 📝 GESTION DE LA CONFIGURATION
 # ==============================
-def load_update_config():
-    """Charge la configuration des mises à jour"""
-    default_config = {
-        "auto_check": True,
-        "last_check": None,
-        "remind_later_until": None,
-        "installed_version": VERSION_ACTUELLE,
-        "skip_version": None
-    }
-    
-    if UPDATE_CONFIG_FILE.exists():
-        try:
-            with open(UPDATE_CONFIG_FILE, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                return {**default_config, **config}
-        except Exception as e:
-            print(f"Erreur lecture config update: {e}")
-    
-    return default_config
-
-
-def save_update_config(config):
-    """Sauvegarde la configuration des mises à jour"""
-    try:
-        with open(UPDATE_CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump(config, f, indent=2)
-    except Exception as e:
-        print(f"Erreur sauvegarde config update: {e}")
-
-
 def get_current_version():
-    """Récupère la version actuelle installée"""
-    if VERSION_FILE.exists():
-        try:
-            with open(VERSION_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data.get("version", VERSION_ACTUELLE)
-        except:
-            pass
-    return VERSION_ACTUELLE
+    """Lit la version actuelle depuis version.txt"""
+    try:
+        if VERSION_FILE.exists():
+            with open(VERSION_FILE, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        return VERSION_ACTUELLE
+    except Exception:
+        return VERSION_ACTUELLE
+
 
 
 def save_current_version(version):
@@ -112,30 +80,29 @@ def check_for_updates():
     return {"available": False}
 
 
-def should_check_updates():
-    """Détermine si on doit vérifier les mises à jour maintenant"""
-    config = load_update_config()
-    
-    # Si l'utilisateur a désactivé les vérifications automatiques
-    if not config.get("auto_check", True):
-        return False
-    
-    # Si l'utilisateur a cliqué sur "Plus tard"
-    remind_later = config.get("remind_later_until")
-    if remind_later:
-        remind_date = datetime.fromisoformat(remind_later)
-        if datetime.now() < remind_date:
-            return False
-    
-    # Vérifier maximum une fois par jour
-    last_check = config.get("last_check")
-    if last_check:
-        last_check_date = datetime.fromisoformat(last_check)
-        if datetime.now() - last_check_date < timedelta(days=1):
-            return False
-    
-    return True
+# Variable globale pour mémoriser la dernière vérification pendant la session
+_last_check_time = None
 
+def should_check_updates():
+    """
+    Détermine s’il faut vérifier les mises à jour.
+    ✅ Évite les vérifications trop fréquentes pendant une même session.
+    """
+    global _last_check_time
+    now = datetime.now()
+
+    # Si jamais aucune vérification n’a encore eu lieu
+    if _last_check_time is None:
+        _last_check_time = now
+        return True
+
+    # Vérifie qu’au moins 24h se sont écoulées
+    if now - _last_check_time >= timedelta(hours=24):
+        _last_check_time = now
+        return True
+
+    # Sinon, on ne revérifie pas
+    return False
 
 def compare_versions(v1, v2):
     """Compare deux versions (format: v1.2.3)
@@ -235,203 +202,222 @@ def extract_and_install(zip_path, install_dir):
 
 
 def restart_application():
-    """Redémarre l'application après mise à jour"""
+    """Relance l'application après mise à jour"""
+    python_exe = sys.executable
+    script_path = sys.argv[0]
     try:
-        if getattr(sys, 'frozen', False):
-            # Si compilé avec PyInstaller
-            os.execv(sys.executable, [sys.executable] + sys.argv)
+        if getattr(sys, "frozen", False):
+            # Si c'est un exécutable PyInstaller
+            subprocess.Popen([sys.executable])
         else:
-            # Si lancé depuis Python
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
+            subprocess.Popen([python_exe, script_path])
+        sys.exit(0)
     except Exception as e:
-        print(f"Erreur redémarrage: {e}")
-        st.error("⚠️ Redémarrage manuel nécessaire. Ferme et relance l'application.")
+        st.error(f"❌ Impossible de redémarrer automatiquement ({e})")
 
 
 # ==============================
 # 🎨 INTERFACE STREAMLIT
 # ==============================
+# Mémoire de session temporaire
+if "ignored_version" not in st.session_state:
+    st.session_state["ignored_version"] = None
+if "remind_later_until" not in st.session_state:
+    st.session_state["remind_later_until"] = None
+if "last_check_time" not in st.session_state:
+    st.session_state["last_check_time"] = None
+
+
 def show_update_notification():
     """Affiche une notification de mise à jour dans Streamlit"""
     
-    if not should_check_updates():
-        return
+    # Vérification simple (1x par session ou 1x par 24h)
+    if st.session_state["last_check_time"]:
+        delta = datetime.now() - st.session_state["last_check_time"]
+        if delta < timedelta(hours=24):
+            return
+    st.session_state["last_check_time"] = datetime.now()
     
-    # Vérifier les mises à jour
+    # Vérifier les mises à jour sur GitHub
     update_info = check_for_updates()
-    
     if not update_info.get("available"):
         return
     
     latest_version = update_info.get("version")
     current_version = get_current_version()
     
-    # Sauvegarder la date de vérification
-    config = load_update_config()
-    config["last_check"] = datetime.now().isoformat()
-    save_update_config(config)
-    
-    # Si version à ignorer
-    if config.get("skip_version") == latest_version:
+    # Si version ignorée
+    if st.session_state["ignored_version"] == latest_version:
         return
-    
-    # Comparer les versions
+
+    # Si "plus tard" actif
+    remind_until = st.session_state["remind_later_until"]
+    if remind_until and datetime.now() < remind_until:
+        return
+
+    # Si version pas plus récente, on ne montre rien
     if compare_versions(latest_version, current_version) <= 0:
-        return  # Pas de nouvelle version
-    
-    # Afficher la notification
+        return
+
+    # Affichage dans Streamlit
     st.toast(f"🎉 Nouvelle version disponible : {latest_version}", icon="🎉")
-    
+
     with st.expander(f"🆕 Mise à jour disponible : {latest_version}", expanded=True):
         st.markdown(f"**Version actuelle :** {current_version}")
         st.markdown(f"**Nouvelle version :** {latest_version}")
-        st.markdown(f"**Publiée le :** {datetime.fromisoformat(update_info['published_at'].replace('Z', '+00:00')).strftime('%d/%m/%Y')}")
-        
+        st.markdown(
+            f"**Publiée le :** {datetime.fromisoformat(update_info['published_at'].replace('Z', '+00:00')).strftime('%d/%m/%Y')}"
+        )
+
         if update_info.get("body"):
             st.markdown("**Notes de version :**")
             st.markdown(update_info["body"])
-        
+
         col1, col2, col3, col4 = st.columns(4)
-        
+
         with col1:
             if st.button("📥 Installer maintenant", type="primary"):
                 install_update(update_info)
-        
+
         with col2:
             if st.button("⏰ Plus tard"):
-                config["remind_later_until"] = (datetime.now() + timedelta(days=1)).isoformat()
-                save_update_config(config)
+                st.session_state["remind_later_until"] = datetime.now() + timedelta(days=1)
                 st.rerun()
-        
+
         with col3:
             if st.button("🚫 Ignorer cette version"):
-                config["skip_version"] = latest_version
-                save_update_config(config)
+                st.session_state["ignored_version"] = latest_version
                 st.rerun()
-        
+
         with col4:
             if st.button("📖 Voir sur GitHub"):
-                st.markdown(f"[Ouvrir la page de release]({update_info['html_url']})")
+                st.markdown(f"[Ouvrir la release]({update_info['html_url']})")
 
 
 def install_update(update_info):
-    """Interface d'installation de mise à jour"""
+    """Télécharge et installe proprement une mise à jour"""
     latest_version = update_info.get("version")
     assets = update_info.get("assets", [])
-    
-    # Trouver l'asset pour la plateforme
+
     asset = get_platform_asset(assets)
-    
     if not asset:
         st.error("❌ Aucun fichier de mise à jour disponible pour votre système.")
         return
-    
+
     st.info(f"📥 Téléchargement de {asset['name']} ({asset['size'] / 1024 / 1024:.1f} MB)...")
-    
-    # Barre de progression
+
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
+
     def update_progress(percent):
         progress_bar.progress(percent)
         status_text.text(f"Téléchargement en cours... {percent}%")
-    
-    # Télécharger
+
+    # Télécharger l’archive ZIP
     zip_path = download_update(asset, update_progress)
-    
     if not zip_path:
         st.error("❌ Échec du téléchargement.")
         return
-    
-    status_text.text("📦 Installation en cours...")
-    
-    # Déterminer le dossier d'installation
+
+    status_text.text("📦 Installation de la mise à jour en cours...")
+
+    # Dossier d'installation actuel
     if getattr(sys, 'frozen', False):
         install_dir = Path(sys.executable).parent
     else:
-        install_dir = Path(__file__).parent
-    
-    # Installer
-    success, backup_dir = extract_and_install(zip_path, install_dir)
-    
-    if not success:
-        st.error("❌ Échec de l'installation.")
-        if backup_dir and backup_dir.exists():
-            st.info(f"💾 Un backup a été créé : {backup_dir}")
-        return
-    
-    # Sauvegarder la nouvelle version
-    save_current_version(latest_version)
-    
-    # Mettre à jour la config
-    config = load_update_config()
-    config["installed_version"] = latest_version
-    config["skip_version"] = None
-    save_update_config(config)
-    
-    st.success(f"✅ Mise à jour vers {latest_version} installée avec succès !")
-    st.info(f"💾 Backup créé : {backup_dir}")
-    
-    if st.button("🔄 Redémarrer maintenant", type="primary"):
-        st.info("🔄 Redémarrage de l'application...")
-        restart_application()
+        install_dir = Path(__file__).parent.resolve()
 
+    # Dossier temporaire pour extraire le ZIP
+    temp_extract_dir = Path(tempfile.mkdtemp(prefix="update_extract_"))
+    backup_dir = install_dir / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    try:
+        # Étape 1 → Créer un backup du dossier existant
+        if not backup_dir.exists():
+            shutil.copytree(install_dir, backup_dir, dirs_exist_ok=True)
+        st.info(f"💾 Sauvegarde créée dans : `{backup_dir}`")
+
+        # Étape 2 → Extraire l’archive ZIP téléchargée
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(temp_extract_dir)
+
+        # Étape 3 → Copier les fichiers extraits vers le dossier d’installation
+        for item in temp_extract_dir.iterdir():
+            dest = install_dir / item.name
+            if item.is_dir():
+                shutil.copytree(item, dest, dirs_exist_ok=True)
+            else:
+                shutil.copy2(item, dest)
+
+        # Étape 4 → Écrire la nouvelle version dans version.txt
+        try:
+            version_file = install_dir / "version.txt"
+            with open(version_file, "w", encoding="utf-8") as f:
+                f.write(latest_version)
+        except Exception as e:
+            st.warning(f"⚠️ Impossible d’écrire version.txt ({e})")
+
+        # Étape 5 → Nettoyer le dossier temporaire
+        shutil.rmtree(temp_extract_dir, ignore_errors=True)
+
+        # ✅ Succès
+        st.success(f"✅ Mise à jour vers {latest_version} installée avec succès !")
+        st.info(f"💾 Backup : `{backup_dir}`")
+
+        # Proposition de redémarrage
+        if st.button("🔄 Redémarrer maintenant", type="primary"):
+            st.info("🔄 Redémarrage de l’application...")
+            restart_application()
+
+    except Exception as e:
+        st.error(f"❌ Erreur critique pendant l’installation : {e}")
+        if backup_dir.exists():
+            st.info(f"💾 Le backup reste disponible dans : {backup_dir}")
+
+    finally:
+        # Nettoyage si jamais le zip reste temporairement ouvert
+        try:
+            os.remove(zip_path)
+        except Exception:
+            pass
 
 def update_settings_ui():
     """Interface des paramètres de mise à jour"""
     st.subheader("🔄 Paramètres de mise à jour")
-    
-    config = load_update_config()
+
     current_version = get_current_version()
-    
     st.info(f"**Version actuelle :** {current_version}")
-    
-    # Vérification automatique
+
+    # ✅ Option de vérification automatique (stockée en session)
     auto_check = st.checkbox(
         "Vérifier automatiquement les mises à jour",
-        value=config.get("auto_check", True)
+        value=st.session_state.get("auto_check", True)
     )
-    
-    if auto_check != config.get("auto_check"):
-        config["auto_check"] = auto_check
-        save_update_config(config)
-        st.success("✅ Préférence sauvegardée")
-    
+    st.session_state["auto_check"] = auto_check
+
     st.markdown("---")
-    
-    # Vérification manuelle
+
+    # ✅ Vérification manuelle
     col1, col2 = st.columns(2)
-    
+
     with col1:
         if st.button("🔍 Vérifier maintenant", type="primary"):
             with st.spinner("Vérification en cours..."):
                 update_info = check_for_updates()
-                
+
                 if not update_info.get("available"):
                     st.error("❌ Impossible de vérifier les mises à jour.")
                     return
-                
+
                 latest_version = update_info.get("version")
-                
+
                 if compare_versions(latest_version, current_version) > 0:
                     st.success(f"🎉 Nouvelle version disponible : {latest_version}")
                     if st.button("📥 Installer"):
                         install_update(update_info)
                 else:
                     st.success("✅ Vous avez la dernière version !")
-    
+
     with col2:
         if st.button("📋 Voir les releases sur GitHub"):
             st.markdown(f"[Ouvrir GitHub Releases](https://github.com/{GITHUB_REPO}/releases)")
-    
-    # Historique
-    if VERSION_FILE.exists():
-        try:
-            with open(VERSION_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                installed_at = data.get("installed_at")
-                if installed_at:
-                    st.caption(f"📅 Installée le : {datetime.fromisoformat(installed_at).strftime('%d/%m/%Y %H:%M')}")
-        except:
-            pass

@@ -9,53 +9,89 @@ import os
 import shutil
 import sqlite3
 import pandas as pd
-import pytesseract
 import sys
+import platform
+import subprocess
+import streamlit as st
 
-# 🔥 CORRECTION CRITIQUE : Configuration du PYTHONPATH et Tesseract
 def setup_environment():
-    """Configure l'environnement Python et Tesseract"""
-    
-    # 1. Ajouter app/ au PYTHONPATH
-    if getattr(sys, 'frozen', False):
-        # Si exécutable PyInstaller
-        base_path = sys._MEIPASS
+    """Prépare l'environnement Python et Tesseract avant d'importer pytesseract."""
+    system = platform.system()
+
+    # ============================
+    # 🧠 1️⃣ Configuration du PYTHONPATH
+    # ============================
+    if getattr(sys, "frozen", False):
+        base_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
     else:
-        # Si lancé depuis Python
         base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    # Ajouter le dossier parent au path
+
+    # Ajouter le dossier parent au sys.path
     parent_dir = os.path.dirname(base_path)
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
-    
+
     # Ajouter le dossier app/ si présent
-    app_dir = os.path.join(base_path, 'app')
+    app_dir = os.path.join(base_path, "app")
     if os.path.exists(app_dir) and app_dir not in sys.path:
         sys.path.insert(0, app_dir)
-    
-    # 2. Configurer Tesseract
-    if getattr(sys, 'frozen', False):
-        # Si exécutable PyInstaller
-        tesseract_path = os.path.join(sys._MEIPASS, "tesseract", "tesseract.exe")
-    else:
-        # Si développement
-        tesseract_path = os.path.join(os.path.dirname(__file__), "tesseract", "tesseract.exe")
-    
-    if os.path.exists(tesseract_path):
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
-        print(f" Tesseract trouvé : {tesseract_path}")
-    else:
-        # Tesseract n'est pas dans le dossier local, essayer le PATH système
-        tesseract_system = shutil.which("tesseract")
-        if tesseract_system:
-            pytesseract.pytesseract.tesseract_cmd = tesseract_system
-            print(f" Tesseract système trouvé : {tesseract_system}")
-        else:
-            print(f" Tesseract non trouvé. Chemin testé : {tesseract_path}")
 
-# Appeler la configuration au démarrage
-setup_environment()
+    # ============================
+    # 🔍 2️⃣ Configuration de Tesseract
+    # ============================
+    tesseract_local = os.path.join(base_path, "tesseract", "tesseract.exe")
+
+    if os.path.exists(tesseract_local):
+        os.environ["TESSERACT_CMD"] = tesseract_local
+        print(f"✅ Tesseract local trouvé ({tesseract_local})")
+        return True
+
+    # Chercher Tesseract dans le PATH
+    tesseract_system = shutil.which("tesseract")
+    if tesseract_system:
+        os.environ["TESSERACT_CMD"] = tesseract_system
+        print(f"✅ Tesseract système détecté ({tesseract_system})")
+        return True
+
+    # Sinon : message d'erreur
+    st.warning("⚠️ Tesseract n’a pas été trouvé (ni local, ni système).")
+
+    if system == "Windows":
+        st.error("""
+        ❌ Tesseract non trouvé.
+        Télécharge-le depuis [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
+        et place le dossier `tesseract/` à côté de l’exécutable.
+        """)
+    else:
+        st.info("""
+        💡 Installation manuelle :
+        - **Linux** : `sudo apt install tesseract-ocr tesseract-ocr-fra`
+        - **macOS** : `brew install tesseract`
+        """)
+
+    return False
+
+
+# 🚀 Prépare l'environnement AVANT tout import pytesseract
+TESSERACT_READY = setup_environment()
+
+if not TESSERACT_READY:
+    st.stop()  # Stoppe Streamlit si Tesseract est manquant
+
+
+# ============================
+# 🔥 Import dynamique de pytesseract
+# ============================
+try:
+    import pytesseract
+    # Appliquer la config si elle existe
+    if "TESSERACT_CMD" in os.environ:
+        pytesseract.pytesseract.tesseract_cmd = os.environ["TESSERACT_CMD"]
+        print(f"📦 pytesseract configuré ({pytesseract.pytesseract.tesseract_cmd})")
+except ImportError:
+    st.error("❌ Le module `pytesseract` est manquant.")
+    st.info("💡 Installez-le avec : `pip install pytesseract`")
+    st.stop()
 
 # 🔥 CORRECTION : Import conditionnel de configlittle
 try:
@@ -91,7 +127,6 @@ except ImportError:
 # Imports normaux continuent...
 from PIL import Image
 import re
-import streamlit as st
 from datetime import datetime, date, timedelta
 from dateutil import parser
 import cv2
@@ -121,6 +156,78 @@ except ImportError:
     except ImportError:
         CHANGELOG_AVAILABLE = False
         print(" Affichage du changelog non disponible")
+
+        
+def config_tesseract():
+    system = platform.system()
+    tesseract_path = None
+
+    if system == "Windows":
+        if getattr(sys, "frozen", False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        tesseract_path = os.path.join(base_path, "tesseract", "tesseract.exe")
+
+        if not os.path.exists(tesseract_path):
+            st.error("⚠️ Tesseract n’a pas été trouvé dans le dossier 'tesseract/'.")
+            return False
+
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        return True
+
+    tesseract_path = shutil.which("tesseract")
+
+    if tesseract_path:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        return True
+
+    st.warning("⚠️ Tesseract n'est pas installé sur ce système.")
+    install_auto = st.button("🛠️ Installer automatiquement Tesseract")
+
+    if install_auto:
+        try:
+            if system == "Linux":
+                with st.spinner("Installation de Tesseract en cours..."):
+                    subprocess.run(["sudo", "apt", "update"], check=True)
+                    subprocess.run(["sudo", "apt", "install", "-y", "tesseract-ocr", "tesseract-ocr-fra"], check=True)
+            elif system == "Darwin":
+                if shutil.which("brew"):
+                    with st.spinner("Installation de Tesseract via Homebrew..."):
+                        subprocess.run(["brew", "install", "tesseract"], check=True)
+                        subprocess.run(["brew", "install", "tesseract-lang"], check=True)
+                else:
+                    st.error("❌ Homebrew n'est pas installé. Installe-le d'abord depuis https://brew.sh")
+                    return False
+            else:
+                st.error("⚠️ L’installation automatique n’est pas disponible pour ce système.")
+                return False
+
+            tesseract_path = shutil.which("tesseract")
+            if tesseract_path:
+                pytesseract.pytesseract.tesseract_cmd = tesseract_path
+                st.success(f"✅ Tesseract a été installé avec succès ({tesseract_path}) !")
+                return True
+            else:
+                st.error("❌ L’installation semble avoir échoué. Réessaie manuellement.")
+
+        except subprocess.CalledProcessError as e:
+            st.error(f"❌ Échec de l’installation : {e}")
+        except Exception as e:
+            st.error(f"❌ Erreur inattendue : {e}")
+
+    st.info("""
+    💡 Pour installer manuellement Tesseract :
+    - Sur **Linux** : `sudo apt install tesseract-ocr tesseract-ocr-fra`
+    - Sur **macOS** : `brew install tesseract`
+    """)
+    return False
+
+# 🚀 Vérifie immédiatement
+TESSERACT_OK = config_tesseract()
+
+if not TESSERACT_OK:
+    st.stop()  # ⛔ Stoppe le chargement si Tesseract n'est pas dispo
 
 # ==============================
 # 📄 MODIFIER LA CONFIGURATION STREAMLIT

@@ -417,7 +417,7 @@ jobs:
           a = Analysis(
               ['app/lancer_gestiolittle.py'],
               pathex=['app'],
-              binaries=[],
+              binaries=[('tesseract', 'tesseract')],
               datas=py_files,
               hiddenimports=['streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
               hookspath=[],
@@ -516,7 +516,7 @@ jobs:
               7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 tesseract/
             else
               echo "📦 Création du ZIP avec les fichiers d’installation..."
-              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1
+              7z a -tzip GestionFinanciereLittle-Windows.zip GestionFinanciereLittle.exe *.py *.bat *.ps1 
             fi
 
             echo "📁 Vérification du contenu du ZIP final..."
