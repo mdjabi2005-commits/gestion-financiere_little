@@ -385,11 +385,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
+          Write-Host "🏗️ Compilation Gestion Financière Little (version PORTABLE)..."
 
-          # Installer PyInstaller
+          # Mise à jour et installation de PyInstaller + hooks
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller
+          python -m pip install pyinstaller pyinstaller-hooks-contrib
 
           Write-Host ""
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -402,16 +402,28 @@ jobs:
             --clean `
             --onefile `
             --console `
-            --name GestionFinanciereLittle_Portable `
+            --name "GestionFinanciereLittle_Portable" `
             --add-data "app;app" `
             --add-data "tesseract;tesseract" `
+            --collect-all streamlit `
+            --collect-all pandas `
+            --collect-all PIL `
+            --collect-all pytesseract `
+            --collect-all cv2 `
+            --collect-all numpy `
+            --collect-all matplotlib `
+            --collect-all pdfminer `
             --hidden-import streamlit `
+            --hidden-import streamlit.web.bootstrap `
+            --hidden-import streamlit.web.server.browser_websocket_handler `
+            --hidden-import streamlit.runtime.scriptrunner.script_runner `
             --hidden-import pandas `
             --hidden-import numpy `
             --hidden-import matplotlib `
             --hidden-import pytesseract `
             --hidden-import Pillow `
             --hidden-import opencv-python-headless `
+            --hidden-import cv2 `
             --hidden-import pdfminer.six `
             --hidden-import requests
 
@@ -419,6 +431,10 @@ jobs:
           Write-Host "✅ Compilation de la version Portable terminée"
           Write-Host ""
 
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "📦 Vérification post-compilation"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Get-ChildItem dist/
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "🔹 VERSION LITE (avec installateur et questions)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -677,4 +693,3 @@ jobs:
             dist/GestionFinanciereLittle*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

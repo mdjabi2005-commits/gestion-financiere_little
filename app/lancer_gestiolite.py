@@ -219,15 +219,9 @@ def find_streamlit_executable():
 
 
 def launch_streamlit(app_path, port):
-    """Lance Streamlit et crée un diagnostic complet si le serveur échoue."""
+    """Lance Streamlit via le Python global et crée un rapport debug complet en cas d’échec."""
     import platform
     import datetime
-
-    streamlit_exe = find_streamlit_executable()
-    if not streamlit_exe:
-        print("❌ Streamlit introuvable. Vérifie ton installation Python.")
-        input("Appuie sur Entrée pour fermer…")
-        sys.exit(1)
 
     # Infos système
     sys_info = {
@@ -235,20 +229,18 @@ def launch_streamlit(app_path, port):
         "Version": platform.version(),
         "Machine": platform.machine(),
         "Python": sys.version,
-        "Executable": sys.executable,
         "App path": app_path,
-        "Streamlit": streamlit_exe,
         "Port": port,
         "Datetime": datetime.datetime.now().isoformat()
     }
 
-    print(f"🚀 Lancement de Streamlit depuis : {streamlit_exe}")
+    print(f"🚀 Lancement de Streamlit global via Python système")
     print(f"📁 Application : {app_path}")
     print(f"🌐 Port choisi : {port}")
 
-    # Commande de lancement
+    # Commande : utilisation du Python global
     cmd = [
-        sys.executable, "-m", "streamlit", "run", app_path,
+        "python", "-m", "streamlit", "run", app_path,
         "--server.port", str(port),
         "--logger.level", "debug"
     ]
@@ -256,9 +248,9 @@ def launch_streamlit(app_path, port):
     log_file = os.path.join(os.getcwd(), "streamlit_start.log")
     debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
 
-    # Écrire le fichier debug avant lancement
+    # Écrire les infos système
     with open(debug_file, "w", encoding="utf-8") as dbg:
-        dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE\n")
+        dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (LITE)\n")
         dbg.write("=" * 60 + "\n")
         for key, val in sys_info.items():
             dbg.write(f"{key}: {val}\n")
@@ -267,7 +259,7 @@ def launch_streamlit(app_path, port):
     print(f"🧾 Log Streamlit : {log_file}")
     print(f"🧩 Fichier debug : {debug_file}")
 
-    # Lancer Streamlit
+    # Lancer Streamlit avec le Python global
     with open(log_file, "w", encoding="utf-8") as lf:
         process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
 
@@ -277,7 +269,7 @@ def launch_streamlit(app_path, port):
         webbrowser.open(f"http://localhost:{port}")
     else:
         print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
-        print("🔍 Création du rapport de débogage complet…")
+        print("🔍 Lecture du log et création du rapport de débogage...")
 
         try:
             with open(log_file, "r", encoding="utf-8") as f:
@@ -285,7 +277,6 @@ def launch_streamlit(app_path, port):
         except Exception as e:
             log_content = f"❌ Impossible de lire le log : {e}"
 
-        # Ajouter les logs au fichier debug
         with open(debug_file, "a", encoding="utf-8") as dbg:
             dbg.write("\n\n📜 CONTENU DU LOG STREAMLIT\n")
             dbg.write("-" * 60 + "\n")

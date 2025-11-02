@@ -1,0 +1,11 @@
+🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (LITE)
+============================================================
+OS: Windows
+Version: 10.0.26100
+Machine: AMD64
+Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+App path: c:\users\djabi\gestion-financiere_little\app\gestiolittle.py
+Port: 8501
+Datetime: 2025-11-02T17:10:16.596300
+============================================================
+
