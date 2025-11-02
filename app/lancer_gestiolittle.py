@@ -165,32 +165,83 @@ def find_streamlit_executable():
 
 
 def launch_streamlit(app_path, port):
-    """Lance Streamlit et ouvre le navigateur quand le serveur est prêt."""
+    """Lance Streamlit et crée un diagnostic complet si le serveur échoue."""
+    import platform
+    import datetime
+
     streamlit_exe = find_streamlit_executable()
     if not streamlit_exe:
-        print("❌ Streamlit introuvable, même dans le dossier Python actuel.")
+        print("❌ Streamlit introuvable. Vérifie ton installation Python.")
         input("Appuie sur Entrée pour fermer…")
         sys.exit(1)
+
+    # Infos système
+    sys_info = {
+        "OS": platform.system(),
+        "Version": platform.version(),
+        "Machine": platform.machine(),
+        "Python": sys.version,
+        "Executable": sys.executable,
+        "App path": app_path,
+        "Streamlit": streamlit_exe,
+        "Port": port,
+        "Datetime": datetime.datetime.now().isoformat()
+    }
 
     print(f"🚀 Lancement de Streamlit depuis : {streamlit_exe}")
     print(f"📁 Application : {app_path}")
     print(f"🌐 Port choisi : {port}")
 
-    if sys.platform == "win32":
-        cmd = [sys.executable, "-m", "streamlit", "run", app_path, "--server.port", str(port)]
-    else:
-        cmd = [streamlit_exe, "run", app_path, "--server.port", str(port)]
+    # Commande de lancement
+    cmd = [
+        sys.executable, "-m", "streamlit", "run", app_path,
+        "--server.port", str(port),
+        "--logger.level", "debug"
+    ]
 
     log_file = os.path.join(os.getcwd(), "streamlit_start.log")
+    debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
+
+    # Écrire le fichier debug avant lancement
+    with open(debug_file, "w", encoding="utf-8") as dbg:
+        dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE\n")
+        dbg.write("=" * 60 + "\n")
+        for key, val in sys_info.items():
+            dbg.write(f"{key}: {val}\n")
+        dbg.write("=" * 60 + "\n\n")
+
+    print(f"🧾 Log Streamlit : {log_file}")
+    print(f"🧩 Fichier debug : {debug_file}")
+
+    # Lancer Streamlit
     with open(log_file, "w", encoding="utf-8") as lf:
         process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
 
+    print("⏳ Attente du lancement du serveur Streamlit...")
     if wait_for_port(port, timeout=30):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
         webbrowser.open(f"http://localhost:{port}")
     else:
         print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
-        print(f"🔍 Consulte le log : {log_file}")
+        print("🔍 Création du rapport de débogage complet…")
+
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                log_content = f.read()
+        except Exception as e:
+            log_content = f"❌ Impossible de lire le log : {e}"
+
+        # Ajouter les logs au fichier debug
+        with open(debug_file, "a", encoding="utf-8") as dbg:
+            dbg.write("\n\n📜 CONTENU DU LOG STREAMLIT\n")
+            dbg.write("-" * 60 + "\n")
+            dbg.write(log_content[-10000:] if len(log_content) > 10000 else log_content)
+            dbg.write("\n" + "-" * 60 + "\nFin du rapport\n")
+
+        print("📄 Rapport de débogage généré : streamlit_start_debug.txt")
+        print("\n📋 Aperçu du log (dernières lignes) :\n")
+        print(log_content[-2000:] if len(log_content) > 2000 else log_content)
+
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
@@ -203,12 +254,6 @@ def launch_streamlit(app_path, port):
 def main():
     print("🚀 Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
-
-    setup_done_flag = "setup_done.txt"
-    if not os.path.exists(setup_done_flag):
-        interactive_installation()
-        with open(setup_done_flag, "w") as f:
-            f.write("done")
 
     port = find_free_port(8501)
     os.environ["STREAMLIT_SERVER_PORT"] = str(port)
