@@ -400,12 +400,20 @@ jobs:
           import glob
           try:
               import streamlit as st
+              import cv2
+              import PIL
               from PyInstaller.utils.hooks import collect_all
               datas_streamlit, binaries_streamlit, hiddenimports_streamlit = collect_all('streamlit')
+              datas_cv, bins_cv, hidden_cv = collect_all('cv2')
+              datas_pl, bins_pl, hidden_pl = collect_all('PIL')
           except ImportError:
               datas_streamlit, binaries_streamlit, hiddenimports_streamlit = [], [], []
+              datas_cv, bins_cv, hidden_cv = [], [], []
+              datas_pl, bins_pl, hidden_pl = [], [], []
 
-          datas_streamlit, binaries_streamlit, hiddenimports_streamlit = collect_all('streamlit')
+          all_datas = datas_st + datas_cv + datas_pl
+          all_bins = bins_st + bins_cv + bins_pl
+          all_hidden = hidden_st + hidden_cv + hidden_pl
           
           block_cipher = None
           
@@ -435,11 +443,13 @@ jobs:
           a = Analysis(
               ['app/lancer_gestiolittle.py'],
                 pathex=['app'],
-                binaries=binaries_streamlit + [('tesseract', 'tesseract')],
-                datas=py_files + datas_streamlit,
-                hiddenimports=hiddenimports_streamlit + [
-                'streamlit', 'configlittle', 'auto_updater', 'changelog_viewer', 
-                'pandas', 'pytesseract', 'PIL', 'cv2', 'numpy', 'dateutil', 'requests'],
+                binaries=all_bins + [('tesseract', 'tesseract')],
+                datas=py_files + all_datas,
+                hiddenimports=all_hidden + [
+                'streamlit', 'pandas', 'numpy', 'matplotlib', 'pytesseract',
+                'cv2', 'PIL', 'dateutil', 'requests', 'configlittle',
+                'auto_updater', 'changelog_viewer'
+                ],
                 hookspath=[],
                 hooksconfig={},
                 runtime_hooks=[],
