@@ -26,17 +26,19 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: 📥 Installer Tesseract OCR pour Windows uniquement
+      - name: 📦 Copier le dossier Tesseract depuis le dépôt
         if: runner.os == 'Windows'
         run: |
-          # Télécharger et installer Tesseract pour Windows
-          choco install tesseract -y
-          # Créer le dossier tesseract local
-          mkdir -p tesseract
-          # Copier Tesseract depuis l'installation système
-          cp -r "C:/Program Files/Tesseract-OCR/"* tesseract/ || true
-          echo "✅ Tesseract installé et copié pour Windows"
+          if [ -d "tesseract" ]; then
+            echo "📂 Dossier tesseract trouvé dans le dépôt"
+            mkdir -p dist/tesseract
+            cp -r tesseract/* dist/tesseract/
+            echo "✅ Tesseract local copié dans dist/"
+          else
+            echo "⚠️ Aucun dossier tesseract trouvé dans le dépôt"
+          fi
         shell: bash
+
       
       - name: 📝 Créer le dossier dist
         run: |
@@ -479,6 +481,19 @@ jobs:
           echo "✅ Application compilée avec succès"
           
         shell: bash
+        
+        - name: 🔍 Vérification post-build de Tesseract embarqué
+        if: runner.os == 'Windows'
+        run: |
+          if [ -d "dist/tesseract" ]; then
+            echo "✅ Tesseract bien présent dans dist/"
+            ls -la dist/tesseract
+          else
+            echo "❌ Tesseract manquant dans dist/"
+            exit 1
+          fi
+        shell: bash
+
 
 
       - name: ⚙️ Ajouter installateur automatique Windows
