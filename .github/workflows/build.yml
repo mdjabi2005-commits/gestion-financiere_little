@@ -482,7 +482,7 @@ jobs:
           
         shell: bash
         
-        - name: 🔍 Vérification post-build de Tesseract embarqué
+      - name: 🔍 Vérification post-build de Tesseract embarqué
         if: runner.os == 'Windows'
         run: |
           if [ -d "dist/tesseract" ]; then
