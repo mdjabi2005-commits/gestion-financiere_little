@@ -6,7 +6,7 @@ Machine: AMD64
 Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
 Executable: C:\Users\djabi\AppData\Local\Programs\Python\Python313\python.exe
 App path: c:\users\djabi\gestion-financiere_little\app\gestiolittle.py
-Port: 8501
-Datetime: 2025-11-03T20:41:01.244276
+Port: 8502
+Datetime: 2025-11-03T23:08:57.687114
 ============================================================
 

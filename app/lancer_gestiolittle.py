@@ -79,27 +79,38 @@ def get_base_path():
 
 def find_app_path(base_path):
     """
-    Localise le vrai fichier Streamlit à exécuter : gestiolittle.py
-    Peu importe le dossier où se trouve le lanceur (Lite ou Portable).
+    Trouve le fichier gestiolittle.py même s’il est à côté de l’exécutable
+    et non pas dans le dossier temporaire _MEIPASS.
     """
-    possible_names = ["gestiolittle.py", "app/gestiolittle.py"]
+    # Dossiers potentiels
+    exe_dir = os.path.dirname(sys.executable)  # dossier où se trouve l’exe
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    for name in possible_names:
-        candidate = os.path.join(base_path, name)
-        if os.path.exists(candidate):
-            return candidate
+    candidates = [
+        os.path.join(base_path, "gestiolittle.py"),
+        os.path.join(script_dir, "gestiolittle.py"),
+        os.path.join(exe_dir, "gestiolittle.py"),
+        os.path.join(exe_dir, "app", "gestiolittle.py"),
+    ]
 
-    # Si non trouvé, on cherche dans les répertoires parents
-    for root, dirs, files in os.walk(base_path):
+    for path in candidates:
+        if os.path.exists(path):
+            print(f"✅ gestiolittle.py trouvé à : {path}")
+            return path
+
+    # En dernier recours, recherche récursive
+    for root, dirs, files in os.walk(exe_dir):
         if "gestiolittle.py" in files:
+            print(f"✅ gestiolittle.py trouvé dans : {root}")
             return os.path.join(root, "gestiolittle.py")
 
-    print("❌ Impossible de trouver le fichier principal gestiolittle.py.")
+    print("❌ Impossible de trouver gestiolittle.py.")
     print("🔍 Emplacements testés :")
-    for name in possible_names:
-        print(f"   - {os.path.join(base_path, name)}")
+    for p in candidates:
+        print(f"   - {p}")
     input("\nAppuie sur Entrée pour fermer…")
     sys.exit(1)
+
 
 # ====================================================
 # 🚀 Lancement de Streamlit embarqué
