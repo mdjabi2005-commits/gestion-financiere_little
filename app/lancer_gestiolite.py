@@ -154,6 +154,7 @@ def launch_streamlit(app_path, port):
     """Lance Streamlit via le Python global et crée un rapport debug complet en cas d’échec."""
     import platform
     import datetime
+    import select
 
     print("\n============================================================")
     print("💼 Gestion Financière Little — MODE LITE (version débogage)")
@@ -161,6 +162,7 @@ def launch_streamlit(app_path, port):
     print("🪄 Ne fermez PAS cette fenêtre tant que vous utilisez l’application.")
     print("💡 Vous pouvez fermer cette fenêtre SEULEMENT après avoir fermé le navigateur.\n")
 
+    # Informations système
     sys_info = {
         "OS": platform.system(),
         "Version": platform.version(),
@@ -172,9 +174,11 @@ def launch_streamlit(app_path, port):
         "Datetime": datetime.datetime.now().isoformat()
     }
 
+    # Chemins des fichiers de logs
     log_file = os.path.join(os.getcwd(), "streamlit_start.log")
     debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
 
+    # Écriture du fichier de debug initial
     with open(debug_file, "w", encoding="utf-8") as dbg:
         dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (LITE)\n")
         dbg.write("=" * 60 + "\n")
@@ -187,6 +191,7 @@ def launch_streamlit(app_path, port):
     print(f"🧾 Log Streamlit : {log_file}")
     print(f"🧩 Fichier debug : {debug_file}")
 
+    # Commande de lancement Streamlit
     cmd = [
         "python", "-m", "streamlit", "run", app_path,
         "--server.port", str(port),
@@ -194,28 +199,83 @@ def launch_streamlit(app_path, port):
     ]
     print("⚙️ Commande exécutée :", " ".join(cmd))
 
+    # Lancement du processus Streamlit + logs en direct
     with open(log_file, "w", encoding="utf-8") as lf:
-        process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
+        process = subprocess.Popen(
+            cmd,
+            stdout=lf,
+            stderr=lf,
+            cwd=os.getcwd(),
+            bufsize=1  # écriture ligne par ligne
+        )
 
+    # Attente du démarrage du serveur
     print("⏳ Démarrage du serveur Streamlit, veuillez patienter...")
     for i in range(6):
         time.sleep(2)
         print(f"   ⏺️  Attente {i * 2 + 2} secondes...")
 
+    # Vérifie que le port s’ouvre correctement
     if wait_for_port(port, timeout=45):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
-        webbrowser.open(f"http://localhost:{port}")
-        print("🌐 Le navigateur devrait s’ouvrir automatiquement.")
-        print("🔒 Tant que cette fenêtre reste ouverte, l’application reste active.")
-        print("🧹 Fermez cette fenêtre uniquement APRÈS avoir fermé le navigateur.\n")
+        url = f"http://localhost:{port}"
+        opened = webbrowser.open(url)
+
+        if opened:
+            print("🌐 Le navigateur s'est ouvert automatiquement.")
+        else:
+            print("⚠️ Impossible d'ouvrir automatiquement le navigateur.")
+            print(f"➡️ Ouvrez manuellement : {url}")
+
+        print(f"🔗 Lien local : {url}")
+        print("\n💡 Tant que cette fenêtre reste ouverte, l’application reste active.")
+        print("   Appuyez sur Entrée pour fermer proprement l’application.\n")
+
+        try:
+            # Boucle de surveillance : tant que Streamlit tourne
+            while True:
+                if process.poll() is not None:  # Le processus est terminé
+                    print("\n✅ Le serveur Streamlit s’est arrêté.")
+                    break
+
+                time.sleep(1)
+                # Lecture non bloquante de l'entrée clavier
+                if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                    input("\n🛑 Fermeture manuelle demandée. Appuyez sur Entrée pour confirmer…")
+                    process.terminate()
+                    print("🧹 Serveur Streamlit arrêté proprement.")
+                    break
+
+        except KeyboardInterrupt:
+            print("\n🛑 Arrêt manuel via Ctrl+C.")
+            process.terminate()
+        finally:
+            sys.exit(0)
+
     else:
+        # Si Streamlit n’a pas démarré correctement
         print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
         with open(debug_file, "a", encoding="utf-8") as dbg:
             dbg.write("❌ Streamlit n’a pas démarré correctement.\n")
+
+        try:
+            with open(log_file, "r", encoding="utf-8") as f:
+                log_content = f.read()
+        except Exception as e:
+            log_content = f"❌ Impossible de lire le log : {e}"
+
+        with open(debug_file, "a", encoding="utf-8") as dbg:
+            dbg.write("\n\n📜 CONTENU DU LOG STREAMLIT\n")
+            dbg.write("-" * 60 + "\n")
+            dbg.write(log_content[-10000:] if len(log_content) > 10000 else log_content)
+            dbg.write("\n" + "-" * 60 + "\nFin du rapport\n")
+
+        print("📄 Rapport de débogage généré : streamlit_start_debug.txt")
+        print(f"📂 Consultez le dossier : {os.path.dirname(debug_file)}")
+        print("\n🪛 Vous pouvez envoyer ce fichier pour analyse.")
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    return process
 
 
 # ====================================================

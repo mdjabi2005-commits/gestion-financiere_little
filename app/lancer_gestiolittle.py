@@ -103,6 +103,7 @@ def launch_embedded_streamlit(app_path, port):
     """Lance le Streamlit embarqué depuis le dossier temporaire PyInstaller."""
     import platform
     import datetime
+    import select
 
     print("\n============================================================")
     print("🚀 Gestion Financière Little — MODE PORTABLE (version débogage)")
@@ -126,8 +127,8 @@ def launch_embedded_streamlit(app_path, port):
         "Datetime": datetime.datetime.now().isoformat()
     }
 
-    log_file, debug_file = get_log_paths()
-
+    log_file = os.path.join(os.getcwd(), "streamlit_start.log")
+    debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
 
     with open(debug_file, "w", encoding="utf-8") as dbg:
         dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (PORTABLE)\n")
@@ -143,42 +144,82 @@ def launch_embedded_streamlit(app_path, port):
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    print("✅ Fichier CLI trouvé. Lancement du serveur Streamlit embarqué...")
+    print(f"✅ Fichier CLI trouvé : {streamlit_cli}")
+    print(f"📁 Application : {app_path}")
+    print(f"🌐 Port choisi : {port}")
+    print(f"🧾 Log Streamlit : {log_file}")
+    print(f"🧩 Fichier debug : {debug_file}")
 
+    # Commande PyInstaller-safe (utilise le python embarqué)
     cmd = [
         sys.executable, "-m", "streamlit.cli", "run", app_path,
         "--server.port", str(port),
         "--logger.level", "debug"
     ]
+    print("⚙️ Commande exécutée :", " ".join(cmd))
 
-    if ENABLE_DEBUG:
-        print(f"⚙️ Commande exécutée : {' '.join(cmd)}")
-
+    # Lancement Streamlit avec affichage en direct + log simultané
     with open(log_file, "w", encoding="utf-8") as lf:
-        process = subprocess.Popen(cmd, stdout=lf, stderr=lf, cwd=base_path)
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            cwd=base_path,
+            text=True,
+            bufsize=1
+        )
+        # Lecture en direct dans la console
+        for line in process.stdout:
+            print(line, end="")
+            lf.write(line)
 
-    print("⏳ Démarrage du serveur interne, veuillez patienter...")
+    print("⏳ Démarrage du serveur Streamlit, veuillez patienter...")
     for i in range(6):
         time.sleep(2)
-        if ENABLE_DEBUG:
-            print(f"   ⏺️  Attente {i * 2 + 2} secondes...")
+        print(f"   ⏺️  Attente {i * 2 + 2} secondes...")
 
     if wait_for_port(port, timeout=45):
-        print("✅ Serveur prêt !")
-        if AUTO_OPEN_BROWSER:
-            webbrowser.open(f"http://localhost:{port}")
-            print("🌐 Le navigateur devrait s’ouvrir automatiquement.")
+        print("✅ Serveur prêt ! Ouverture du navigateur…")
+        url = f"http://localhost:{port}"
+        opened = webbrowser.open(url)
+
+        if opened:
+            print("🌐 Le navigateur s'est ouvert automatiquement.")
         else:
-            print(f"🌐 Ouvre manuellement ton navigateur à l’adresse : http://localhost:{port}")
-        print("🔒 Tant que cette fenêtre reste ouverte, l’application reste active.")
+            print("⚠️ Impossible d'ouvrir automatiquement le navigateur.")
+            print(f"➡️ Ouvrez manuellement : {url}")
+
+        print(f"🔗 Lien local : {url}")
+        print("\n💡 Tant que cette fenêtre reste ouverte, l’application reste active.")
+        print("   Appuyez sur Entrée pour fermer proprement l’application.\n")
+
+        try:
+            # Boucle de maintien du processus
+            while True:
+                if process.poll() is not None:
+                    print("\n✅ Le serveur Streamlit s’est arrêté.")
+                    break
+                time.sleep(1)
+                if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                    input("\n🛑 Fermeture manuelle demandée. Appuyez sur Entrée pour confirmer…")
+                    process.terminate()
+                    print("🧹 Serveur Streamlit arrêté proprement.")
+                    break
+
+        except KeyboardInterrupt:
+            print("\n🛑 Arrêt manuel via Ctrl+C.")
+            process.terminate()
+        finally:
+            sys.exit(0)
+
     else:
         print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
         with open(debug_file, "a", encoding="utf-8") as dbg:
             dbg.write("❌ Streamlit n’a pas démarré correctement.\n")
+        print("📄 Consultez le fichier debug pour plus d’informations.")
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
-    return process
 
 
 # ====================================================
