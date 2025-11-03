@@ -375,19 +375,19 @@ jobs:
         shell: bash
 
       - name: 🧱 Installation des dépendances Python avant le build
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests
           echo "✅ Toutes les dépendances nécessaires au build sont installées"
-        shell: bash
 
       - name: 🏗️ Compiler les deux versions Windows (Portable + Lite)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "🏗️ Compilation Gestion Financière Little (version PORTABLE)..."
+          Write-Host "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
 
-          # Mise à jour et installation de PyInstaller + hooks
+          # 🔧 Installation / mise à jour des outils nécessaires
           python -m pip install --upgrade pip
           python -m pip install pyinstaller pyinstaller-hooks-contrib
 
@@ -422,19 +422,22 @@ jobs:
             --hidden-import matplotlib `
             --hidden-import pytesseract `
             --hidden-import Pillow `
-            --hidden-import opencv-python-headless `
             --hidden-import cv2 `
+            --hidden-import pdfminer `
             --hidden-import pdfminer.six `
-            --hidden-import requests
+            --hidden-import requests `
+            --hidden-import python-dateutil
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Portable terminée"
           Write-Host ""
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "📦 Vérification post-compilation"
+          Write-Host "📦 Vérification post-compilation (Portable)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Get-ChildItem dist/
+          Write-Host ""
+
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "🔹 VERSION LITE (avec installateur et questions)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -445,11 +448,13 @@ jobs:
             --clean `
             --onefile `
             --console `
-            --name GestionFinanciereLittle_Lite `
+            --name "GestionFinanciereLittle_Lite" `
             --exclude-module pytest `
             --exclude-module setuptools `
             --exclude-module pip `
-            --exclude-module wheel
+            --exclude-module wheel `
+            --exclude-module test `
+            --exclude-module unittest
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Lite terminée"
@@ -479,10 +484,9 @@ jobs:
           Write-Host ""
           Write-Host "✅ Compilation Windows (Portable + Lite) terminée avec succès"
 
-        
-        
       - name: 🔍 Vérification post-build de Tesseract embarqué
         if: runner.os == 'Windows'
+        shell: bash
         run: |
           if [ -d "dist/tesseract" ]; then
             echo "✅ Tesseract bien présent dans dist/"
@@ -491,7 +495,6 @@ jobs:
             echo "❌ Tesseract manquant dans dist/"
             exit 1
           fi
-        shell: bash
 
 
 

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-🚀 Lancer Gestion Financière Little
------------------------------------
+🚀 Lancer Gestion Financière Little (Portable)
+---------------------------------------------
 Ce script vérifie la configuration Python/Streamlit,
 crée le fichier config.toml si nécessaire,
-et lance l’application Streamlit sur un port libre.
+et lance l’application Streamlit embarquée sur un port libre.
 """
 
 import os
@@ -14,9 +14,13 @@ import subprocess
 import webbrowser
 import time
 import socket
-import shutil
-import json
 from pathlib import Path
+
+# ====================================================
+# ⚙️ Configuration globale
+# ====================================================
+AUTO_OPEN_BROWSER = True   # Ouvrir automatiquement le navigateur
+ENABLE_DEBUG = True        # Afficher des messages détaillés dans la console
 
 # ====================================================
 # ⚙️ Correction d'encodage console (Windows / PyInstaller)
@@ -27,59 +31,24 @@ try:
     sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding="utf-8", errors="replace")
 except Exception:
-    # En mode compilé, les flux peuvent déjà être redirigés
     pass
-
-
-# ====================================================
-# 📘 Ouverture automatique du guide d’installation
-# ====================================================
-def ouvrir_guide_installation():
-    """Ouvre le guide d'installation au premier lancement ou périodiquement."""
-    config_dir = Path.home() / ".gestiolittle"
-    config_file = config_dir / "config.json"
-    config_dir.mkdir(exist_ok=True)
-
-    if config_file.exists():
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-    else:
-        config = {"premier_lancement": True, "lancements": 0}
-
-    config["lancements"] = config.get("lancements", 0) + 1
-    premier_lancement = config.get("premier_lancement", True)
-    lancements = config.get("lancements", 0)
-
-    guide_path = Path(__file__).parent / "GUIDE_INSTALLATION.md"
-    ouvrir_guide = False
-
-    if premier_lancement:
-        print("📖 Premier lancement – ouverture du guide d’installation...")
-        ouvrir_guide = True
-        config["premier_lancement"] = False
-    elif lancements % 10 == 0:
-        print("📖 Rappel – ouverture du guide d’installation...")
-        ouvrir_guide = True
-
-    with open(config_file, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2)
-
-    if ouvrir_guide and guide_path.exists():
-        try:
-            if sys.platform == "win32":
-                os.startfile(str(guide_path))
-            elif sys.platform == "darwin":
-                subprocess.run(["open", str(guide_path)])
-            else:
-                subprocess.run(["xdg-open", str(guide_path)])
-            print("✅ Guide d’installation ouvert !")
-        except Exception as e:
-            print(f"❌ Impossible d'ouvrir le guide : {e}")
-
 
 # ====================================================
 # 🌐 Gestion du lancement Streamlit
 # ====================================================
+def get_log_paths():
+    """Crée le dossier 'logs' dans le répertoire de l’application et renvoie les chemins complets."""
+    base_app_dir = Path(get_base_path())        # dossier où se trouve l'exécutable ou le script
+    base_log_dir = base_app_dir / "logs"        # sous-dossier 'logs' à créer dans app/
+    base_log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = base_log_dir / "streamlit_start.log"
+    debug_file = base_log_dir / "streamlit_start_debug.txt"
+
+    return str(log_file), str(debug_file)
+
+
+
 def find_free_port(start=8501):
     """Trouve un port libre à partir du port de base."""
     port = start
@@ -127,55 +96,143 @@ def find_app_path(base_path):
     sys.exit(1)
 
 
-def launch_streamlit(app_path, port=8501):
-    """
-    Lance Streamlit depuis le CLI embarqué dans le bundle PyInstaller.
-    Si cli.py est introuvable, affiche un message d’erreur clair.
-    """
+# ====================================================
+# 🚀 Lancement de Streamlit embarqué
+# ====================================================
+def launch_embedded_streamlit(app_path, port):
+    """Lance le Streamlit embarqué depuis le dossier temporaire PyInstaller."""
+    import platform
+    import datetime
 
-    # Vérifie que _MEIPASS existe (donc qu’on est dans un bundle PyInstaller)
-    if not hasattr(sys, "_MEIPASS"):
-        print("⚠️ Environnement PyInstaller non détecté.")
-        print("💡 Utilisez cette fonction uniquement dans la version portable.")
-        return
+    print("\n============================================================")
+    print("🚀 Gestion Financière Little — MODE PORTABLE (version débogage)")
+    print("============================================================")
+    print("🪄 Ne fermez PAS cette fenêtre tant que vous utilisez l’application.")
+    print("💡 Vous pouvez fermer cette fenêtre SEULEMENT après avoir fermé le navigateur.\n")
 
-    # Chemin attendu vers le Streamlit embarqué
-    streamlit_cli = os.path.join(sys._MEIPASS, "streamlit","web", "cli.py")
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    streamlit_cli = os.path.join(base_path, "Lib", "site-packages", "streamlit", "cli.py")
+
+    sys_info = {
+        "OS": platform.system(),
+        "Version": platform.version(),
+        "Machine": platform.machine(),
+        "Python": sys.version,
+        "Executable": sys.executable,
+        "App path": app_path,
+        "Base path": base_path,
+        "Streamlit CLI": streamlit_cli,
+        "Port": port,
+        "Datetime": datetime.datetime.now().isoformat()
+    }
+
+    log_file, debug_file = get_log_paths()
+
+
+    with open(debug_file, "w", encoding="utf-8") as dbg:
+        dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (PORTABLE)\n")
+        dbg.write("=" * 60 + "\n")
+        for key, val in sys_info.items():
+            dbg.write(f"{key}: {val}\n")
+        dbg.write("=" * 60 + "\n\n")
 
     if not os.path.exists(streamlit_cli):
-        print("❌ Le module Streamlit n’a pas été trouvé dans le bundle (_MEIPASS).")
-        print(f"📂 Emplacement attendu : {streamlit_cli}")
-        print("💡 Essayez de reconstruire l’exécutable avec --hidden-import streamlit")
-        return
+        print("❌ Fichier CLI Streamlit introuvable.")
+        with open(debug_file, "a", encoding="utf-8") as dbg:
+            dbg.write("❌ Erreur : Streamlit CLI introuvable.\n")
+        input("\nAppuie sur Entrée pour fermer…")
+        sys.exit(1)
 
-    # Commande de lancement directe
+    print("✅ Fichier CLI trouvé. Lancement du serveur Streamlit embarqué...")
+
     cmd = [
-        sys.executable,          # Python embarqué
-        streamlit_cli,           # Le vrai point d’entrée Streamlit
-        "run",                   # Commande Streamlit
-        app_path,                # Ton application principale
+        sys.executable, "-m", "streamlit.cli", "run", app_path,
         "--server.port", str(port),
-        "--server.headless", "true"
+        "--logger.level", "debug"
     ]
 
-    print("🚀 Lancement de Streamlit embarqué…")
-    print(f"🧩 Commande : {' '.join(cmd)}")
+    if ENABLE_DEBUG:
+        print(f"⚙️ Commande exécutée : {' '.join(cmd)}")
 
-    try:
-        # Lancer le serveur Streamlit
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        time.sleep(3)
+    with open(log_file, "w", encoding="utf-8") as lf:
+        process = subprocess.Popen(cmd, stdout=lf, stderr=lf, cwd=base_path)
 
-        # Lecture du log initial (optionnel)
-        for i in range(10):
-            line = process.stdout.readline()
-            if not line:
-                break
-            print("📄", line.strip())
+    print("⏳ Démarrage du serveur interne, veuillez patienter...")
+    for i in range(6):
+        time.sleep(2)
+        if ENABLE_DEBUG:
+            print(f"   ⏺️  Attente {i * 2 + 2} secondes...")
 
-        print("✅ Streamlit a été lancé avec succès.")
-    except Exception as e:
-        print(f"❌ Erreur lors du lancement de Streamlit : {e}")
+    if wait_for_port(port, timeout=45):
+        print("✅ Serveur prêt !")
+        if AUTO_OPEN_BROWSER:
+            webbrowser.open(f"http://localhost:{port}")
+            print("🌐 Le navigateur devrait s’ouvrir automatiquement.")
+        else:
+            print(f"🌐 Ouvre manuellement ton navigateur à l’adresse : http://localhost:{port}")
+        print("🔒 Tant que cette fenêtre reste ouverte, l’application reste active.")
+    else:
+        print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
+        with open(debug_file, "a", encoding="utf-8") as dbg:
+            dbg.write("❌ Streamlit n’a pas démarré correctement.\n")
+        input("\nAppuie sur Entrée pour fermer…")
+        sys.exit(1)
+
+    return process
+
+
+# ====================================================
+# 🧠 Vérification d’environnement avant lancement
+# ====================================================
+def check_environment(mode="portable"):
+    """Vérifie la présence des dossiers et modules essentiels."""
+    import importlib
+    import platform
+
+    log_path = os.path.join(get_base_path(), "logs", "check_environment.log")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    print("\n🔍 Vérification de l’environnement...")
+    results = []
+    errors = []
+
+    def log(msg, status="INFO"):
+        line = f"[{status}] {msg}"
+        print(line)
+        results.append(line)
+
+    log("Système : " + platform.system())
+    log("Python : " + sys.version)
+    log(f"Mode : {mode}")
+
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    log(f"Base path : {base_path}")
+
+    streamlit_cli = os.path.join(base_path, "Lib", "site-packages", "streamlit", "cli.py")
+    if os.path.exists(streamlit_cli):
+        log("✅ Streamlit CLI trouvé", "OK")
+    else:
+        log("❌ Streamlit CLI introuvable", "FAIL")
+        errors.append("Streamlit CLI not found")
+
+    for m in ["streamlit", "pandas", "numpy", "pytesseract", "cv2", "PIL"]:
+        try:
+            importlib.import_module(m)
+            log(f"Module {m} importé avec succès", "OK")
+        except Exception as e:
+            log(f"Module {m} introuvable : {e}", "FAIL")
+            errors.append(f"{m}: {e}")
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(results))
+
+    if errors:
+        print("❌ Problèmes détectés ! Consulte le log pour les détails.")
+        print(f"📂 Les fichiers de log se trouvent ici : {Path(get_base_path()) / 'logs'}")
+        input("Appuie sur Entrée pour quitter…")
+        sys.exit(1)
+    else:
+        print("✅ Environnement vérifié : tout est prêt.")
+
 
 # ====================================================
 # 🧠 Point d’entrée principal unifié
@@ -184,13 +241,14 @@ def main():
     print("🚀 Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
 
+    check_environment(mode="portable")
     port = find_free_port(8501)
     os.environ["STREAMLIT_SERVER_PORT"] = str(port)
     print(f"🌍 Streamlit démarrera sur le port {port}")
 
     base_path = get_base_path()
     app_path = find_app_path(base_path)
-    launch_streamlit(app_path, port)
+    launch_embedded_streamlit(app_path, port)
 
     print("✅ Application lancée avec succès.")
     print("💡 Ferme cette fenêtre pour arrêter l’application.")
@@ -204,4 +262,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 

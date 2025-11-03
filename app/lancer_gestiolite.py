@@ -1,16 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Nov  2 15:36:31 2025
-
-@author: djabi
-"""
-
-# -*- coding: utf-8 -*-
-"""
-🚀 Lancer Gestion Financière Little
------------------------------------
-Ce script vérifie la configuration Python/Streamlit,
-crée le fichier config.toml si nécessaire,
+🚀 Lancer Gestion Financière Little (Version LITE)
+--------------------------------------------------
+Cette version utilise le Python global de l’utilisateur.
+Elle installe automatiquement les dépendances si besoin,
 et lance l’application Streamlit sur un port libre.
 """
 
@@ -21,9 +14,6 @@ import subprocess
 import webbrowser
 import time
 import socket
-import shutil
-import json
-from pathlib import Path
 
 # ====================================================
 # ⚙️ Correction d'encodage console (Windows / PyInstaller)
@@ -34,11 +24,11 @@ try:
     sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding="utf-8", errors="replace")
 except Exception:
-    # En mode compilé, les flux peuvent déjà être redirigés
     pass
 
+
 # ====================================================
-# 🔧 Vérification de Python et Streamlit
+# 🔧 Installation automatique de Python et Streamlit
 # ====================================================
 def run_powershell_script(script_path):
     """Exécute un script PowerShell (install_and_run_windows.ps1)."""
@@ -89,66 +79,22 @@ def interactive_installation():
 # ====================================================
 # 🗂️ Création automatique du dossier .streamlit/config.toml
 # ====================================================
-home_dir = os.path.expanduser("~")
-streamlit_dir = os.path.join(home_dir, ".streamlit")
-os.makedirs(streamlit_dir, exist_ok=True)
+def create_streamlit_config():
+    """Crée le fichier de configuration Streamlit si manquant."""
+    home_dir = os.path.expanduser("~")
+    streamlit_dir = os.path.join(home_dir, ".streamlit")
+    os.makedirs(streamlit_dir, exist_ok=True)
 
-config_file = os.path.join(streamlit_dir, "config.toml")
-if not os.path.exists(config_file):
-    with open(config_file, "w", encoding="utf-8") as f:
-        f.write(
-            "[server]\n"
-            "headless = true\n"
-            "enableCORS = false\n"
-            "enableXsrfProtection = false\n"
-        )
-    print("📝 Fichier config.toml créé avec succès.")
-
-
-# ====================================================
-# 📘 Ouverture automatique du guide d’installation
-# ====================================================
-def ouvrir_guide_installation():
-    """Ouvre le guide d'installation au premier lancement ou périodiquement."""
-    config_dir = Path.home() / ".gestiolittle"
-    config_file = config_dir / "config.json"
-    config_dir.mkdir(exist_ok=True)
-
-    if config_file.exists():
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-    else:
-        config = {"premier_lancement": True, "lancements": 0}
-
-    config["lancements"] = config.get("lancements", 0) + 1
-    premier_lancement = config.get("premier_lancement", True)
-    lancements = config.get("lancements", 0)
-
-    guide_path = Path(__file__).parent / "GUIDE_INSTALLATION.md"
-    ouvrir_guide = False
-
-    if premier_lancement:
-        print("📖 Premier lancement – ouverture du guide d’installation...")
-        ouvrir_guide = True
-        config["premier_lancement"] = False
-    elif lancements % 10 == 0:
-        print("📖 Rappel – ouverture du guide d’installation...")
-        ouvrir_guide = True
-
-    with open(config_file, 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2)
-
-    if ouvrir_guide and guide_path.exists():
-        try:
-            if sys.platform == "win32":
-                os.startfile(str(guide_path))
-            elif sys.platform == "darwin":
-                subprocess.run(["open", str(guide_path)])
-            else:
-                subprocess.run(["xdg-open", str(guide_path)])
-            print("✅ Guide d’installation ouvert !")
-        except Exception as e:
-            print(f"❌ Impossible d'ouvrir le guide : {e}")
+    config_file = os.path.join(streamlit_dir, "config.toml")
+    if not os.path.exists(config_file):
+        with open(config_file, "w", encoding="utf-8") as f:
+            f.write(
+                "[server]\n"
+                "headless = true\n"
+                "enableCORS = false\n"
+                "enableXsrfProtection = false\n"
+            )
+        print("📝 Fichier config.toml créé avec succès.")
 
 
 # ====================================================
@@ -201,54 +147,34 @@ def find_app_path(base_path):
     sys.exit(1)
 
 
-def find_streamlit_executable():
-    """Cherche l’exécutable Streamlit."""
-    python_dir = os.path.dirname(sys.executable)
-    scripts_dir = os.path.join(python_dir, "Scripts")
-    candidates = [
-        shutil.which("streamlit"),
-        os.path.join(scripts_dir, "streamlit.exe"),
-        os.path.join(scripts_dir, "STREAMLIT.EXE"),
-        os.path.join(scripts_dir, "streamlit.cmd"),
-        os.path.join(scripts_dir, "STREAMLIT.CMD"),
-    ]
-    for path in candidates:
-        if path and os.path.exists(path):
-            return path
-    return None
-
-
+# ====================================================
+# 🚀 Lancement de Streamlit global
+# ====================================================
 def launch_streamlit(app_path, port):
     """Lance Streamlit via le Python global et crée un rapport debug complet en cas d’échec."""
     import platform
     import datetime
 
-    # Infos système
+    print("\n============================================================")
+    print("💼 Gestion Financière Little — MODE LITE (version débogage)")
+    print("============================================================")
+    print("🪄 Ne fermez PAS cette fenêtre tant que vous utilisez l’application.")
+    print("💡 Vous pouvez fermer cette fenêtre SEULEMENT après avoir fermé le navigateur.\n")
+
     sys_info = {
         "OS": platform.system(),
         "Version": platform.version(),
         "Machine": platform.machine(),
         "Python": sys.version,
+        "Executable": sys.executable,
         "App path": app_path,
         "Port": port,
         "Datetime": datetime.datetime.now().isoformat()
     }
 
-    print(f"🚀 Lancement de Streamlit global via Python système")
-    print(f"📁 Application : {app_path}")
-    print(f"🌐 Port choisi : {port}")
-
-    # Commande : utilisation du Python global
-    cmd = [
-        "python", "-m", "streamlit", "run", app_path,
-        "--server.port", str(port),
-        "--logger.level", "debug"
-    ]
-
     log_file = os.path.join(os.getcwd(), "streamlit_start.log")
     debug_file = os.path.join(os.getcwd(), "streamlit_start_debug.txt")
 
-    # Écrire les infos système
     with open(debug_file, "w", encoding="utf-8") as dbg:
         dbg.write("🧠 STREAMLIT START DEBUG — GESTION FINANCIÈRE LITTLE (LITE)\n")
         dbg.write("=" * 60 + "\n")
@@ -256,37 +182,36 @@ def launch_streamlit(app_path, port):
             dbg.write(f"{key}: {val}\n")
         dbg.write("=" * 60 + "\n\n")
 
+    print(f"📁 Application : {app_path}")
+    print(f"🌐 Port choisi : {port}")
     print(f"🧾 Log Streamlit : {log_file}")
     print(f"🧩 Fichier debug : {debug_file}")
 
-    # Lancer Streamlit avec le Python global
+    cmd = [
+        "python", "-m", "streamlit", "run", app_path,
+        "--server.port", str(port),
+        "--logger.level", "debug"
+    ]
+    print("⚙️ Commande exécutée :", " ".join(cmd))
+
     with open(log_file, "w", encoding="utf-8") as lf:
         process = subprocess.Popen(cmd, stdout=lf, stderr=lf)
 
-    print("⏳ Attente du lancement du serveur Streamlit...")
-    if wait_for_port(port, timeout=30):
+    print("⏳ Démarrage du serveur Streamlit, veuillez patienter...")
+    for i in range(6):
+        time.sleep(2)
+        print(f"   ⏺️  Attente {i * 2 + 2} secondes...")
+
+    if wait_for_port(port, timeout=45):
         print("✅ Serveur prêt ! Ouverture du navigateur…")
         webbrowser.open(f"http://localhost:{port}")
+        print("🌐 Le navigateur devrait s’ouvrir automatiquement.")
+        print("🔒 Tant que cette fenêtre reste ouverte, l’application reste active.")
+        print("🧹 Fermez cette fenêtre uniquement APRÈS avoir fermé le navigateur.\n")
     else:
         print("⚠️ Le serveur Streamlit ne s’est pas lancé correctement.")
-        print("🔍 Lecture du log et création du rapport de débogage...")
-
-        try:
-            with open(log_file, "r", encoding="utf-8") as f:
-                log_content = f.read()
-        except Exception as e:
-            log_content = f"❌ Impossible de lire le log : {e}"
-
         with open(debug_file, "a", encoding="utf-8") as dbg:
-            dbg.write("\n\n📜 CONTENU DU LOG STREAMLIT\n")
-            dbg.write("-" * 60 + "\n")
-            dbg.write(log_content[-10000:] if len(log_content) > 10000 else log_content)
-            dbg.write("\n" + "-" * 60 + "\nFin du rapport\n")
-
-        print("📄 Rapport de débogage généré : streamlit_start_debug.txt")
-        print("\n📋 Aperçu du log (dernières lignes) :\n")
-        print(log_content[-2000:] if len(log_content) > 2000 else log_content)
-
+            dbg.write("❌ Streamlit n’a pas démarré correctement.\n")
         input("\nAppuie sur Entrée pour fermer…")
         sys.exit(1)
 
@@ -299,8 +224,9 @@ def launch_streamlit(app_path, port):
 def main():
     print("🚀 Démarrage de Gestion Financière Little")
     print("──────────────────────────────────────────────")
-    
-    # Vérifie si on doit configurer au premier lancement
+
+    create_streamlit_config()
+
     setup_done_flag = "setup_done.txt"
     if not os.path.exists(setup_done_flag):
         interactive_installation()
@@ -327,4 +253,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
