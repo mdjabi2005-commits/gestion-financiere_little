@@ -3,6 +3,10 @@
 # Gestion Financiere Little - Windows
 # ====================================
 
+# Configuration encodage UTF-8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 # Relance en admin si necessaire
 $admin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 if (-not $admin) {
@@ -41,8 +45,9 @@ function Download-File {
     )
     try {
         Write-Host "Telechargement depuis : $Url"
-        $webClient = New-Object System.Net.WebClient
-        $webClient.DownloadFile($Url, $Destination)
+        # Utiliser Invoke-WebRequest pour un meilleur support SSL/TLS
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
         return $true
     }
     catch {
@@ -54,7 +59,46 @@ function Download-File {
 # ETAPE 1 : Verification de Python
 Write-Host "[1/6] Verification de Python..."
 
-if (-not (Have "python")) {
+# Chercher Python dans plusieurs endroits
+$pythonFound = $false
+$pythonCmd = ""
+
+# Chercher dans PATH
+if (Have "python") {
+    $pythonCmd = "python"
+    $pythonFound = $true
+}
+elseif (Have "python3") {
+    $pythonCmd = "python3"
+    $pythonFound = $true
+}
+
+# Chercher dans les emplacements standards
+if (-not $pythonFound) {
+    $pythonPaths = @(
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
+        "C:\Python313\python.exe",
+        "C:\Python312\python.exe",
+        "C:\Python311\python.exe",
+        "C:\Python310\python.exe",
+        "C:\Python39\python.exe"
+    )
+    
+    foreach ($path in $pythonPaths) {
+        if (Test-Path $path) {
+            $pythonCmd = $path
+            $pythonFound = $true
+            Write-Host "Python trouve : $path"
+            break
+        }
+    }
+}
+
+if (-not $pythonFound) {
     Write-Host "Python n'est pas installe sur ce systeme."
     Write-Host ""
     $response = Read-Host "Voulez-vous installer Python automatiquement ? (O/n)"
@@ -62,27 +106,37 @@ if (-not (Have "python")) {
     if ($response -match "^[OoYy]?$") {
         Write-Host "Installation de Python 3.13.0..."
         
-        $pythonUrl = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-amd64.exe"
+        # Determiner l'architecture
+        $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "win32" }
+        $pythonUrl = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-$arch.exe"
         $pythonInstaller = Join-Path $env:TEMP "python_installer.exe"
         
         if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
             Write-Host "Telechargement termine"
             Write-Host "Installation en cours (cela peut prendre quelques minutes)..."
             
-            Start-Process -FilePath $pythonInstaller -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0" -Wait
+            # Installation avec tous les composants necessaires
+            $installArgs = "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1 Include_launcher=1"
+            Start-Process -FilePath $pythonInstaller -ArgumentList $installArgs -Wait
             
             Remove-Item $pythonInstaller -ErrorAction SilentlyContinue
             
+            # Rafraichir le PATH
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
             
-            Start-Sleep -Seconds 2
-            if (-not (Have "python")) {
+            # Attendre que Python soit disponible
+            Start-Sleep -Seconds 3
+            
+            # Re-verifier
+            if (Have "python") {
+                $pythonCmd = "python"
+                Write-Host "Python installe avec succes !"
+            }
+            else {
                 Show-Message "Erreur" "Python n'a pas pu etre installe correctement. Veuillez l'installer manuellement depuis python.org" "Error"
                 Read-Host "Appuyez sur Entree pour fermer"
                 exit 1
             }
-            
-            Write-Host "Python installe avec succes !"
         }
         else {
             Show-Message "Erreur" "Impossible de telecharger Python. Verifiez votre connexion Internet." "Error"
@@ -94,7 +148,7 @@ if (-not (Have "python")) {
         Write-Host ""
         Write-Host "Installation manuelle requise :"
         Write-Host "   1. Telechargez Python depuis https://www.python.org/downloads/"
-        Write-Host "   2. Installez-le en cochant 'Add Python to PATH'"
+        Write-Host "   2. IMPORTANT : Cochez 'Add Python to PATH'"
         Write-Host "   3. Relancez ce script"
         Write-Host ""
         Read-Host "Appuyez sur Entree pour fermer"
@@ -102,26 +156,31 @@ if (-not (Have "python")) {
     }
 }
 else {
-    $pythonVersion = python --version
-    Write-Host "Python detecte : $pythonVersion"
+    try {
+        $pythonVersion = & $pythonCmd --version 2>&1
+        Write-Host "Python detecte : $pythonVersion"
+    }
+    catch {
+        Write-Host "Python detecte : $pythonCmd"
+    }
 }
 
 # ETAPE 2 : Mise a jour de pip
 Write-Host ""
 Write-Host "[2/6] Mise a jour de pip..."
 try {
-    python -m ensurepip --upgrade 2>&1 | Out-Null
-    python -m pip install --upgrade pip setuptools wheel --quiet
-    Write-Host "pip mis a jour"
+    & $pythonCmd -m ensurepip --upgrade 2>&1 | Out-Null
+    & $pythonCmd -m pip install --upgrade pip setuptools wheel --quiet 2>&1 | Out-Null
+    Write-Host "[OK] pip mis a jour"
 }
 catch {
-    Write-Host "Erreur lors de la mise a jour de pip (peut etre ignoree)"
+    Write-Host "[!] Erreur lors de la mise a jour de pip (peut etre ignoree)"
 }
 
 # ETAPE 3 : Installation des dependances
 Write-Host ""
 Write-Host "[3/6] Installation des dependances Python..."
-Write-Host "   (Cela peut prendre quelques minutes...)"
+Write-Host "   (Cela peut prendre 2-5 minutes...)"
 
 $packages = @(
     "streamlit",
@@ -136,14 +195,22 @@ $packages = @(
     "requests"
 )
 
+# Convertir en string pour la commande
+$packagesStr = $packages -join " "
+
+Write-Host "   Packages : $packagesStr"
+
 try {
-    python -m pip install --upgrade $packages --quiet
-    Write-Host "Tous les modules Python sont installes"
+    # Installation avec affichage minimal
+    $installCmd = "& `"$pythonCmd`" -m pip install --upgrade $packagesStr"
+    Invoke-Expression $installCmd
+    Write-Host "[OK] Tous les modules Python sont installes"
 }
 catch {
-    Write-Host "Erreur lors de l'installation des modules"
+    Write-Host "[!] Erreur lors de l'installation des modules"
     Write-Host "   Tentative de reinstallation sans cache..."
-    python -m pip install --upgrade $packages --no-cache-dir
+    $installCmd = "& `"$pythonCmd`" -m pip install --upgrade --no-cache-dir $packagesStr"
+    Invoke-Expression $installCmd
 }
 
 # ETAPE 4 : Configuration de Tesseract
@@ -153,18 +220,16 @@ Write-Host "[4/6] Configuration de Tesseract OCR..."
 $tessLocal = Join-Path $root "tesseract\tesseract.exe"
 if (Test-Path $tessLocal) {
     $env:PATH = "$($root)\tesseract;$env:PATH"
-    Write-Host "Tesseract local detecte et configure"
+    Write-Host "[OK] Tesseract local detecte et configure"
 }
 else {
     if (Have "tesseract") {
-        Write-Host "Tesseract systeme detecte"
+        Write-Host "[OK] Tesseract systeme detecte"
     }
     else {
-        Write-Host "Tesseract OCR non detecte"
-        Write-Host "   L'OCR automatique ne fonctionnera pas."
-        Write-Host ""
-        Write-Host "Pour installer Tesseract :"
-        Write-Host "   https://github.com/UB-Mannheim/tesseract/wiki"
+        Write-Host "[!] Tesseract OCR non detecte"
+        Write-Host "    L'OCR automatique ne fonctionnera pas."
+        Write-Host "    Pour installer : https://github.com/UB-Mannheim/tesseract/wiki"
     }
 }
 
@@ -173,6 +238,7 @@ Write-Host ""
 Write-Host "[5/6] Verification des modules..."
 
 $checkScript = @"
+import sys
 try:
     import streamlit
     import pandas
@@ -186,24 +252,39 @@ try:
     print("OK")
 except Exception as e:
     print(f"ERR: {e}")
+    sys.exit(1)
 "@
 
-$result = python -c $checkScript
-if ($result -notmatch "^OK") {
-    Show-Message "Erreur" "Un module Python est manquant ou corrompu : $result Essayez de reinstaller les dependances manuellement." "Error"
+$tempFile = Join-Path $env:TEMP "check_imports.py"
+$checkScript | Out-File -FilePath $tempFile -Encoding UTF8
+
+$result = & $pythonCmd $tempFile 2>&1
+Remove-Item $tempFile -ErrorAction SilentlyContinue
+
+if ($result -notmatch "OK") {
+    Write-Host "[ERREUR] Un module Python est manquant : $result"
+    Write-Host ""
+    Write-Host "Essayez d'installer manuellement :"
+    Write-Host "  $pythonCmd -m pip install streamlit pandas pytesseract"
     Read-Host "Appuyez sur Entree pour fermer"
     exit 1
 }
 
-Write-Host "Tous les modules sont operationnels"
+Write-Host "[OK] Tous les modules sont operationnels"
 
 # ETAPE 6 : Lancement de l'application
 Write-Host ""
 Write-Host "[6/6] Lancement de l'application..."
 
+# Chercher gestiolittle.py
 $mainScript = Join-Path $root "gestiolittle.py"
 if (-not (Test-Path $mainScript)) {
-    Show-Message "Erreur" "Fichier gestiolittle.py introuvable dans : $root Verifiez l'installation." "Error"
+    # Essayer dans le sous-dossier app
+    $mainScript = Join-Path $root "app\gestiolittle.py"
+}
+
+if (-not (Test-Path $mainScript)) {
+    Show-Message "Erreur" "Fichier gestiolittle.py introuvable dans : $root" "Error"
     Read-Host "Appuyez sur Entree pour fermer"
     exit 1
 }
@@ -213,31 +294,30 @@ Write-Host "=========================================="
 Write-Host "  Configuration terminee !"
 Write-Host "=========================================="
 Write-Host ""
-Write-Host "L'application va s'ouvrir dans votre navigateur"
-Write-Host "Pour arreter : Fermez cette fenetre (Ctrl+C)"
+Write-Host "[>] L'application va s'ouvrir dans votre navigateur"
+Write-Host "[!] Pour arreter : Fermez cette fenetre (Ctrl+C)"
 Write-Host ""
 
 Start-Sleep -Seconds 2
 
 Write-Host ""
-Write-Host "🚀 Lancement de l'application Streamlit..."
-Write-Host "💡 L'application va s'ouvrir dans votre navigateur (http://localhost:8501)"
-Write-Host "💡 Gardez cette fenêtre ouverte tant que vous l'utilisez."
+Write-Host "[>] Lancement de l'application Streamlit..."
+Write-Host "[>] URL : http://localhost:8501"
+Write-Host "[!] Gardez cette fenetre ouverte"
 Write-Host ""
-Start-Sleep -Seconds 2
 
-# Lancer Streamlit dans la même fenêtre (bloquant)
+# Lancer Streamlit
 try {
-    python -m streamlit run "`"$mainScript`"" --server.port 8501 --server.headless true
+    & $pythonCmd -m streamlit run $mainScript --server.port 8501 --server.headless true
 }
 catch {
-    Show-Message "Erreur de lancement" "Impossible de démarrer Streamlit. Vérifiez l'installation." "Error"
-    Read-Host "Appuyez sur Entrée pour fermer"
+    Show-Message "Erreur de lancement" "Impossible de demarrer Streamlit. Verifiez l'installation." "Error"
+    Read-Host "Appuyez sur Entree pour fermer"
     exit 1
 }
 
-# Quand Streamlit se ferme, garder la console ouverte
+# Quand Streamlit se ferme
 Write-Host ""
-Write-Host "🛑 L'application a été arrêtée."
-Write-Host "Appuyez sur une touche pour fermer cette fenêtre."
+Write-Host "[!] L'application a ete arretee."
+Write-Host "Appuyez sur une touche pour fermer cette fenetre."
 Pause

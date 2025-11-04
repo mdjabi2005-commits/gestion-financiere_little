@@ -439,7 +439,7 @@ jobs:
           Write-Host ""
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "🔹 VERSION LITE (avec installateur et questions)"
+          Write-Host "🔹 VERSION LITE (utilisant le Python global)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           & pyinstaller `
@@ -454,7 +454,19 @@ jobs:
             --exclude-module pip `
             --exclude-module wheel `
             --exclude-module test `
-            --exclude-module unittest
+            --exclude-module unittest `
+            --exclude-module streamlit `
+            --exclude-module pandas `
+            --exclude-module numpy `
+            --exclude-module matplotlib `
+            --exclude-module pytesseract `
+            --exclude-module Pillow `
+            --exclude-module opencv-python-headless `
+            --exclude-module cv2 `
+            --exclude-module pdfminer `
+            --exclude-module pdfminer.six `
+            --exclude-module requests `
+            --exclude-module python-dateutil
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Lite terminée"
