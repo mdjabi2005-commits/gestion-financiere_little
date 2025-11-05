@@ -145,7 +145,6 @@ def launch_streamlit_portable(app_path, port):
             "streamlit",
             "run",
             app_path,
-            "--server.port", str(port),
             "--server.headless", "true",
             "--logger.level", "info"
         ]

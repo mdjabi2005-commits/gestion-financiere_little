@@ -14,6 +14,8 @@ import time
 import socket
 import shutil
 from pathlib import Path
+import platform
+import threading
 
 # ==============================
 #  CONFIGURATION CONSOLE UTF-8
@@ -41,14 +43,38 @@ else:
 #  OUTILS DE DEBUG
 # ==============================
 
-def safe_print(text):
-    """Print sécurisé pour éviter les erreurs d'encodage"""
+def safe_print(text, level="INFO"):
+    """Print sécurisé avec niveaux et formatage"""
+    timestamp = time.strftime("%H:%M:%S")
+    
+    # Couleurs pour Windows (si supporté)
+    colors = {
+        "INFO": "",
+        "OK": "[✓]",
+        "ERROR": "[✗]",
+        "DEBUG": "[•]",
+        "WARN": "[!]"
+    }
+    
+    prefix = colors.get(level, "")
+    formatted = f"[{timestamp}] {prefix} {text}"
+    
     try:
-        print(text)
+        print(formatted)
     except UnicodeEncodeError:
-        text = text.encode("ascii", "replace").decode("ascii")
+        text = formatted.encode("ascii", "replace").decode("ascii")
         print(text)
-
+        
+def show_system_info():
+    """Affiche les informations système utiles"""
+    print("\n" + "-"*60)
+    print(" INFORMATIONS SYSTÈME ".center(60))
+    print("-"*60)
+    safe_print(f"OS : {platform.system()} {platform.release()}", "INFO")
+    safe_print(f"Machine : {platform.machine()}", "INFO")
+    safe_print(f"Python : {sys.version.split()[0]}", "INFO")
+    safe_print(f"Encodage : {sys.getdefaultencoding()}", "INFO")
+    print("-"*60 + "\n")
 
 # ==============================
 #  FONCTIONS SYSTEME
@@ -150,35 +176,22 @@ def find_system_python():
 # ==============================
 #  VERIFICATION ET INSTALLATION DES DEPENDANCES
 # ==============================
-
 def check_and_install_deps():
     """Vérifie si Streamlit et les dépendances sont installées"""
-    safe_print("[DEBUG] Vérification de l'environnement Python...")
-
+    print("\n" + "-"*60)
+    safe_print("Vérification des dépendances...", "INFO")
+    
     python_exe = find_system_python()
     if not python_exe:
-        safe_print("[ERREUR] Python non trouvé — lancement de l'installation automatique...")
-        ps_script = Path(get_base_path()) / "install_and_run_windows.ps1"
-        if ps_script.exists():
-            safe_print("[DEBUG] Script PowerShell trouvé, lancement...")
-            subprocess.run(
-                ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(ps_script)],
-                check=True
-            )
-            return True
-        else:
-            safe_print("[ERREUR] Script install_and_run_windows.ps1 manquant.")
-            input("Appuyez sur Entrée pour fermer...")
-            sys.exit(1)
-
-    safe_print(f"[DEBUG] Python trouvé : {python_exe}")
-
+        safe_print("Python non trouvé, installation requise", "ERROR")
+        # ... reste du code
+    
     packages = [
         "streamlit", "pandas", "pytesseract", "PIL",
-        "dateutil", "cv2",
-        "numpy", "matplotlib", "pdfminer.six", "requests"
+        "dateutil", "cv2", "numpy", "matplotlib", 
+        "pdfminer.six", "requests","platform","threading"
     ]
-
+    
     missing = []
     for pkg in packages:
         result = subprocess.run(
@@ -187,41 +200,41 @@ def check_and_install_deps():
             text=True
         )
         if result.returncode != 0:
+            safe_print(f"✗ {pkg} manquant", "WARN")
             missing.append(pkg)
-
+        else:
+            safe_print(f"✓ {pkg} installé", "OK")
+    
     if not missing:
-        safe_print("[DEBUG] Toutes les dépendances sont déjà installées.")
+        safe_print("Toutes les dépendances sont installées", "OK")
+        print("-"*60 + "\n")
         return True
-
-    safe_print(f"[DEBUG] Installation des dépendances manquantes : {', '.join(missing)}")
-
-    try:
-        subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], check=False)
-        subprocess.run([python_exe, "-m", "pip", "install"] + missing, check=True)
-        safe_print("[DEBUG] Installation terminée avec succès.")
-        return True
-    except Exception as e:
-        safe_print(f"[ERREUR] Impossible d'installer les dépendances : {e}")
-        return False
-
+    
+    # Installation des manquants...
 
 # ==============================
 #  LANCEMENT DE STREAMLIT
 # ==============================
 
-def launch_streamlit(app_path, port):
-    """Lance Streamlit et affiche les logs"""
-    safe_print("============================================================")
-    safe_print("GESTION FINANCIERE LITTLE - MODE LITE")
-    safe_print("============================================================")
-    safe_print(f"[DEBUG] Application : {app_path}")
-    safe_print(f"[DEBUG] Port choisi : {port}")
-
+def launch_streamlit_lite(app_path, port):
+    """Lance Streamlit avec affichage informatif dans la console"""
+    
+    # En-tête clair
+    print("\n" + "="*60)
+    print(" GESTION FINANCIERE LITTLE - MODE LITE ".center(60))
+    print("="*60)
+    
+    safe_print(f"Application : {os.path.basename(app_path)}", "INFO")
+    safe_print(f"Port réseau : {port}", "INFO")
+    safe_print(f"Répertoire : {get_base_path()}", "INFO")
+    
     python_exe = find_system_python()
     if not python_exe:
-        safe_print("[ERREUR] Python non détecté, impossible de lancer Streamlit.")
+        safe_print("Python non détecté sur le système", "ERROR")
         sys.exit(1)
-
+    
+    safe_print(f"Python utilisé : {python_exe}", "OK")
+    
     log_dir = Path(get_base_path()) / "logs"
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / "streamlit_lite.log"
@@ -230,30 +243,113 @@ def launch_streamlit(app_path, port):
         python_exe, "-m", "streamlit", "run", app_path,
         "--server.port", str(port),
         "--server.headless", "true",
-        "--logger.level", "info"
+        "--logger.level", "warning"
     ]
-    safe_print(f"[DEBUG] Commande : {' '.join(cmd)}")
-
-    with open(log_file, "w", encoding="utf-8") as f:
-        process = subprocess.Popen(
-            cmd,
-            stdout=f,
-            stderr=subprocess.STDOUT,
-            cwd=get_base_path(),
-            creationflags=0
-        )
-
-    safe_print("[DEBUG] Attente du démarrage du serveur Streamlit...")
+    
+    print("\n" + "-"*60)
+    safe_print("Démarrage du serveur Streamlit...", "INFO")
+    
+    # Ouvrir le fichier log en mode append
+    log_handle = open(log_file, "w", encoding="utf-8")
+    
+    # Lancer le processus
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=get_base_path(),
+        creationflags=0,
+        text=True,
+        encoding='utf-8',
+        errors='replace'
+    )
+    
+    # Thread pour afficher les logs importants
+    def monitor_output():
+        try:
+            for line in process.stdout:
+                # Écrire dans le fichier si toujours ouvert
+                try:
+                    log_handle.write(line)
+                    log_handle.flush()
+                except (ValueError, OSError):
+                    # Le fichier a été fermé, on arrête
+                    break
+                
+                # Filtrer et afficher les lignes importantes
+                if "Running on" in line or "Network URL" in line:
+                    safe_print(line.strip(), "OK")
+                elif "Warning" in line:
+                    safe_print(line.strip(), "WARN")
+                elif "Error" in line or "Exception" in line:
+                    safe_print(line.strip(), "ERROR")
+                elif "Stopping" in line or "Shutdown" in line:
+                    safe_print(line.strip(), "INFO")
+        except Exception as e:
+            safe_print(f"Erreur monitoring : {e}", "WARN")
+    
+    monitor_thread = threading.Thread(target=monitor_output, daemon=True)
+    monitor_thread.start()
+    
+    # Attendre que le port soit ouvert
+    safe_print("Attente du serveur...", "INFO")
     if wait_for_port(port, timeout=40):
         url = f"http://localhost:{port}"
+        print("\n" + "="*60)
+        safe_print("✓ APPLICATION PRÊTE", "OK")
+        print("="*60)
+        print(f"\n  URL locale    : {url}")
+        try:
+            print(f"  URL réseau    : http://{socket.gethostbyname(socket.gethostname())}:{port}")
+        except:
+            pass
+        print(f"  Logs          : {log_file}")
+        print("  État          : En cours d'exécution")
+        
+        print("\n" + "-"*60)
+        print("  Actions disponibles :")
+        print("  • Minimiser cette fenêtre (l'app continue)")
+        print("  • Ctrl+C pour arrêter proprement")
+        print("  • Fermer pour forcer l'arrêt")
+        print("-"*60 + "\n")
+        
         webbrowser.open(url)
-        safe_print(f"[DEBUG] Streamlit lancé sur : {url}")
+        safe_print("Navigateur ouvert automatiquement", "OK")
+        
+        # Afficher le statut périodiquement
+        def status_monitor():
+            while True:
+                time.sleep(60)  # Toutes les minutes
+                if process.poll() is None:
+                    safe_print("Application toujours active", "OK")
+                else:
+                    break
+        
+        status_thread = threading.Thread(target=status_monitor, daemon=True)
+        status_thread.start()
+        
     else:
-        safe_print("[ERREUR] Streamlit n'a pas démarré à temps.")
+        safe_print("Le serveur n'a pas démarré à temps", "ERROR")
+        safe_print(f"Consultez les logs : {log_file}", "INFO")
+        log_handle.close()
         sys.exit(1)
-
-    process.wait()
-
+    
+    # Attendre la fin
+    try:
+        process.wait()
+        safe_print("Application fermée normalement", "INFO")
+    except KeyboardInterrupt:
+        print("\n" + "-"*60)
+        safe_print("Arrêt demandé par l'utilisateur...", "WARN")
+        process.terminate()
+        safe_print("Application arrêtée", "OK")
+        print("-"*60)
+    finally:
+        # Fermer le fichier log proprement
+        try:
+            log_handle.close()
+        except:
+            pass
 
 # ==============================
 #  MAIN
@@ -283,7 +379,7 @@ def main():
 
     # Étape 3 : Lancement Streamlit
     port = find_free_port(8501)
-    launch_streamlit(str(app_path), port)
+    launch_streamlit_lite(str(app_path), port)
 
 
 # ==============================

@@ -296,7 +296,7 @@ jobs:
           # Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
           python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six platform threading requests --quiet || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
               python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
@@ -339,6 +339,8 @@ jobs:
               import numpy
               import matplotlib
               import requests
+              import platform
+              import threading
               print('✅ Toutes les dépendances sont installées avec succès!')
           except ImportError as e:
               print(f'❌ Erreur d\\'import: {e}')
@@ -413,6 +415,8 @@ jobs:
             --collect-all numpy `
             --collect-all matplotlib `
             --collect-all pdfminer `
+            --collect-all platform
+            --collect-all threading
             --hidden-import streamlit `
             --hidden-import streamlit.web.bootstrap `
             --hidden-import streamlit.web.server.browser_websocket_handler `
@@ -427,6 +431,8 @@ jobs:
             --hidden-import pdfminer.six `
             --hidden-import requests `
             --hidden-import python-dateutil
+            --hidden-import platform
+            --hidden-import threading
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Portable terminée"
@@ -467,6 +473,8 @@ jobs:
             --exclude-module pdfminer.six `
             --exclude-module requests `
             --exclude-module python-dateutil
+            --exclude-module platform
+            --exclude-module threading
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Lite terminée"
