@@ -472,8 +472,8 @@ jobs:
             --exclude-module pdfminer `
             --exclude-module pdfminer.six `
             --exclude-module requests `
-            --exclude-module python-dateutil
-            --exclude-module platform
+            --exclude-module python-dateutil `
+            --exclude-module platform `
             --exclude-module threading
 
           Write-Host ""
