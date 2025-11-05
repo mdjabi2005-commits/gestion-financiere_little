@@ -109,7 +109,7 @@ def verify_streamlit():
 def launch_streamlit_portable(app_path, port):
     """Lance Streamlit en mode PORTABLE (avec Python embarqué dans le .exe PyInstaller)"""
     import streamlit.web.cli as stcli
-
+    
     print("\n" + "=" * 60)
     print(" GESTION FINANCIÈRE LITTLE — MODE PORTABLE ")
     print("=" * 60)
@@ -117,20 +117,24 @@ def launch_streamlit_portable(app_path, port):
     print(f"Application : {app_path}")
     print(f"Port utilisé : {port}")
     print(f"Python embarqué : {sys.executable}")
-
+    
+    # ⚠️ IMPORTANT : Configurer le port AVANT de lancer Streamlit
+    os.environ["STREAMLIT_SERVER_PORT"] = str(port)
+    os.environ["STREAMLIT_SERVER_HEADLESS"] = "true"
+    os.environ["STREAMLIT_GLOBAL_DEVELOPMENT_MODE"] = "false"
+    
     # Dossier de logs dans le dossier de l'exécutable
     log_dir = Path(get_exe_dir()) / "logs"
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / "streamlit_portable.log"
-
+    
     print(f"Fichier log : {log_file}\n")
-
     print("Démarrage du serveur Streamlit (mode intégré)...")
     print("=" * 60)
     print("Cette fenêtre affiche le journal de démarrage en direct.")
     print("Si rien ne se passe pendant plus de 30 secondes, vérifiez les logs.")
     print("=" * 60)
-
+    
     # On redirige les sorties dans le log
     with open(log_file, "w", encoding="utf-8") as f:
         f.write("=== Démarrage Streamlit Portable ===\n")
@@ -139,8 +143,8 @@ def launch_streamlit_portable(app_path, port):
         f.write(f"Python embarqué : {sys.executable}\n")
         f.write("=" * 60 + "\n\n")
         f.flush()
-
-        # Préparer les arguments pour Streamlit
+        
+        # Préparer les arguments pour Streamlit (SANS --server.port)
         sys.argv = [
             "streamlit",
             "run",
@@ -148,21 +152,24 @@ def launch_streamlit_portable(app_path, port):
             "--server.headless", "true",
             "--logger.level", "info"
         ]
-
+        
         # Écriture des infos dans le log
         f.write("Commande équivalente : " + " ".join(sys.argv) + "\n\n")
+        f.write("Variables d'environnement :\n")
+        f.write("  STREAMLIT_SERVER_PORT={port}\n")
+        f.write("  STREAMLIT_GLOBAL_DEVELOPMENT_MODE=false\n\n")
         f.flush()
-
+        
         try:
             print("[INFO] Lancement direct du serveur Streamlit...")
             start_time = time.time()
-
+            
             # Exécution directe de Streamlit
             stcli.main()
-
+            
             elapsed = int(time.time() - start_time)
             print(f"[OK] Streamlit exécuté (durée : {elapsed}s)")
-
+            
         except Exception as e:
             print(f"[ERREUR] Échec du lancement Streamlit : {e}")
             import traceback
@@ -172,7 +179,7 @@ def launch_streamlit_portable(app_path, port):
             traceback.print_exc(file=f)
             input("\nAppuyez sur Entrée pour fermer...")
             sys.exit(1)
-
+    
     # Vérification post-lancement
     print("\nVérification du port (localhost)...")
     if wait_for_port(port, timeout=30):
@@ -187,13 +194,13 @@ def launch_streamlit_portable(app_path, port):
     else:
         print("[ERREUR] Aucun serveur Streamlit détecté sur ce port.")
         print(f"Consultez les logs : {log_file}")
-
+    
     print("\nL'application est maintenant en cours d'exécution.")
     print("Gardez cette fenêtre ouverte pour la garder active.")
     print("Pour arrêter : fermez cette fenêtre ou utilisez Ctrl+C.\n")
-
-   
-
+    
+    
+    
 def main():
     print("=" * 60)
     print(" DÉMARRAGE DE GESTION FINANCIÈRE LITTLE (PORTABLE) ")

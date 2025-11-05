@@ -430,9 +430,7 @@ jobs:
             --hidden-import pdfminer `
             --hidden-import pdfminer.six `
             --hidden-import requests `
-            --hidden-import python-dateutil `
-            --hidden-import platform `
-            --hidden-import threading
+            --hidden-import python-dateutil 
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Portable terminée"
@@ -472,9 +470,7 @@ jobs:
             --exclude-module pdfminer `
             --exclude-module pdfminer.six `
             --exclude-module requests `
-            --exclude-module python-dateutil `
-            --exclude-module platform `
-            --exclude-module threading
+            --exclude-module python-dateutil 
 
           Write-Host ""
           Write-Host "✅ Compilation de la version Lite terminée"
