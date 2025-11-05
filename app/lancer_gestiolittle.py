@@ -107,7 +107,9 @@ def verify_streamlit():
 
 
 def launch_streamlit_portable(app_path, port):
-    """Lance Streamlit en mode PORTABLE"""
+    """Lance Streamlit en mode PORTABLE (avec Python embarqué dans le .exe PyInstaller)"""
+    import streamlit.web.cli as stcli
+
     print("\n" + "=" * 60)
     print(" GESTION FINANCIÈRE LITTLE — MODE PORTABLE ")
     print("=" * 60)
@@ -123,97 +125,75 @@ def launch_streamlit_portable(app_path, port):
 
     print(f"Fichier log : {log_file}\n")
 
-    cmd = [
-        sys.executable,
-        "-m", "streamlit",
-        "run", app_path,
-        "--server.port", str(port),
-        "--server.headless", "true",
-        "--logger.level", "info"
-    ]
+    print("Démarrage du serveur Streamlit (mode intégré)...")
+    print("=" * 60)
+    print("Cette fenêtre affiche le journal de démarrage en direct.")
+    print("Si rien ne se passe pendant plus de 30 secondes, vérifiez les logs.")
+    print("=" * 60)
 
-    print("Commande exécutée :")
-    print(" ".join(cmd))
-    print("\nDémarrage du serveur Streamlit...")
+    # On redirige les sorties dans le log
+    with open(log_file, "w", encoding="utf-8") as f:
+        f.write("=== Démarrage Streamlit Portable ===\n")
+        f.write(f"Application : {app_path}\n")
+        f.write(f"Port : {port}\n")
+        f.write(f"Python embarqué : {sys.executable}\n")
+        f.write("=" * 60 + "\n\n")
+        f.flush()
 
-    try:
-        with open(log_file, "w", encoding="utf-8") as f:
-            f.write("=== Démarrage Streamlit Portable ===\n")
-            f.write(f"Commande : {' '.join(cmd)}\n")
-            f.write(f"Dossier : {get_base_path()}\n")
-            f.write("=" * 50 + "\n\n")
-            f.flush()
+        # Préparer les arguments pour Streamlit
+        sys.argv = [
+            "streamlit",
+            "run",
+            app_path,
+            "--server.port", str(port),
+            "--server.headless", "true",
+            "--logger.level", "info"
+        ]
 
-            process = subprocess.Popen(
-                cmd,
-                stdout=f,
-                stderr=subprocess.STDOUT,
-                cwd=get_base_path()
-            )
+        # Écriture des infos dans le log
+        f.write("Commande équivalente : " + " ".join(sys.argv) + "\n\n")
+        f.flush()
 
-        print("Attente du démarrage (45 secondes max)...")
+        try:
+            print("[INFO] Lancement direct du serveur Streamlit...")
+            start_time = time.time()
 
-        for i in range(15):
-            time.sleep(1)
-            print(f"  ... {i + 1}s", end="\r")
+            # Exécution directe de Streamlit
+            stcli.main()
 
-            try:
-                with socket.create_connection(("localhost", port), timeout=0.5):
-                    print("\n[OK] Port ouvert, Streamlit en cours d'exécution.")
-                    break
-            except Exception:
-                pass
-        else:
-            if not wait_for_port(port, timeout=30):
-                print("\n[ERREUR] Le serveur ne s'est pas lancé dans les temps.")
-                print(f"Consultez le log : {log_file}")
-                input("\nAppuyez sur Entrée pour fermer...")
-                process.terminate()
-                sys.exit(1)
+            elapsed = int(time.time() - start_time)
+            print(f"[OK] Streamlit exécuté (durée : {elapsed}s)")
 
-        print("\nServeur prêt !")
+        except Exception as e:
+            print(f"[ERREUR] Échec du lancement Streamlit : {e}")
+            import traceback
+            traceback.print_exc()
+            f.write("\n=== ERREUR ===\n")
+            f.write(str(e) + "\n")
+            traceback.print_exc(file=f)
+            input("\nAppuyez sur Entrée pour fermer...")
+            sys.exit(1)
+
+    # Vérification post-lancement
+    print("\nVérification du port (localhost)...")
+    if wait_for_port(port, timeout=30):
+        print("[OK] Serveur détecté en fonctionnement.")
         url = f"http://localhost:{port}"
-
         time.sleep(2)
         if webbrowser.open(url):
             print(f"Navigateur ouvert automatiquement : {url}")
         else:
             print(f"Ouvrez manuellement : {url}")
+        print("\nApplication prête.")
+    else:
+        print("[ERREUR] Aucun serveur Streamlit détecté sur ce port.")
+        print(f"Consultez les logs : {log_file}")
 
-        print("\nL'application est maintenant en cours d'exécution.")
-        print("Gardez cette fenêtre ouverte pour la garder active.")
-        print("Pour arrêter : fermez cette fenêtre ou utilisez Ctrl+C.\n")
+    print("\nL'application est maintenant en cours d'exécution.")
+    print("Gardez cette fenêtre ouverte pour la garder active.")
+    print("Pour arrêter : fermez cette fenêtre ou utilisez Ctrl+C.\n")
 
-        try:
-            while True:
-                if process.poll() is not None:
-                    print("\n[INFO] Le serveur s'est arrêté.")
-                    break
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nArrêt demandé...")
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-
-        print("Application arrêtée proprement.")
-
-    except Exception as e:
-        print(f"\n[ERREUR] Exception lors du lancement : {e}")
-        import traceback
-        traceback.print_exc()
-        try:
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write("\n=== ERREUR ===\n")
-                f.write(str(e) + "\n")
-                traceback.print_exc(file=f)
-        except Exception:
-            pass
-        input("\nAppuyez sur Entrée pour fermer...")
-        sys.exit(1)
-
+   
 
 def main():
     print("=" * 60)

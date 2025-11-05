@@ -240,7 +240,7 @@ def launch_streamlit(app_path, port):
             stdout=f,
             stderr=subprocess.STDOUT,
             cwd=get_base_path(),
-            creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
+            creationflags=0
         )
 
     safe_print("[DEBUG] Attente du démarrage du serveur Streamlit...")
