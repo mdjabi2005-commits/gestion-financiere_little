@@ -415,8 +415,8 @@ jobs:
             --collect-all numpy `
             --collect-all matplotlib `
             --collect-all pdfminer `
-            --collect-all platform
-            --collect-all threading
+            --collect-all platform `
+            --collect-all threading `
             --hidden-import streamlit `
             --hidden-import streamlit.web.bootstrap `
             --hidden-import streamlit.web.server.browser_websocket_handler `
