@@ -430,8 +430,8 @@ jobs:
             --hidden-import pdfminer `
             --hidden-import pdfminer.six `
             --hidden-import requests `
-            --hidden-import python-dateutil
-            --hidden-import platform
+            --hidden-import python-dateutil `
+            --hidden-import platform `
             --hidden-import threading
 
           Write-Host ""
