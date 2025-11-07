@@ -23,6 +23,8 @@ import threading
 if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONLEGACYWINDOWSSTDIO"] = "utf-8"
+    
+    # Configuration de la page de code Windows
     try:
         import ctypes
         kernel32 = ctypes.windll.kernel32
@@ -30,12 +32,46 @@ if sys.platform == "win32":
         kernel32.SetConsoleOutputCP(65001)
     except:
         pass
+    
+    # Configuration critique pour PyInstaller - FIX CONSOLE NOIRE
     try:
-        import codecs
-        sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, "replace")
-        sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, "replace")
-    except:
-        pass
+        # Si stdout/stderr sont None (cas PyInstaller avec --console)
+        if sys.stdout is None or not hasattr(sys.stdout, 'write'):
+            import io
+            sys.stdout = io.TextIOWrapper(
+                open('CONOUT$', 'wb', buffering=0),
+                encoding='utf-8',
+                errors='replace',
+                line_buffering=True
+            )
+        elif hasattr(sys.stdout, 'buffer'):
+            import codecs
+            sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer, errors="replace")
+        
+        if sys.stderr is None or not hasattr(sys.stderr, 'write'):
+            import io
+            sys.stderr = io.TextIOWrapper(
+                open('CONOUT$', 'wb', buffering=0),
+                encoding='utf-8',
+                errors='replace',
+                line_buffering=True
+            )
+        elif hasattr(sys.stderr, 'buffer'):
+            import codecs
+            sys.stderr = codecs.getwriter("utf-8")(sys.stderr.buffer, errors="replace")
+    except Exception as e:
+        # En dernier recours, créer un fichier de log
+        try:
+            log_file = os.path.join(
+                os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__),
+                "startup_error.log"
+            )
+            with open(log_file, "w", encoding="utf-8") as f:
+                f.write(f"Erreur configuration stdout: {e}\n")
+                import traceback
+                traceback.print_exc(file=f)
+        except:
+            pass
 else:
     os.environ["PYTHONIOENCODING"] = "utf-8"
 
@@ -47,33 +83,39 @@ def safe_print(text, level="INFO"):
     """Print sécurisé avec niveaux et formatage"""
     timestamp = time.strftime("%H:%M:%S")
     
-    # Couleurs pour Windows (si supporté)
-    colors = {
-        "INFO": "",
-        "OK": "[✓]",
-        "ERROR": "[✗]",
-        "DEBUG": "[•]",
+    # Symboles simples compatibles ASCII
+    symbols = {
+        "INFO": "[i]",
+        "OK": "[+]",
+        "ERROR": "[X]",
+        "DEBUG": "[.]",
         "WARN": "[!]"
     }
     
-    prefix = colors.get(level, "")
+    prefix = symbols.get(level, "[?]")
     formatted = f"[{timestamp}] {prefix} {text}"
     
     try:
-        print(formatted)
-    except UnicodeEncodeError:
-        text = formatted.encode("ascii", "replace").decode("ascii")
-        print(text)
-        
+        print(formatted, flush=True)
+    except Exception as e:
+        # Fallback absolu : fichier de log
+        try:
+            log_file = os.path.join(get_base_path(), "console.log")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"{formatted}\n")
+        except:
+            pass
+
 def show_system_info():
     """Affiche les informations système utiles"""
     print("\n" + "-"*60)
-    print(" INFORMATIONS SYSTÈME ".center(60))
+    print(" INFORMATIONS SYSTEME ".center(60))
     print("-"*60)
     safe_print(f"OS : {platform.system()} {platform.release()}", "INFO")
     safe_print(f"Machine : {platform.machine()}", "INFO")
     safe_print(f"Python : {sys.version.split()[0]}", "INFO")
     safe_print(f"Encodage : {sys.getdefaultencoding()}", "INFO")
+    safe_print(f"Mode : {'Compile' if getattr(sys, 'frozen', False) else 'Script'}", "INFO")
     print("-"*60 + "\n")
 
 # ==============================
@@ -83,14 +125,18 @@ def show_system_info():
 def find_free_port(start=8501):
     """Trouve un port libre sur la machine"""
     port = start
-    while True:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if s.connect_ex(("127.0.0.1", port)) != 0:
-                return port
+    while port < 65535:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("127.0.0.1", port)) != 0:
+                    return port
+        except:
+            pass
         port += 1
+    return 8501
 
 def wait_for_port(port, timeout=30):
-    """Attend qu’un port spécifique soit ouvert"""
+    """Attend qu'un port spécifique soit ouvert"""
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -116,34 +162,36 @@ def find_system_python():
     if not getattr(sys, 'frozen', False):
         return sys.executable
 
-    safe_print("[DEBUG] Recherche du Python système...")
+    safe_print("Recherche du Python systeme...", "DEBUG")
 
     # Cherche python.exe dans le PATH
     python_cmd = shutil.which("python")
     if python_cmd:
-        safe_print(f"[DEBUG] Python trouvé dans le PATH : {python_cmd}")
+        safe_print(f"Python trouve dans le PATH : {python_cmd}", "DEBUG")
         return python_cmd
 
     python3_cmd = shutil.which("python3")
     if python3_cmd:
-        safe_print(f"[DEBUG] Python3 trouvé dans le PATH : {python3_cmd}")
+        safe_print(f"Python3 trouve dans le PATH : {python3_cmd}", "DEBUG")
         return python3_cmd
 
-    # Chemins standards
-    common_paths = [
-        r"C:\Python313\python.exe",
-        r"C:\Python312\python.exe",
-        r"C:\Python311\python.exe",
-        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python313\python.exe"),
-        os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\python.exe"),
-    ]
-    for path in common_paths:
-        if os.path.exists(path):
-            safe_print(f"[DEBUG] Python trouvé : {path}")
-            return path
-
-    # Recherche dans le registre Windows
+    # Chemins standards Windows
     if sys.platform == "win32":
+        common_paths = [
+            r"C:\Python313\python.exe",
+            r"C:\Python312\python.exe",
+            r"C:\Python311\python.exe",
+            r"C:\Python310\python.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python313\python.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python312\python.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Python\Python311\python.exe"),
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                safe_print(f"Python trouve : {path}", "DEBUG")
+                return path
+
+        # Recherche dans le registre Windows
         try:
             import winreg
             paths = [
@@ -160,7 +208,7 @@ def find_system_python():
                                     install_path = winreg.QueryValue(sub, "")
                                     exe = os.path.join(install_path, "python.exe")
                                     if os.path.exists(exe):
-                                        safe_print(f"[DEBUG] Python trouvé dans le registre : {exe}")
+                                        safe_print(f"Python trouve dans le registre : {exe}", "DEBUG")
                                         return exe
                             except WindowsError:
                                 break
@@ -169,7 +217,7 @@ def find_system_python():
         except ImportError:
             pass
 
-    safe_print("[ERREUR] Aucun Python trouvé sur le système.")
+    safe_print("Aucun Python trouve sur le systeme.", "ERROR")
     return None
 
 
@@ -179,38 +227,72 @@ def find_system_python():
 def check_and_install_deps():
     """Vérifie si Streamlit et les dépendances sont installées"""
     print("\n" + "-"*60)
-    safe_print("Vérification des dépendances...", "INFO")
+    safe_print("Verification des dependances...", "INFO")
     
     python_exe = find_system_python()
     if not python_exe:
-        safe_print("Python non trouvé, installation requise", "ERROR")
-        # ... reste du code
+        safe_print("Python non trouve, installation requise", "ERROR")
+        safe_print("Veuillez installer Python depuis python.org", "ERROR")
+        input("Appuyez sur Entree pour fermer...")
+        return False
     
+    # Modules à vérifier (sans platform et threading qui sont natifs)
     packages = [
-        "streamlit", "pandas", "pytesseract", "PIL",
-        "dateutil", "cv2", "numpy", "matplotlib", 
-        "pdfminer.six", "requests","platform","threading"
+        ("streamlit", "streamlit"),
+        ("pandas", "pandas"),
+        ("pytesseract", "pytesseract"),
+        ("PIL", "Pillow"),
+        ("dateutil", "python-dateutil"),
+        ("cv2", "opencv-python-headless"),
+        ("numpy", "numpy"),
+        ("matplotlib", "matplotlib"),
+        ("pdfminer.six", "pdfminer.six"),
+        ("requests", "requests")
     ]
     
     missing = []
-    for pkg in packages:
+    for import_name, pip_name in packages:
         result = subprocess.run(
-            [python_exe, "-c", f"import {pkg.split('.')[0]}"],
+            [python_exe, "-c", f"import {import_name.split('.')[0]}"],
             capture_output=True,
-            text=True
+            text=True,
+            timeout=10
         )
         if result.returncode != 0:
-            safe_print(f"✗ {pkg} manquant", "WARN")
-            missing.append(pkg)
+            safe_print(f"X {pip_name} manquant", "WARN")
+            missing.append(pip_name)
         else:
-            safe_print(f"✓ {pkg} installé", "OK")
+            safe_print(f"+ {pip_name} installe", "OK")
     
     if not missing:
-        safe_print("Toutes les dépendances sont installées", "OK")
+        safe_print("Toutes les dependances sont installees", "OK")
         print("-"*60 + "\n")
         return True
     
-    # Installation des manquants...
+    # Installation des paquets manquants
+    print("\n" + "-"*60)
+    safe_print(f"{len(missing)} dependance(s) a installer", "WARN")
+    safe_print("Cela peut prendre quelques minutes...", "INFO")
+    
+    for pkg in missing:
+        safe_print(f"Installation de {pkg}...", "INFO")
+        result = subprocess.run(
+            [python_exe, "-m", "pip", "install", pkg, "--quiet"],
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+        if result.returncode == 0:
+            safe_print(f"+ {pkg} installe avec succes", "OK")
+        else:
+            safe_print(f"X Echec installation {pkg}", "ERROR")
+            safe_print(f"Erreur: {result.stderr[:200]}", "ERROR")
+            return False
+    
+    safe_print("Installation terminee !", "OK")
+    print("-"*60 + "\n")
+    return True
+
 
 # ==============================
 #  LANCEMENT DE STREAMLIT
@@ -225,15 +307,16 @@ def launch_streamlit_lite(app_path, port):
     print("="*60)
     
     safe_print(f"Application : {os.path.basename(app_path)}", "INFO")
-    safe_print(f"Port réseau : {port}", "INFO")
-    safe_print(f"Répertoire : {get_base_path()}", "INFO")
+    safe_print(f"Port reseau : {port}", "INFO")
+    safe_print(f"Repertoire : {get_base_path()}", "INFO")
     
     python_exe = find_system_python()
     if not python_exe:
-        safe_print("Python non détecté sur le système", "ERROR")
+        safe_print("Python non detecte sur le systeme", "ERROR")
+        input("Appuyez sur Entree pour fermer...")
         sys.exit(1)
     
-    safe_print(f"Python utilisé : {python_exe}", "OK")
+    safe_print(f"Python utilise : {python_exe}", "OK")
     
     log_dir = Path(get_base_path()) / "logs"
     log_dir.mkdir(exist_ok=True)
@@ -247,7 +330,7 @@ def launch_streamlit_lite(app_path, port):
     ]
     
     print("\n" + "-"*60)
-    safe_print("Démarrage du serveur Streamlit...", "INFO")
+    safe_print("Demarrage du serveur Streamlit...", "INFO")
     
     # Ouvrir le fichier log en mode append
     log_handle = open(log_file, "w", encoding="utf-8")
@@ -258,10 +341,10 @@ def launch_streamlit_lite(app_path, port):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         cwd=get_base_path(),
-        creationflags=0,
         text=True,
         encoding='utf-8',
-        errors='replace'
+        errors='replace',
+        bufsize=1  # Line buffered
     )
     
     # Thread pour afficher les logs importants
@@ -277,13 +360,14 @@ def launch_streamlit_lite(app_path, port):
                     break
                 
                 # Filtrer et afficher les lignes importantes
-                if "Running on" in line or "Network URL" in line:
+                line_lower = line.lower()
+                if "running on" in line_lower or "network url" in line_lower:
                     safe_print(line.strip(), "OK")
-                elif "Warning" in line:
+                elif "warning" in line_lower:
                     safe_print(line.strip(), "WARN")
-                elif "Error" in line or "Exception" in line:
+                elif "error" in line_lower or "exception" in line_lower:
                     safe_print(line.strip(), "ERROR")
-                elif "Stopping" in line or "Shutdown" in line:
+                elif "stopping" in line_lower or "shutdown" in line_lower:
                     safe_print(line.strip(), "INFO")
         except Exception as e:
             safe_print(f"Erreur monitoring : {e}", "WARN")
@@ -296,32 +380,41 @@ def launch_streamlit_lite(app_path, port):
     if wait_for_port(port, timeout=40):
         url = f"http://localhost:{port}"
         print("\n" + "="*60)
-        safe_print("✓ APPLICATION PRÊTE", "OK")
+        safe_print("APPLICATION PRETE", "OK")
         print("="*60)
         print(f"\n  URL locale    : {url}")
         try:
-            print(f"  URL réseau    : http://{socket.gethostbyname(socket.gethostname())}:{port}")
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            print(f"  URL reseau    : http://{local_ip}:{port}")
         except:
             pass
         print(f"  Logs          : {log_file}")
-        print("  État          : En cours d'exécution")
+        print("  Etat          : En cours d'execution")
         
         print("\n" + "-"*60)
         print("  Actions disponibles :")
-        print("  • Minimiser cette fenêtre (l'app continue)")
-        print("  • Ctrl+C pour arrêter proprement")
-        print("  • Fermer pour forcer l'arrêt")
+        print("  - Minimiser cette fenetre (l'app continue)")
+        print("  - Ctrl+C pour arreter proprement")
+        print("  - Fermer pour forcer l'arret")
         print("-"*60 + "\n")
         
-        webbrowser.open(url)
-        safe_print("Navigateur ouvert automatiquement", "OK")
+        try:
+            webbrowser.open(url)
+            safe_print("Navigateur ouvert automatiquement", "OK")
+        except Exception as e:
+            safe_print(f"Impossible d'ouvrir le navigateur : {e}", "WARN")
+            safe_print(f"Ouvrez manuellement : {url}", "INFO")
         
         # Afficher le statut périodiquement
         def status_monitor():
+            count = 0
             while True:
                 time.sleep(60)  # Toutes les minutes
                 if process.poll() is None:
-                    safe_print("Application toujours active", "OK")
+                    count += 1
+                    if count % 5 == 0:  # Toutes les 5 minutes
+                        safe_print(f"Application active depuis {count} minute(s)", "OK")
                 else:
                     break
         
@@ -329,20 +422,24 @@ def launch_streamlit_lite(app_path, port):
         status_thread.start()
         
     else:
-        safe_print("Le serveur n'a pas démarré à temps", "ERROR")
+        safe_print("Le serveur n'a pas demarre a temps", "ERROR")
         safe_print(f"Consultez les logs : {log_file}", "INFO")
         log_handle.close()
+        input("Appuyez sur Entree pour fermer...")
         sys.exit(1)
     
     # Attendre la fin
     try:
         process.wait()
-        safe_print("Application fermée normalement", "INFO")
+        safe_print("Application fermee normalement", "INFO")
     except KeyboardInterrupt:
         print("\n" + "-"*60)
-        safe_print("Arrêt demandé par l'utilisateur...", "WARN")
+        safe_print("Arret demande par l'utilisateur...", "WARN")
         process.terminate()
-        safe_print("Application arrêtée", "OK")
+        time.sleep(2)
+        if process.poll() is None:
+            process.kill()
+        safe_print("Application arretee", "OK")
         print("-"*60)
     finally:
         # Fermer le fichier log proprement
@@ -351,34 +448,57 @@ def launch_streamlit_lite(app_path, port):
         except:
             pass
 
+
 # ==============================
 #  MAIN
 # ==============================
 
 def main():
-    safe_print("Démarrage de Gestion Financière Little (Lite)")
-    setup_marker = Path(get_base_path()) / "setup.done"
-    app_path = Path(get_base_path()) / "gestiolittle.py"
+    """Point d'entrée principal"""
+    # Afficher les infos système dès le début
+    show_system_info()
+    
+    safe_print("Demarrage de Gestion Financiere Little (Lite)", "INFO")
+    
+    base_path = get_base_path()
+    setup_marker = Path(base_path) / "setup.done"
+    app_path = Path(base_path) / "gestiolittle.py"
+    
+    # Vérifier que l'application existe
+    if not app_path.exists():
+        safe_print(f"ERREUR : Fichier gestiolittle.py introuvable dans {base_path}", "ERROR")
+        safe_print("Contenu du repertoire :", "INFO")
+        try:
+            for item in os.listdir(base_path):
+                safe_print(f"  - {item}", "DEBUG")
+        except:
+            pass
+        input("Appuyez sur Entree pour fermer...")
+        sys.exit(1)
 
     # Étape 1 : Première installation
     if not setup_marker.exists():
-        safe_print("[DEBUG] Première exécution — configuration initiale.")
+        safe_print("Premiere execution - configuration initiale.", "INFO")
         if check_and_install_deps():
             setup_marker.touch()
-            safe_print("[DEBUG] Configuration terminée, relancez l'application.")
-            input("Appuyez sur Entrée pour fermer...")
+            safe_print("Configuration terminee !", "OK")
+            safe_print("Veuillez relancer l'application.", "INFO")
+            input("Appuyez sur Entree pour fermer...")
             sys.exit(0)
         else:
-            safe_print("[ERREUR] Impossible de configurer l'environnement.")
+            safe_print("ERREUR : Impossible de configurer l'environnement.", "ERROR")
+            input("Appuyez sur Entree pour fermer...")
             sys.exit(1)
 
     # Étape 2 : Vérification rapide
     if not check_and_install_deps():
-        safe_print("[ERREUR] Échec de la vérification de l'environnement.")
+        safe_print("ERREUR : Echec de la verification de l'environnement.", "ERROR")
+        input("Appuyez sur Entree pour fermer...")
         sys.exit(1)
 
     # Étape 3 : Lancement Streamlit
     port = find_free_port(8501)
+    safe_print(f"Port libre trouve : {port}", "OK")
     launch_streamlit_lite(str(app_path), port)
 
 
@@ -390,11 +510,26 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        safe_print("[DEBUG] Interruption utilisateur.")
+        safe_print("Interruption utilisateur.", "INFO")
         sys.exit(0)
     except Exception as e:
         import traceback
-        safe_print(f"[ERREUR] Exception critique : {e}")
+        safe_print(f"ERREUR CRITIQUE : {e}", "ERROR")
+        print("\n" + "="*60)
+        print("TRACE COMPLETE :")
+        print("="*60)
         traceback.print_exc()
-        input("Appuyez sur Entrée pour fermer...")
+        print("="*60)
+        
+        # Sauvegarder dans un fichier
+        try:
+            error_log = os.path.join(get_base_path(), "error.log")
+            with open(error_log, "w", encoding="utf-8") as f:
+                f.write(f"Erreur critique : {e}\n\n")
+                traceback.print_exc(file=f)
+            safe_print(f"Details sauvegardes dans : {error_log}", "INFO")
+        except:
+            pass
+        
+        input("\nAppuyez sur Entree pour fermer...")
         sys.exit(1)

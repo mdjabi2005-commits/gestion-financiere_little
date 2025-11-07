@@ -53,9 +53,15 @@ jobs:
           #!/bin/bash
           # Script de lancement Gestion Financière Little
           
+          # Obtenir le répertoire du script
+          SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+          cd "$SCRIPT_DIR"
+          
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "  🚀 Gestion Financière Little"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📂 Répertoire de travail: $SCRIPT_DIR"
           echo ""
           
           # Détection spécifique de MX Linux et dérivés Debian
@@ -107,7 +113,7 @@ jobs:
                           echo "📦 Installation de Homebrew..."
                           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                       fi
-                      brew install tesseract tesseract-lang/fra || {
+                      brew install tesseract tesseract-lang || {
                           echo "❌ Impossible d'installer Tesseract OCR"
                           return 1
                       }
@@ -242,7 +248,7 @@ jobs:
           echo ""
           
           # Utilisation d'un environnement virtuel
-          VENV_DIR=".little_finance_env"
+          VENV_DIR="$SCRIPT_DIR/.little_finance_env"
           echo "🔧 Configuration de l'environnement Python..."
           
           # Vérifier si l'environnement existe déjà
@@ -296,7 +302,7 @@ jobs:
           # Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
           python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six platform threading requests --quiet || {
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
               python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
@@ -339,8 +345,6 @@ jobs:
               import numpy
               import matplotlib
               import requests
-              import platform
-              import threading
               print('✅ Toutes les dépendances sont installées avec succès!')
           except ImportError as e:
               print(f'❌ Erreur d\\'import: {e}')
@@ -349,6 +353,14 @@ jobs:
               echo "❌ Certaines dépendances ne sont pas correctement installées"
               exit 1
           }
+          
+          # Vérifier que gestiolittle.py existe
+          if [ ! -f "$SCRIPT_DIR/gestiolittle.py" ]; then
+              echo "❌ Erreur: gestiolittle.py introuvable dans $SCRIPT_DIR"
+              echo "📂 Contenu du répertoire:"
+              ls -la "$SCRIPT_DIR"
+              exit 1
+          fi
           
           # Lancer l'application
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -363,7 +375,7 @@ jobs:
           sleep 2
           
           # Lancer Streamlit depuis l'environnement virtuel
-          python -m streamlit run gestiolittle.py --server.port 8501 --server.headless true
+          python -m streamlit run "$SCRIPT_DIR/gestiolittle.py" --server.port 8501 --server.headless true
 
           # Si Streamlit se ferme (erreur ou arrêt manuel)
           echo ""
@@ -414,9 +426,7 @@ jobs:
             --collect-all cv2 `
             --collect-all numpy `
             --collect-all matplotlib `
-            --collect-all pdfminer `
-            --collect-all platform `
-            --collect-all threading `
+            --collect-all pdfminer 
             --hidden-import streamlit `
             --hidden-import streamlit.web.bootstrap `
             --hidden-import streamlit.web.server.browser_websocket_handler `

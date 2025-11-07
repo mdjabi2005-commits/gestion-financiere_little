@@ -9,10 +9,10 @@ Compatible Windows sans support UTF-8 console.
 
 import os
 import sys
-import subprocess
 import webbrowser
 import time
 import socket
+import threading
 from pathlib import Path
 
 # Forcer l'encodage console en UTF-8 si possible
@@ -26,11 +26,15 @@ except Exception:
 def find_free_port(start=8501):
     """Trouve un port libre"""
     port = start
-    while True:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if s.connect_ex(("127.0.0.1", port)) != 0:
-                return port
+    while port < 65535:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("127.0.0.1", port)) != 0:
+                    return port
+        except:
+            pass
         port += 1
+    return 8501
 
 
 def wait_for_port(port, timeout=30):
@@ -106,6 +110,28 @@ def verify_streamlit():
         return False
 
 
+def open_browser_when_ready(url, port, timeout=40):
+    """Thread qui attend que le serveur soit prêt puis ouvre le navigateur"""
+    print(f"[INFO] Attente du serveur sur le port {port}...")
+    
+    if wait_for_port(port, timeout=timeout):
+        print("[OK] Serveur détecté ! Ouverture du navigateur...")
+        time.sleep(1)  # Petit délai pour que le serveur soit vraiment prêt
+        
+        try:
+            if webbrowser.open(url):
+                print(f"[OK] Navigateur ouvert automatiquement : {url}")
+            else:
+                print("[WARN] Impossible d'ouvrir le navigateur automatiquement")
+                print(f"[INFO] Ouvrez manuellement cette URL : {url}")
+        except Exception as e:
+            print(f"[WARN] Erreur ouverture navigateur : {e}")
+            print(f"[INFO] Ouvrez manuellement cette URL : {url}")
+    else:
+        print(f"[ERREUR] Le serveur n'a pas démarré dans les {timeout} secondes")
+        print(f"[INFO] Si le serveur démarre plus tard, utilisez : {url}")
+
+
 def launch_streamlit_portable(app_path, port):
     """Lance Streamlit en mode PORTABLE (avec Python embarqué dans le .exe PyInstaller)"""
     import streamlit.web.cli as stcli
@@ -131,9 +157,21 @@ def launch_streamlit_portable(app_path, port):
     print(f"Fichier log : {log_file}\n")
     print("Démarrage du serveur Streamlit (mode intégré)...")
     print("=" * 60)
-    print("Cette fenêtre affiche le journal de démarrage en direct.")
-    print("Si rien ne se passe pendant plus de 30 secondes, vérifiez les logs.")
-    print("=" * 60)
+    
+    # Préparer l'URL
+    url = f"http://localhost:{port}"
+    
+    # Lancer le thread qui va ouvrir le navigateur quand le serveur sera prêt
+    # ⚠️ CRITIQUE : Ce thread doit démarrer AVANT l'appel à stcli.main()
+    browser_thread = threading.Thread(
+        target=open_browser_when_ready,
+        args=(url, port, 40),
+        daemon=True
+    )
+    browser_thread.start()
+    print("[INFO] Thread d'ouverture du navigateur démarré")
+    print(f"[INFO] URL de l'application : {url}")
+    print("=" * 60 + "\n")
     
     # On redirige les sorties dans le log
     with open(log_file, "w", encoding="utf-8") as f:
@@ -156,22 +194,31 @@ def launch_streamlit_portable(app_path, port):
         # Écriture des infos dans le log
         f.write("Commande équivalente : " + " ".join(sys.argv) + "\n\n")
         f.write("Variables d'environnement :\n")
-        f.write("  STREAMLIT_SERVER_PORT={port}\n")
+        f.write(f"  STREAMLIT_SERVER_PORT={port}\n")
         f.write("  STREAMLIT_GLOBAL_DEVELOPMENT_MODE=false\n\n")
         f.flush()
         
         try:
             print("[INFO] Lancement direct du serveur Streamlit...")
+            print("[INFO] Cette fenêtre restera ouverte pendant l'exécution")
+            print("[INFO] Pour arrêter : fermez cette fenêtre ou appuyez sur Ctrl+C\n")
+            
             start_time = time.time()
             
-            # Exécution directe de Streamlit
+            # ⚠️ BLOQUANT : stcli.main() ne rendra la main que si le serveur s'arrête
+            # C'est pourquoi le thread du navigateur doit être lancé AVANT
             stcli.main()
             
             elapsed = int(time.time() - start_time)
-            print(f"[OK] Streamlit exécuté (durée : {elapsed}s)")
+            print(f"\n[INFO] Streamlit s'est arrêté (durée d'exécution : {elapsed}s)")
             
+        except KeyboardInterrupt:
+            print("\n[INFO] Arrêt demandé par l'utilisateur (Ctrl+C)")
+        except SystemExit:
+            # stcli.main() peut lever SystemExit, c'est normal
+            print("\n[INFO] Streamlit s'est terminé normalement")
         except Exception as e:
-            print(f"[ERREUR] Échec du lancement Streamlit : {e}")
+            print(f"\n[ERREUR] Échec du lancement Streamlit : {e}")
             import traceback
             traceback.print_exc()
             f.write("\n=== ERREUR ===\n")
@@ -179,28 +226,8 @@ def launch_streamlit_portable(app_path, port):
             traceback.print_exc(file=f)
             input("\nAppuyez sur Entrée pour fermer...")
             sys.exit(1)
-    
-    # Vérification post-lancement
-    print("\nVérification du port (localhost)...")
-    if wait_for_port(port, timeout=30):
-        print("[OK] Serveur détecté en fonctionnement.")
-        url = f"http://localhost:{port}"
-        time.sleep(2)
-        if webbrowser.open(url):
-            print(f"Navigateur ouvert automatiquement : {url}")
-        else:
-            print(f"Ouvrez manuellement : {url}")
-        print("\nApplication prête.")
-    else:
-        print("[ERREUR] Aucun serveur Streamlit détecté sur ce port.")
-        print(f"Consultez les logs : {log_file}")
-    
-    print("\nL'application est maintenant en cours d'exécution.")
-    print("Gardez cette fenêtre ouverte pour la garder active.")
-    print("Pour arrêter : fermez cette fenêtre ou utilisez Ctrl+C.\n")
-    
-    
-    
+
+
 def main():
     print("=" * 60)
     print(" DÉMARRAGE DE GESTION FINANCIÈRE LITTLE (PORTABLE) ")
