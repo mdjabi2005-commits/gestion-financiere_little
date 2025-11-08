@@ -528,69 +528,69 @@ jobs:
         shell: bash
         run: |
           echo "📦 Préparation des packages de distribution..."
-
+          
           # ==============================
-          # 🪟 WINDOWS : Portable + Lite
+          # 🪟 WINDOWS : Portable + Lite 
           # ==============================
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cd dist
-
+            
             # ---------- VERSION PORTABLE ----------
             if [ -f "GestionFinanciereLittle_Portable.exe" ]; then
               echo "📦 Création du package Windows Portable..."
-
+              
               # Copier Tesseract embarqué depuis le dépôt
               if [ -d "../tesseract" ]; then
                 echo "📂 Copie du dossier Tesseract depuis le dépôt..."
                 cp -r ../tesseract ./
               fi
-
+              
               7z a -tzip GestionFinanciereLittle-Windows-Portable.zip \
                 GestionFinanciereLittle_Portable.exe *.py tesseract/
-
+              
               echo "✅ Package Portable créé avec Tesseract embarqué"
             else
               echo "❌ Erreur : GestionFinanciereLittle_Portable.exe introuvable"
             fi
-
+            
             # ---------- VERSION LITE ----------
             if [ -f "GestionFinanciereLittle_Lite.exe" ]; then
               echo "📦 Création du package Windows Lite..."
-
-              # Copier installateur
-              if [ -f "../app/install_and_run_windows.ps1" ] then
+              
+              # Copier installateur 
+              if [ -f "../app/install_and_run_windows.ps1" ]; then
                 cp ../app/install_and_run_windows.ps1 .
-                echo "✅ Installateur Python "
+                echo "✅ Installateur PowerShell copié"
               else
-                echo "⚠️ Fichiers d’installation manquants"
+                echo "⚠️ Fichier d'installation manquant"
               fi
-
+              
               # Copier Tesseract embarqué (sécurité OCR)
               if [ -d "../tesseract" ]; then
                 cp -r ../tesseract ./
                 echo "✅ Dossier Tesseract embarqué ajouté dans la version Lite"
               fi
-
+              
               7z a -tzip GestionFinanciereLittle-Windows-Lite.zip \
-                GestionFinanciereLittle_Lite.exe *.py *.bat *.ps1 tesseract/
-
+                GestionFinanciereLittle_Lite.exe *.py *.ps1 tesseract/
+              
               echo "✅ Package Lite créé (Tesseract embarqué + installateur)"
             else
               echo "❌ Erreur : GestionFinanciereLittle_Lite.exe introuvable"
             fi
-
+            
             cd ..
           fi
-
-
+          
+          
           # ==============================
-          # 🐧 LINUX
+          # 🐧 LINUX 
           # ==============================
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             echo "📦 Création du package Linux..."
             mkdir -p dist/linux
             cp app/*.py dist/linux/
-            cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"
+            cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"  
             echo "#!/bin/bash" > dist/linux/run.sh
             echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
             chmod +x dist/linux/run.sh
@@ -599,8 +599,8 @@ jobs:
             cd ../..
             echo "✅ Package Linux créé avec succès (Tesseract inclus)"
           fi
-
-
+          
+          
           # ==============================
           # 🍎 MACOS
           # ==============================
@@ -615,10 +615,10 @@ jobs:
             cd dist/macos
             zip -r ../GestionFinanciereLittle-macOS.zip ./
             cd ../..
-            echo "✅ Package macOS créé avec succès (Tesseract inclus)"
+            echo "✅ Package macOS créé avec succès (Tesseract inclus)"  
           fi
-
-
+          
+          
           echo ""
           echo "📁 Vérification du contenu final :"
           ls -la dist/*.zip || echo "⚠️ Aucun ZIP trouvé"
