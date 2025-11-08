@@ -1,62 +1,145 @@
-name: 🚀 Mettre à jour la release publiée
+name: 🚀 Mettre à jour automatiquement les releases
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
-  update-release:
+  enhance-release:
     runs-on: ubuntu-latest
-
+    if: github.event.release.draft == false
+    
     steps:
+      - name: 🔍 Vérifier le contexte
+        run: |
+          echo "Événement: ${{ github.event_name }}"
+          echo "Tag: ${{ github.event.release.tag_name }}"
+          echo "Draft: ${{ github.event.release.draft }}"
+
       - name: 🧩 Récupérer le dépôt
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🧠 Installer la CLI GitHub
-        uses: cli/gh-action@v2
-
-      - name: 📦 Extraire le tag et le corps de la release
-        id: release_info
+      - name: 🧠 Installer GitHub CLI
         run: |
-          echo "TAG_NAME=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
-          echo "BODY=${{ github.event.release.body }}" >> $GITHUB_ENV
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
 
-      - name: 🔍 Déterminer le type de release
-        id: detect_type
+      - name: 🔑 Configurer l'authentification GitHub
         run: |
-          body="${{ github.event.release.body }}"
-          if echo "$body" | grep -qi "feat"; then
-            echo "TYPE=feat" >> $GITHUB_ENV
-            echo "EMOJI=✨" >> $GITHUB_ENV
-            echo "DESC=Nouvelles fonctionnalités" >> $GITHUB_ENV
-          elif echo "$body" | grep -qi "fix"; then
-            echo "TYPE=fix" >> $GITHUB_ENV
-            echo "EMOJI=🧩" >> $GITHUB_ENV
-            echo "DESC=Corrections de bugs" >> $GITHUB_ENV
-          elif echo "$body" | grep -qi "perf"; then
-            echo "TYPE=perf" >> $GITHUB_ENV
-            echo "EMOJI=⚙️" >> $GITHUB_ENV
-            echo "DESC=Optimisations et améliorations" >> $GITHUB_ENV
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 📊 Analyser le contenu de la release
+        id: analyze
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          BODY="${{ github.event.release.body }}"
+          
+          echo "📖 Contenu analysé :"
+          echo "$BODY"
+          
+          # Détection du type basée sur des patterns plus précis
+          if echo "$BODY" | grep -qiE "(feat|feature|nouvelle|ajout|fonctionnalité)"; then
+            TYPE="feat"
+            EMOJI="✨"
+            DESC="Nouvelles fonctionnalités"
+          elif echo "$BODY" | grep -qiE "(fix|bug|correction|erreur|problème)"; then
+            TYPE="fix" 
+            EMOJI="🐛"
+            DESC="Corrections de bugs"
+          elif echo "$BODY" | grep -qiE "(perf|performance|optimisation|amélioration|rapidité)"; then
+            TYPE="perf"
+            EMOJI="⚡"
+            DESC="Optimisations performances"
+          elif echo "$BODY" | grep -qiE "(refactor|refacto|nettoyage|restructuration)"; then
+            TYPE="refactor"
+            EMOJI="♻️"
+            DESC="Restructuration du code"
+          elif echo "$BODY" | grep -qiE "(doc|documentation|readme|aide)"; then
+            TYPE="docs"
+            EMOJI="📚"
+            DESC="Documentation"
           else
-            echo "TYPE=other" >> $GITHUB_ENV
-            echo "EMOJI=🔧" >> $GITHUB_ENV
-            echo "DESC=Mise à jour de maintenance" >> $GITHUB_ENV
+            TYPE="chore"
+            EMOJI="🔧"
+            DESC="Maintenance et améliorations"
           fi
+          
+          echo "TYPE=$TYPE" >> $GITHUB_OUTPUT
+          echo "EMOJI=$EMOJI" >> $GITHUB_OUTPUT
+          echo "DESC=$DESC" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
 
-      - name: 🏷️ Renommer automatiquement la release
+      - name: 🏷️ Générer le titre amélioré
+        id: title
         run: |
-          title="${{ env.EMOJI }} Gestion Financière Little ${{ env.TAG_NAME }} – ${{ env.DESC }}"
-          echo "🪄 Nouveau titre : $title"
-          gh release edit "${{ env.TAG_NAME }}" --title "$title"
+          TITLE="${{ steps.analyze.outputs.EMOJI }} Gestion Financière Little ${{ steps.analyze.outputs.TAG_NAME }} – ${{ steps.analyze.outputs.DESC }}"
+          echo "Nouveau titre : $TITLE"
+          echo "TITLE=$TITLE" >> $GITHUB_OUTPUT
 
-      - name: 🪄 Ajouter un encart résumé au début du changelog
+      - name: 📝 Générer le body amélioré
+        id: body
         run: |
-          body="${{ github.event.release.body }}"
-          header="### 📝 Résumé : ${{ env.DESC }}\n\n---\n\n"
-          new_body="${header}${body}"
-          echo "🧩 Ajout du résumé en haut du changelog..."
-          gh release edit "${{ env.TAG_NAME }}" --notes "$new_body"
+          ORIGINAL_BODY="${{ github.event.release.body }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          ENHANCED_BODY=$(cat << EOF
+          ## 🎯 ${{ steps.analyze.outputs.DESC }}
+          
+          **📅 Date de publication :** \`$TIMESTAMP\`
+          **🏷️ Version :** \`${{ steps.analyze.outputs.TAG_NAME }}\`
+          **📦 Type :** ${{ steps.analyze.outputs.EMOJI }} ${{ steps.analyze.outputs.DESC }}
+          
+          ---
+          
+          $ORIGINAL_BODY
+          
+          ---
+          
+          ### 📥 Installation
+          \`\`\`bash
+          # Téléchargez la dernière version depuis GitHub Releases
+          # Exécutez le fichier correspondant à votre OS
+          \`\`\`
+          
+          ### 🐛 Signaler un problème
+          Si vous rencontrez un bug, [ouvrez une issue](${{ github.server_url }}/${{ github.repository }}/issues/new).
+          
+          *✨ Généré automatiquement par GitHub Actions*
+          EOF
+          )
+          
+          echo "ENHANCED_BODY<<EOF" >> $GITHUB_OUTPUT
+          echo "$ENHANCED_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: 🚀 Mettre à jour la release
+        run: |
+          echo "🔄 Mise à jour de la release ${{ steps.analyze.outputs.TAG_NAME }}..."
+          gh release edit "${{ steps.analyze.outputs.TAG_NAME }}" \
+            --title "${{ steps.title.outputs.TITLE }}" \
+            --notes "${{ steps.body.outputs.ENHANCED_BODY }}"
+          
+          echo "✅ Release mise à jour avec succès !"
+
+      - name: 📊 Créer un résumé du workflow
+        run: |
+          echo "## 🎉 Release Optimisée" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Release mise à jour avec succès**" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag :** ${{ steps.analyze.outputs.TAG_NAME }}" >> $GITHUB_STEP_SUMMARY  
+          echo "- **Type :** ${{ steps.analyze.outputs.EMOJI }} ${{ steps.analyze.outputs.DESC }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Titre :** ${{ steps.title.outputs.TITLE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 La release a été automatiquement enrichie avec :" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏷️ Titre descriptif" >> $GITHUB_STEP_SUMMARY
+          echo "- 📝 En-tête informatif" >> $GITHUB_STEP_SUMMARY
+          echo "- 📥 Instructions d'installation" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔗 Lien pour reporter les bugs" >> $GITHUB_STEP_SUMMARY
