@@ -426,7 +426,7 @@ jobs:
             --collect-all cv2 `
             --collect-all numpy `
             --collect-all matplotlib `
-            --collect-all pdfminer 
+            --collect-all pdfminer `
             --hidden-import streamlit `
             --hidden-import streamlit.web.bootstrap `
             --hidden-import streamlit.web.server.browser_websocket_handler `
@@ -558,10 +558,9 @@ jobs:
               echo "📦 Création du package Windows Lite..."
 
               # Copier installateur et launcher
-              if [ -f "../app/install_and_run_windows.ps1" ] && [ -f "../app/Lancer_GFL.bat" ]; then
+              if [ -f "../app/install_and_run_windows.ps1" ] then
                 cp ../app/install_and_run_windows.ps1 .
-                cp ../app/Lancer_GFL.bat .
-                echo "✅ Installateur PowerShell et launcher .BAT copiés"
+                echo "✅ Installateur Python "
               else
                 echo "⚠️ Fichiers d’installation manquants"
               fi

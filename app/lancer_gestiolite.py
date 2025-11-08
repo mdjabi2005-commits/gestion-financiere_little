@@ -121,7 +121,24 @@ def show_system_info():
 # ==============================
 #  FONCTIONS SYSTEME
 # ==============================
-
+def run_powershell_script(script_path):
+    """Lance un script PowerShell"""
+    try:
+        subprocess.run(
+            ["powershell", "-ExecutionPolicy", "Bypass", "-File", script_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        safe_print(f"Erreur lors de l'exécution du script PowerShell : {e}", "ERROR")
+        safe_print(f"Sortie : {e.stdout}", "ERROR")
+        safe_print(f"Erreur : {e.stderr}", "ERROR")
+        return False
+    
+    
 def find_free_port(start=8501):
     """Trouve un port libre sur la machine"""
     port = start
@@ -231,10 +248,24 @@ def check_and_install_deps():
     
     python_exe = find_system_python()
     if not python_exe:
-        safe_print("Python non trouve, installation requise", "ERROR")
-        safe_print("Veuillez installer Python depuis python.org", "ERROR")
+        safe_print("Python non trouve", "WARN")
+        
+        if sys.platform == "win32":
+            install_script = os.path.join(get_base_path(), "install_and_run_windows.ps1")
+            if os.path.exists(install_script):
+                safe_print("Lancement de l'installation automatique...", "INFO")
+                if run_powershell_script(install_script):
+                    safe_print("Installation terminee. Veuillez relancer l'application.", "INFO")
+                else:
+                    safe_print("Erreur lors de l'installation automatique.", "ERROR")
+            else:
+                safe_print("Script d'installation manquant.", "ERROR")
+        else:
+            safe_print("Veuillez installer Python depuis python.org", "ERROR")
+        
         input("Appuyez sur Entree pour fermer...")
         return False
+    
     
     # Modules à vérifier (sans platform et threading qui sont natifs)
     packages = [
