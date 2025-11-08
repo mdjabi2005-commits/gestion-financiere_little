@@ -557,7 +557,7 @@ jobs:
             if [ -f "GestionFinanciereLittle_Lite.exe" ]; then
               echo "📦 Création du package Windows Lite..."
 
-              # Copier installateur et launcher
+              # Copier installateur
               if [ -f "../app/install_and_run_windows.ps1" ] then
                 cp ../app/install_and_run_windows.ps1 .
                 echo "✅ Installateur Python "
