@@ -51,319 +51,146 @@ jobs:
         run: |
           cat > dist/run.sh << 'RUNSCRIPT'
           #!/bin/bash
-          # Script de lancement Gestion Financière Little
-          
-          # Obtenir le répertoire du script
+          # =====================================================
+          #  🚀 Script de lancement : Gestion Financière Little
+          # =====================================================
+
           SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
           cd "$SCRIPT_DIR"
-          
+
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  🚀 Gestion Financière Little"
+          echo "  🚀 Gestion Financière Little (Linux/macOS)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
           echo "📂 Répertoire de travail: $SCRIPT_DIR"
           echo ""
-          
-          # VÉRIFICATION CRITIQUE IMMÉDIATE - le fichier principal doit exister
-          if [ ! -f "gestiolittle.py" ]; then
-              echo "❌ ERREUR CRITIQUE: gestiolittle.py introuvable !"
-              echo "📂 Contenu du répertoire $SCRIPT_DIR:"
-              ls -la
-              echo ""
-              echo "💡 Le fichier principal est manquant. Le package est corrompu."
+
+          MAIN_FILE="gestiolittle.py"
+          VENV_DIR="$SCRIPT_DIR/.little_finance_env"
+
+          # --- Vérification du fichier principal ---
+          if [ ! -f "$MAIN_FILE" ]; then
+              echo "❌ ERREUR: $MAIN_FILE introuvable dans $SCRIPT_DIR"
               exit 1
           fi
-          
-          echo "✅ Fichier principal gestiolittle.py trouvé"
+          echo "✅ Fichier principal trouvé: $MAIN_FILE"
           echo ""
-          
-          # Détection de la distribution
+
+          # --- Détection distribution Linux ---
           detect_linux_distro() {
               if [ -f /etc/os-release ]; then
                   . /etc/os-release
-                  if [ -f /etc/mx-version ]; then
-                      echo "MX Linux"
-                  else
-                      echo "$NAME"
-                  fi
-              elif command -v lsb_release &> /dev/null; then
+                  echo "$NAME"
+              elif command -v lsb_release &>/dev/null; then
                   lsb_release -d | cut -f2
               else
                   echo "Unknown"
               fi
           }
-          
           DISTRO=$(detect_linux_distro)
-          echo "🐧 Distribution: $DISTRO"
+          echo "🐧 Distribution détectée: $DISTRO"
           echo ""
-          
-          # Vérifier la version de Python
-          check_python_version() {
-              python3 -c "import sys; exit(0) if sys.version_info >= (3, 8) else exit(1)" || {
-                  echo "❌ Python 3.8+ requis. Version actuelle: $(python3 --version)"
-                  return 1
-              }
-              return 0
-          }
-          
-          # Fonctions d'installation
-          install_tesseract() {
-              echo "📦 Installation de Tesseract OCR..."
-              case "$DISTRO" in
-                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      sudo apt-get update
-                      sudo apt-get install -y tesseract-ocr tesseract-ocr-fra || {
-                          echo "❌ Impossible d'installer Tesseract OCR"
-                          return 1
-                      }
-                      ;;
-                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
-                      sudo dnf install -y tesseract tesseract-langpack-fra || {
-                          echo "❌ Impossible d'installer Tesseract OCR"
-                          return 1
-                      }
-                      ;;
-                  *"Arch"*|*"Manjaro"*)
-                      sudo pacman -S --noconfirm tesseract tesseract-data-fra || {
-                          echo "❌ Impossible d'installer Tesseract OCR"
-                          return 1
-                      }
-                      ;;
-                  *"macOS"*|*"Darwin"*)
-                      if ! command -v brew &> /dev/null; then
-                          echo "📦 Installation de Homebrew..."
-                          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                      fi
-                      brew install tesseract tesseract-lang || {
-                          echo "❌ Impossible d'installer Tesseract OCR"
-                          return 1
-                      }
-                      ;;
-              esac
-              echo "✅ Tesseract OCR installé avec succès !"
-              return 0
-          }
 
-          install_opencv_deps() {
-              echo "📦 Installation des dépendances OpenCV..."
+          # --- Vérification Python ---
+          if ! command -v python3 &>/dev/null; then
+              echo "📦 Python3 manquant — installation automatique..."
               case "$DISTRO" in
-                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      sudo apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libgl1-mesa-glx || {
-                          echo "❌ Impossible d'installer les dépendances OpenCV"
-                          return 1
-                      }
-                      ;;
+                  *"Ubuntu"*|*"Debian"*|*"Mint"*|*"MX"*)
+                      sudo apt-get update && sudo apt-get install -y python3 python3-pip python3-venv ;;
                   *"Fedora"*|*"Red Hat"*|*"CentOS"*)
-                      sudo dnf install -y glib2 libSM libXrender libXext mesa-libGL || {
-                          echo "❌ Impossible d'installer les dépendances OpenCV"
-                          return 1
-                      }
-                      ;;
+                      sudo dnf install -y python3 python3-pip python3-virtualenv ;;
                   *"Arch"*|*"Manjaro"*)
-                      sudo pacman -S --noconfirm glib2 libsm libxrender libxext mesa || {
-                          echo "❌ Impossible d'installer les dépendances OpenCV"
-                          return 1
-                      }
-                      ;;
-              esac
-              echo "✅ Dépendances OpenCV installées avec succès !"
-              return 0
-          }
-          
-          # Vérifier Python
-          if ! command -v python3 &> /dev/null; then
-              echo "📦 Installation automatique de Python 3..."
-              case "$DISTRO" in
-                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      sudo apt-get update
-                      sudo apt-get install -y python3 python3-pip python3-venv python3-full || {
-                          echo "❌ Échec de l'installation automatique de Python"
-                          exit 1
-                      }
-                      ;;
-                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
-                      sudo dnf install -y python3 python3-pip python3-virtualenv || {
-                          echo "❌ Échec de l'installation automatique de Python"
-                          exit 1
-                      }
-                      ;;
-                  *"Arch"*|*"Manjaro"*)
-                      sudo pacman -S --noconfirm python python-pip python-virtualenv || {
-                          echo "❌ Échec de l'installation automatique de Python"
-                          exit 1
-                      }
-                      ;;
-                  *"macOS"*|*"Darwin"*)
-                      if ! command -v brew &> /dev/null; then
+                      sudo pacman -S --noconfirm python python-pip python-virtualenv ;;
+                  *"Darwin"*|*"macOS"*)
+                      if ! command -v brew &>/dev/null; then
                           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                       fi
-                      brew install python@3.11 || {
-                          echo "❌ Échec de l'installation automatique de Python"
-                          exit 1
-                      }
-                      ;;
+                      brew install python@3.11 ;;
+                  *)
+                      echo "⚠️ Impossible d’installer automatiquement Python sur cette distribution."
+                      exit 1 ;;
               esac
-              echo "✅ Python installé avec succès"
           fi
-          
-          # Vérifier que Python est disponible
-          if ! command -v python3 &> /dev/null; then
-              echo "❌ Python 3 n'est pas disponible"
-              exit 1
-          fi
-          
-          # Vérifier la version de Python
-          check_python_version || exit 1
           echo "✅ Python détecté: $(python3 --version)"
-          
-          # Vérifier et installer Tesseract OCR
-          if ! command -v tesseract &> /dev/null; then
-              echo "🔍 Tesseract OCR non détecté - installation automatique"
-              install_tesseract || {
-                  echo "⚠️  Tesseract OCR n'est pas installé. L'OCR ne fonctionnera pas."
+          echo ""
+
+          # --- Création ou réutilisation du venv ---
+          if [ ! -d "$VENV_DIR" ]; then
+              echo "📦 Création d’un nouvel environnement virtuel..."
+              python3 -m venv "$VENV_DIR" || {
+                  echo "❌ Échec de création du venv"
+                  exit 1
               }
+              echo "✅ Environnement virtuel créé"
           else
-              echo "✅ Tesseract OCR détecté: $(tesseract --version | head -n1)"
+              echo "✅ Environnement virtuel déjà présent"
           fi
 
-          # Installer les dépendances OpenCV
-          echo ""
-          echo "🔍 Installation des dépendances OpenCV..."
-          install_opencv_deps || {
-              echo "⚠️  Les dépendances OpenCV ne sont pas installées. Certaines fonctionnalités peuvent ne pas fonctionner."
-          }
-          
-          # Configuration de l'environnement virtuel
-          VENV_DIR="$SCRIPT_DIR/.little_finance_env"
-          echo ""
-          echo "🔧 Configuration de l'environnement Python..."
-          
-          # Vérifier si python3-venv est disponible
-          if ! python3 -c "import venv" 2>/dev/null; then
-              echo "📦 Installation de python3-venv..."
-              case "$DISTRO" in
-                  *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      sudo apt-get install -y python3-venv python3-full || {
-                          echo "❌ Impossible d'installer python3-venv"
-                          exit 1
-                      }
-                      ;;
-                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
-                      sudo dnf install -y python3-virtualenv || {
-                          echo "❌ Impossible d'installer python3-virtualenv"
-                          exit 1
-                      }
-                      ;;
-                  *"Arch"*|*"Manjaro"*)
-                      sudo pacman -S --noconfirm python-virtualenv || {
-                          echo "❌ Impossible d'installer python-virtualenv"
-                          exit 1
-                      }
-                      ;;
-                  *"macOS"*|*"Darwin"*)
-                      echo "✅ venv devrait être disponible avec Python"
-                      ;;
-              esac
-          fi
-          
-          # FORCER la recréation de l'environnement
-          rm -rf "$VENV_DIR"
-          echo "📦 Création de l'environnement virtuel..."
-          python3 -m venv "$VENV_DIR" || {
-              echo "❌ Impossible de créer l'environnement virtuel"
-              exit 1
-          }
-          echo "✅ Environnement virtuel créé"
-          
-          # Activer l'environnement virtuel
+          # --- Activation du venv ---
           source "$VENV_DIR/bin/activate" || {
-              echo "❌ Impossible d'activer l'environnement virtuel"
+              echo "❌ Impossible d’activer le venv"
               exit 1
           }
           echo "✅ Environnement virtuel activé"
-          
-          # Installation des dépendances Python
-          echo "📦 Installation des dépendances Python..."
-          python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
-              echo "🔁 Nouvelle tentative d'installation..."
-              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
-                  echo "❌ Échec critique de l'installation des dépendances"
-                  exit 1
-              }
-          }
-          echo "✅ Dépendances installées dans l'environnement virtuel !"
-          
-          # Vérification CRITIQUE que pytesseract est bien installé
-          echo "🔍 Vérification de l'installation de pytesseract..."
-          python -c "import pytesseract; print('✅ pytesseract importé avec succès')" || {
-              echo "❌ pytesseract non installé, tentative de réinstallation..."
-              python -m pip install pytesseract --force-reinstall --no-cache-dir || {
-                  echo "❌ Échec critique de l'installation de pytesseract"
-                  echo "💡 Le module OCR ne fonctionnera pas"
-              }
-          }
+          echo ""
 
-          # Vérification de OpenCV
-          echo "🔍 Vérification de l'installation de OpenCV..."
-          python -c "import cv2; print('✅ OpenCV importé avec succès')" || {
-              echo "❌ OpenCV non installé, tentative de réinstallation..."
-              python -m pip install opencv-python-headless --force-reinstall --no-cache-dir || {
-                  echo "❌ Échec critique de l'installation de OpenCV"
-                  echo "💡 Le traitement d'image ne fonctionnera pas"
-              }
-          }
-          
-          # Vérification finale de toutes les dépendances
-          echo "🔍 Vérification finale des dépendances..."
-          python -c "
-          try:
-              import streamlit
-              import pandas
-              import pytesseract
-              import PIL
-              import dateutil
-              import cv2
-              import numpy
-              import matplotlib
-              import requests
-              print('✅ Toutes les dépendances sont installées avec succès!')
-          except ImportError as e:
-              print(f'❌ Erreur d\\'import: {e}')
-              exit(1)
-          " || {
-              echo "❌ Certaines dépendances ne sont pas correctement installées"
-              exit 1
-          }
-          
-          # Lancer l'application
+          # --- Vérification et installation des dépendances Python ---
+          echo "🔍 Vérification des dépendances Python..."
+          if ! python -c "import streamlit" &>/dev/null; then
+              echo "📦 Installation initiale des dépendances..."
+              python -m pip install --upgrade pip --quiet
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet
+              echo "✅ Dépendances installées avec succès"
+          else
+              echo "✅ Dépendances déjà présentes"
+          fi
+
+          # --- Vérification de Tesseract ---
+          if ! command -v tesseract &>/dev/null; then
+              echo "🔍 Tesseract non détecté — tentative d’installation..."
+              case "$DISTRO" in
+                  *"Ubuntu"*|*"Debian"*|*"Mint"*|*"MX"*)
+                      sudo apt-get install -y tesseract-ocr tesseract-ocr-fra ;;
+                  *"Fedora"*|*"Red Hat"*|*"CentOS"*)
+                      sudo dnf install -y tesseract tesseract-langpack-fra ;;
+                  *"Arch"*|*"Manjaro"*)
+                      sudo pacman -S --noconfirm tesseract tesseract-data-fra ;;
+                  *"Darwin"*|*"macOS"*)
+                      brew install tesseract tesseract-lang ;;
+              esac
+              echo "✅ Tesseract installé avec succès"
+          else
+              echo "✅ Tesseract détecté: $(tesseract --version | head -n1)"
+          fi
           echo ""
+
+          # --- Vérification OpenCV ---
+          if ! python -c "import cv2" &>/dev/null; then
+              echo "📦 Installation de OpenCV manquant..."
+              python -m pip install opencv-python-headless --quiet
+              echo "✅ OpenCV installé"
+          else
+              echo "✅ OpenCV déjà présent"
+          fi
+          echo ""
+
+          # --- Lancement de l'application ---
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  ▶️  Lancement de l'application..."
+          echo "  ▶️  Lancement de Gestion Financière Little"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "💡 L’application s’ouvrira sur http://localhost:8501"
+          echo "💡 Pour arrêter : Ctrl + C"
           echo ""
-          echo "💡 L'application va s'ouvrir dans votre navigateur"
-          echo "💡 URL: http://localhost:8501"
-          echo "💡 Pour arrêter: Ctrl+C"
-          echo "💡 Environnement: $VENV_DIR"
-          echo ""
-          
           sleep 2
-          
-          # Lancer Streamlit
-          python -m streamlit run gestiolittle.py --server.port 8501 --server.headless true
 
-          # Si Streamlit se ferme
-          echo ""
-          echo "🔧 Pour relancer l'application plus tard :"
-          echo "   ./run.sh"
-          echo ""
-          
+          python -m streamlit run "$MAIN_FILE" --server.headless true --server.port 8501
+
           RUNSCRIPT
-          
+
           chmod +x dist/run.sh
-          echo "✅ Script run.sh créé avec succès"
+          echo "✅ Script run.sh créé avec succès (version optimisée)"
         shell: bash
+
+        
       - name: 🧱 Installation des dépendances Python avant le build
         shell: bash
         run: |
