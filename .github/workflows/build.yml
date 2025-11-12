@@ -394,8 +394,14 @@ jobs:
             mkdir -p dist/linux
             cp app/*.py dist/linux/
             cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"  
-            echo "#!/bin/bash" > dist/linux/run.sh
-            echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
+            if [ -f "dist/run.sh" ]; then
+              cp dist/run.sh dist/linux/
+             else
+              echo "⚠️ Script run.sh non trouvé dans dist/, création d'un run.sh simplifié (fallback)"
+              echo "#!/bin/bash" > dist/linux/run.sh
+              echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
+              chmod +x dist/linux/run.sh
+            fi
             chmod +x dist/linux/run.sh
             cd dist/linux
             zip -r ../GestionFinanciereLittle-Linux.zip ./
