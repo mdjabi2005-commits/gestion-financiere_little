@@ -279,7 +279,6 @@ def check_and_install_deps():
         ("dateutil", "python-dateutil"),
         ("cv2", "opencv-python-headless"),
         ("numpy", "numpy"),
-        ("matplotlib", "matplotlib"),
         ("plotly", "plotly"),
         ("regex", "regex"),
         ("requests", "requests")

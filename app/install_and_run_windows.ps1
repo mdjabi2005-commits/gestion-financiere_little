@@ -190,7 +190,6 @@ $packages = @(
     "python-dateutil",
     "opencv-python-headless",
     "numpy",
-    "matplotlib",
     "plotly",
     "regex",
     "requests"
@@ -248,7 +247,6 @@ try:
     import dateutil
     import cv2
     import numpy
-    import matplotlib
     import plotly
     import regex
     import requests

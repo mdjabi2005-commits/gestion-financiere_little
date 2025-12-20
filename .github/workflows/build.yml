@@ -439,7 +439,6 @@ jobs:
             --collect-all pytesseract `
             --collect-all cv2 `
             --collect-all numpy `
-            --collect-all matplotlib `
             --collect-all plotly `
             --collect-all flask `
             --hidden-import config `
@@ -466,7 +465,6 @@ jobs:
             --hidden-import streamlit.runtime.scriptrunner.script_runner `
             --hidden-import pandas `
             --hidden-import numpy `
-            --hidden-import matplotlib `
             --hidden-import pytesseract `
             --hidden-import Pillow `
             --hidden-import cv2 `
@@ -506,7 +504,6 @@ jobs:
             --exclude-module streamlit `
             --exclude-module pandas `
             --exclude-module numpy `
-            --exclude-module matplotlib `
             --exclude-module pytesseract `
             --exclude-module Pillow `
             --exclude-module opencv-python-headless `
