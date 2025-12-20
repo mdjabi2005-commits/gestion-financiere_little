@@ -429,7 +429,14 @@ jobs:
             --onefile `
             --console `
             --name "GestionFinanciereLittle_Portable" `
-            --add-data "app;app" `
+            --add-data "app/main.py;." `
+            --add-data "app/config;config" `
+            --add-data "app/domains;domains" `
+            --add-data "app/shared;shared" `
+            --add-data "app/resources;resources" `
+            --add-data "app/templates;templates" `
+            --add-data "app/web_launcher.py;." `
+            --add-data "app/launcher_config.json;." `
             --add-data "tesseract;tesseract" `
             --collect-all streamlit `
             --collect-all pandas `
@@ -438,7 +445,8 @@ jobs:
             --collect-all cv2 `
             --collect-all numpy `
             --collect-all matplotlib `
-            --collect-all pdfminer `
+            --collect-all plotly `
+            --collect-all flask `
             --hidden-import streamlit `
             --hidden-import streamlit.web.bootstrap `
             --hidden-import streamlit.web.server.browser_websocket_handler `
@@ -449,8 +457,9 @@ jobs:
             --hidden-import pytesseract `
             --hidden-import Pillow `
             --hidden-import cv2 `
-            --hidden-import pdfminer `
-            --hidden-import pdfminer.six `
+            --hidden-import plotly `
+            --hidden-import regex `
+            --hidden-import flask `
             --hidden-import requests `
             --hidden-import python-dateutil 
 
@@ -499,14 +508,12 @@ jobs:
           Write-Host ""
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "📦 Copie des fichiers additionnels"
+          Write-Host "📦 Copie des fichiers V4"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item app/configlittle.py dist/ -ErrorAction SilentlyContinue
-          Copy-Item app/auto_updater.py dist/ -ErrorAction SilentlyContinue
-          Copy-Item app/changelog_viewer.py dist/ -ErrorAction SilentlyContinue
-          Copy-Item app/gestiolittle.py dist/ -ErrorAction SilentlyContinue
+          Copy-Item app/main.py dist/ -ErrorAction SilentlyContinue
+          Copy-Item app/install_and_run_windows.ps1 dist/ -ErrorAction SilentlyContinue
 
           if (Test-Path "tesseract") {
             Copy-Item -Recurse -Force tesseract dist/
