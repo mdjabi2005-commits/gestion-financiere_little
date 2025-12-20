@@ -555,69 +555,45 @@ jobs:
           echo "📦 Préparation des packages de distribution..."
           
           # ==============================
-          # 🪟 WINDOWS : Portable + Lite 
+          # 🪟 WINDOWS : Version unique
           # ==============================
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cd dist
             
-            # ---------- VERSION PORTABLE ----------
-            if [ -f "GestionFinanciereLittle_Portable.exe" ]; then
-              echo "📦 Création du package Windows Portable..."
-              
-              # Copier Tesseract embarqué depuis le dépôt
-              if [ -d "../tesseract" ]; then
-                echo "📂 Copie du dossier Tesseract depuis le dépôt..."
-                cp -r ../tesseract ./
-              fi
-              
-              # ZIP contient : exe + tesseract (modules Python déjà dans l'exe)
-              7z a -tzip GestionFinanciereLittle-Windows-Portable.zip \
-                GestionFinanciereLittle_Portable.exe tesseract/
-              
-              echo "✅ Package Portable créé (exe + tesseract)"
-            else
-              echo "❌ Erreur : GestionFinanciereLittle_Portable.exe introuvable"
-            fi
-            
-            # ---------- VERSION LITE ----------
-            if [ -f "GestionFinanciereLittle_Lite.exe" ]; then
-              echo "📦 Création du package Windows Lite..."
+            if [ -f "GestionFinanciere.exe" ]; then
+              echo "📦 Création du package Windows..."
               
               # Copier installateur 
               if [ -f "../app/install_and_run_windows.ps1" ]; then
                 cp ../app/install_and_run_windows.ps1 .
                 echo "✅ Installateur PowerShell copié"
-              else
-                echo "⚠️ Fichier d'installation manquant"
               fi
               
-              # Copier le Control Center GUI
+              # Copier GUI launcher et config
               if [ -f "../app/gui_launcher.py" ]; then
                 cp ../app/gui_launcher.py .
-                echo "✅ GUI Launcher copié"
-              else
-                echo "⚠️ gui_launcher.py manquant"
+                cp ../app/main.py .
+                echo "✅ GUI Launcher + main.py copiés"
               fi
               
-              # Copier la config du launcher
               if [ -f "../app/launcher_config.json" ]; then
                 cp ../app/launcher_config.json .
                 echo "✅ Config launcher copiée"
               fi
               
-              # Copier Tesseract embarqué (sécurité OCR)
+              # Copier Tesseract
               if [ -d "../tesseract" ]; then
                 cp -r ../tesseract ./
-                echo "✅ Dossier Tesseract embarqué ajouté dans la version Lite"
+                echo "✅ Tesseract embarqué"
               fi
               
-              # ZIP contient : exe + ps1 + tesseract (modules Python déjà dans l'exe)
-              7z a -tzip GestionFinanciereLittle-Windows-Lite.zip \
-                GestionFinanciereLittle_Lite.exe *.ps1 tesseract/
+              # ZIP unique : exe + scripts + tesseract
+              7z a -tzip GestionFinanciere-Windows.zip \
+                GestionFinanciere.exe *.py *.ps1 *.json tesseract/
               
-              echo "✅ Package Lite créé (exe + installateur + tesseract)"
+              echo "✅ Package Windows créé : GestionFinanciere-Windows.zip"
             else
-              echo "❌ Erreur : GestionFinanciereLittle_Lite.exe introuvable"
+              echo "❌ Erreur : GestionFinanciere.exe introuvable"
             fi
             
             cd ..
