@@ -12,10 +12,21 @@ from pathlib import Path
 from flask import Flask, render_template, jsonify, request
 import requests
 
-app = Flask(__name__)
+# Helper pour PyInstaller
+def get_base_path():
+    """Retourne le chemin de base (gère PyInstaller frozen apps)"""
+    if getattr(sys, 'frozen', False):
+        # Mode PyInstaller : utiliser _MEIPASS pour les fichiers internes
+        return Path(sys._MEIPASS)
+    else:
+        # Mode normal : utiliser le dossier du script
+        return Path(__file__).parent
+
+app = Flask(__name__, 
+            template_folder=str(get_base_path() / "templates"))
 
 # Configuration
-SCRIPT_DIR = Path(__file__).parent
+SCRIPT_DIR = get_base_path()
 CONFIG_FILE = SCRIPT_DIR / "launcher_config.json"
 GITHUB_REPO = "mdjabi2005-commits/gestion-financiere_little"
 
@@ -41,7 +52,7 @@ def load_config():
 
 def get_version():
     """Lit la version actuelle"""
-    version_file = SCRIPT_DIR / "../version.txt"
+    version_file = SCRIPT_DIR.parent / "version.txt"
     if version_file.exists():
         return version_file.read_text().strip()
     return "0.4.0"
