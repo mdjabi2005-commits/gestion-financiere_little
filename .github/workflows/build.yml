@@ -423,7 +423,7 @@ jobs:
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           & pyinstaller `
-            "app/lancer_gestiolittle.py" `
+            "app/launch.py" `
             --noconfirm `
             --clean `
             --onefile `
@@ -487,7 +487,7 @@ jobs:
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           & pyinstaller `
-            "app/lancer_gestiolite.py" `
+            "app/launch.py" `
             --noconfirm `
             --clean `
             --onefile `
