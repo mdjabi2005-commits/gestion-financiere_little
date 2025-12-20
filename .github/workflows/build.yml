@@ -591,6 +591,20 @@ jobs:
                 echo "⚠️ Fichier d'installation manquant"
               fi
               
+              # Copier le Control Center GUI
+              if [ -f "../app/gui_launcher.py" ]; then
+                cp ../app/gui_launcher.py .
+                echo "✅ GUI Launcher copié"
+              else
+                echo "⚠️ gui_launcher.py manquant"
+              fi
+              
+              # Copier la config du launcher
+              if [ -f "../app/launcher_config.json" ]; then
+                cp ../app/launcher_config.json .
+                echo "✅ Config launcher copiée"
+              fi
+              
               # Copier Tesseract embarqué (sécurité OCR)
               if [ -d "../tesseract" ]; then
                 cp -r ../tesseract ./
