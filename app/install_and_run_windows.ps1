@@ -191,7 +191,9 @@ $packages = @(
     "opencv-python-headless",
     "numpy",
     "matplotlib",
-    "pdfminer.six",
+    "plotly",
+    "regex",
+    "flask",
     "requests"
 )
 
@@ -248,6 +250,9 @@ try:
     import cv2
     import numpy
     import matplotlib
+    import plotly
+    import regex
+    import flask
     import requests
     print("OK")
 except Exception as e:
@@ -276,15 +281,15 @@ Write-Host "[OK] Tous les modules sont operationnels"
 Write-Host ""
 Write-Host "[6/6] Lancement de l'application..."
 
-# Chercher gestiolittle.py
-$mainScript = Join-Path $root "gestiolittle.py"
+# Chercher le launcher V4
+$mainScript = Join-Path $root "lancer_gestiolittle.py"
 if (-not (Test-Path $mainScript)) {
-    # Essayer dans le sous-dossier app
-    $mainScript = Join-Path $root "app\gestiolittle.py"
+    # Essayer main.py directement
+    $mainScript = Join-Path $root "main.py"
 }
 
 if (-not (Test-Path $mainScript)) {
-    Show-Message "Erreur" "Fichier gestiolittle.py introuvable dans : $root" "Error"
+    Show-Message "Erreur" "Fichier de lancement introuvable dans : $root" "Error"
     Read-Host "Appuyez sur Entree pour fermer"
     exit 1
 }
@@ -298,20 +303,20 @@ Write-Host "[>] L'application va s'ouvrir dans votre navigateur"
 Write-Host "[!] Pour arreter : Fermez cette fenetre (Ctrl+C)"
 Write-Host ""
 
+
 Start-Sleep -Seconds 2
 
 Write-Host ""
-Write-Host "[>] Lancement de l'application Streamlit..."
-Write-Host "[>] URL : http://localhost:8501"
+Write-Host "[>] Lancement de Gestio V4..."
 Write-Host "[!] Gardez cette fenetre ouverte"
 Write-Host ""
 
-# Lancer Streamlit
+# Lancer le launcher
 try {
-    & $pythonCmd -m streamlit run $mainScript --server.port 8501 --server.headless true
+    & $pythonCmd $mainScript
 }
 catch {
-    Show-Message "Erreur de lancement" "Impossible de demarrer Streamlit. Verifiez l'installation." "Error"
+    Show-Message "Erreur de lancement" "Impossible de demarrer l'application. Verifiez l'installation." "Error"
     Read-Host "Appuyez sur Entree pour fermer"
     exit 1
 }

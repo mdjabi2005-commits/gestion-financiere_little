@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.title }} - Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: {{ config.background }};
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            max-width: 100px;
+            border-radius: 50%;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .version {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+
+        .update-available {
+            background: #FCD34D;
+            color: #78350F;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: 600;
+            display: none;
+        }
+
+        .buttons {
+            margin: 30px 0;
+        }
+
+        .btn {
+            background: {{ config.primary_color }};
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 200px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .links {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .link-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .link-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            display: block;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if config.logo_url %}
+        <div class="logo">
+            <img src="{{ config.logo_url }}" alt="Logo">
+        </div>
+        {% endif %}
+
+        <h1>💰 {{ config.title }}</h1>
+        <div class="subtitle">{{ config.subtitle }}</div>
+        <div class="version">Version {{ version }}</div>
+
+        <div class="update-available" id="updateBanner">
+            🎉 Nouvelle version disponible !
+            <button class="btn btn-secondary" onclick="openUpdate()">Télécharger</button>
+        </div>
+
+        <div class="buttons">
+            <button class="btn" onclick="launchApp()" id="launch Btn">
+                🚀 Lancer l'application
+            </button>
+        </div>
+
+        <div class="links">
+            <a href="#" class="link-btn" onclick="openDocs(); return false;">
+                📖 Documentation
+            </a>
+            <a href="#" class="link-btn" onclick="openGitHub(); return false;">
+               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle;">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                GitHub
+            </a>
+            <a href="#" class="link-btn" onclick="checkUpdate(); return false;">
+                🔍 Vérifier MAJ
+            </a>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        let updateUrl = '';
+
+        // Vérifier les mises à jour au chargement
+        window.addEventListener('load', () => {
+            checkUpdate();
+        });
+
+        async function launchApp() {
+            const btn = document.getElementById('launchBtn');
+            const status = document.getElementById('status');
+            
+            btn.textContent = '⏳ Lancement...';
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/launch', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    status.className = 'status success';
+                    status.textContent = '✅ Application lancée ! Ouverture dans votre navigateur...';
+                    setTimeout(() => {
+                        window.open(data.url, '_blank');
+                    }, 1000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = '❌ Erreur : ' + error.message;
+            } finally {
+                btn.textContent = '🚀 Lancer l'application';
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        async function checkUpdate() {
+            try {
+                const response = await fetch('/api/check-update');
+                const data = await response.json();
+
+                if (data.has_update) {
+                    document.getElementById('updateBanner').style.display = 'block';
+                    updateUrl = data.download_url;
+                }
+            } catch (error) {
+                console.error('Error checking update:', error);
+            }
+        }
+
+        async function openUrl(url) {
+            try {
+                await fetch('/api/open-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+            } catch (error) {
+                window.open(url, '_blank');
+            }
+        }
+
+        function openDocs() {
+            openUrl('{{ config.docs_url }}');
+        }
+
+        function openGitHub() {
+            openUrl('{{ config.github_url }}');
+        }
+
+        function openUpdate() {
+            if (updateUrl) {
+                openUrl(updateUrl);
+            }
+        }
+    </script>
+</body>
+</html>
