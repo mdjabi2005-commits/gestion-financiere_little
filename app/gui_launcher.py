@@ -83,9 +83,19 @@ class ControlCenterGUI:
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Couleurs
-        self.bg_color = "#667eea"
-        self.accent_color = "#4F46E5"
+        # Couleurs V4 (from main.css)
+        self.primary_color = "#10b981"      # Vert principal
+        self.secondary_color = "#3b82f6"    # Bleu secondaire
+        self.danger_color = "#ef4444"       # Rouge danger  
+        self.warning_color = "#f59e0b"      # Orange warning
+        self.bg_gradient_start = "#1f2937"  # Gris foncé (sidebar)
+        self.bg_gradient_end = "#111827"    # Gris très foncé
+        self.text_primary = "#1f2937"       # Texte principal
+        self.text_secondary = "#6b7280"     # Texte secondaire
+        
+        # Couleurs pour l'UI
+        self.bg_color = self.bg_gradient_start
+        self.accent_color = self.primary_color
         
         self.create_ui()
         

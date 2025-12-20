@@ -27,7 +27,3 @@ if __name__ == "__main__":
     print("📍 Ouverture de l'interface...\n")
     
     main()
-    print("📍 Ouverture dans votre navigateur...")
-    print("⚠️  Appuyez sur Ctrl+C pour arrêter\n")
-    
-    app.run(host='localhost', port=5555, debug=False)
