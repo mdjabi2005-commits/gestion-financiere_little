@@ -9,7 +9,13 @@ import sys
 from pathlib import Path
 
 # Ajouter app au path
-current_dir = Path(__file__).parent
+if getattr(sys, 'frozen', False):
+    # Mode PyInstaller : modules dans MEIPASS
+    current_dir = Path(sys._MEIPASS)
+else:
+    # Mode développement
+    current_dir = Path(__file__).parent
+    
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
