@@ -20,11 +20,13 @@ if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
 if __name__ == "__main__":
-    from web_launcher import app
-    import webbrowser
+    from gui_launcher import main
     
-    # Ouvrir le navigateur
-    webbrowser.open('http://localhost:5555')
+    # Lancer le GUI launcher
+    print("🚀 Gestio V4 Launcher")
+    print("📍 Ouverture de l'interface...\n")
+    
+    main()
     
     # Lancer le serveur
     print("🚀 Gestio V4 Web Launcher")
