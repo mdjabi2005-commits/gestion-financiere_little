@@ -22,6 +22,12 @@ def get_base_path():
         # Mode normal : utiliser le dossier du script
         return Path(__file__).parent
 
+def get_exe_directory():
+    """Retourne le dossier de l'exécutable (pour fichiers externes comme config JSON)"""
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).parent
+    else:
+        return Path(__file__).parent
 app = Flask(__name__, 
             template_folder=str(get_base_path() / "templates"))
 

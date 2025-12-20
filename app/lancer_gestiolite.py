@@ -164,10 +164,13 @@ def wait_for_port(port, timeout=30):
     return False
 
 def get_base_path():
-    """Retourne le chemin de base (répertoire de l'exécutable ou du script)"""
+    """Retourne le chemin de base (MEIPASS si frozen, sinon dossier script)"""
     if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+        # PyInstaller : fichiers dans MEIPASS
+        return Path(sys._MEIPASS)
+    else:
+        # Mode développement
+        return os.path.dirname(os.path.abspath(__file__))
 
 
 # ==============================
