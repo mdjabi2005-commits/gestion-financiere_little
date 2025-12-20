@@ -386,15 +386,25 @@ def main():
     base_path = get_base_path()
     setup_marker = Path(base_path) / "setup.done"
     
-    # Version LITE : Lance web_launcher.py (comme Little) 
-    launcher_path = Path(base_path) / "web_launcher.py"
+    # Version LITE : web_launcher.py doit être À CÔTÉ de l'exe (pas dans MEIPASS)
+    if getattr(sys, 'frozen', False):
+        # Mode compilé : chercher dans le dossier de l'exe
+        exe_dir = Path(sys.executable).parent
+        launcher_path = exe_dir / "web_launcher.py"
+    else:
+        # Mode développement : dossier du script
+        launcher_path = Path(base_path) / "web_launcher.py"
+    
+    # Fallback vers main.py si web_launcher manquant
     if not launcher_path.exists():
-        # Fallback vers main.py si web_launcher manquant
-        launcher_path = Path(base_path) / "main.py"
+        if getattr(sys, 'frozen', False):
+            launcher_path = Path(sys.executable).parent / "main.py"
+        else:
+            launcher_path = Path(base_path) / "main.py"
     
     # Vérifier que le launcher existe
     if not launcher_path.exists():
-        safe_print(f"ERREUR : Fichier web_launcher.py introuvable dans {base_path}", "ERROR")
+        safe_print(f"ERREUR : Fichier web_launcher.py introuvable dans {launcher_path.parent}", "ERROR")
         safe_print("Version LITE requiert web_launcher.py pour fonctionner", "INFO")
         safe_print("Contenu du repertoire :", "INFO")
         try:
