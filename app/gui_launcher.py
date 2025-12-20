@@ -395,14 +395,120 @@ class ControlCenterGUI:
         self.log_text.see(tk.END)
     
     def monitor_logs(self):
-        """Surveille les logs de l'application"""
-        # TO DO: Implémenter lecture des fichiers de logs
-        pass
+        """Surveille les logs de l'application en temps réel"""
+        log_file = LOG_DIR / "app.log"
+        
+        # Créer le fichier s'il n'existe pas
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        if not log_file.exists():
+            log_file.touch()
+        
+        last_position = 0
+        
+        while self.log_monitoring:
+            try:
+                if log_file.exists():
+                    with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
+                        # Aller à la dernière position lue
+                        f.seek(last_position)
+                        new_lines = f.readlines()
+                        last_position = f.tell()
+                        
+                        # Parser et afficher les nouvelles lignes
+                        for line in new_lines:
+                            self.parse_and_display_log(line.strip())
+                
+                time.sleep(1)  # Vérifier toutes les secondes
+            except Exception as e:
+                print(f"Erreur monitoring logs: {e}")
+                time.sleep(5)
+    
+    def parse_and_display_log(self, line):
+        """Parse une ligne de log et l'affiche avec intelligence"""
+        if not line:
+            return
+        
+        # Détecter le niveau de log
+        level = "INFO"
+        if "ERROR" in line or "Exception" in line or "Traceback" in line:
+            level = "ERROR"
+        elif "WARNING" in line or "WARN" in line:
+            level = "WARNING"
+        elif "SUCCESS" in line or "✅" in line:
+            level = "SUCCESS"
+        
+        # Parser les erreurs pour identifier le module
+        error_info = self.identify_error_source(line)
+        
+        if error_info:
+            # Afficher erreur avec contexte
+            self.log_message(
+                level,
+                f"{error_info['module']} : {error_info['message']}"
+            )
+            if error_info.get('solution'):
+                self.log_message("INFO", f"  💡 Solution : {error_info['solution']}")
+        else:
+            # Afficher ligne normale
+            self.log_message(level, line)
+    
+    def identify_error_source(self, line):
+        """Identifie le module et la cause d'une erreur"""
+        error_patterns = {
+            "ModuleNotFoundError": {
+                "module": "Imports",
+                "solution": "Vérifier les dépendances installées"
+            },
+            "FileNotFoundError": {
+                "module": "Fichiers",
+                "solution": "Vérifier les chemins de fichiers"
+            },
+            "DatabaseError": {
+                "module": "Base de données",
+                "solution": "Vérifier l'intégrité de finances.db"
+            },
+            "OCR": {
+                "module": "Scanner OCR",
+                "solution": "Vérifier Tesseract et les images"
+            },
+            "streamlit": {
+                "module": "Interface Streamlit",
+                "solution": "Redémarrer l'application"
+            },
+            "domains.transactions": {
+                "module": "Gestion Transactions",
+                "solution": "Vérifier la base de données"
+            },
+            "domains.ocr": {
+                "module": "Module OCR",
+                "solution": "Vérifier les patterns OCR"
+            },
+            "shared.database": {
+                "module": "Accès Base de données",
+                "solution": "Vérifier la connexion DB"
+            }
+        }
+        
+        for pattern, info in error_patterns.items():
+            if pattern in line:
+                return {
+                    "module": info["module"],
+                    "message": line,
+                    "solution": info["solution"]
+                }
+        
+        return None
     
     def filter_logs(self):
         """Filtre les logs par niveau"""
-        # TO DO: Implémenter filtrage
-        pass
+        filter_value = self.log_filter.get()
+        
+        if filter_value == "ALL":
+            return  # Tout afficher
+        
+        # Réafficher seulement les logs du niveau sélectionné
+        # TO DO: Implémenter filtrage avec stockage des logs
+        self.log_message("INFO", f"Filtre {filter_value} activé")
     
     def clear_logs(self):
         """Efface les logs affichés"""
