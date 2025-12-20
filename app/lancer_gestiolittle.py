@@ -22,14 +22,11 @@ if str(current_dir) not in sys.path:
 if __name__ == "__main__":
     from gui_launcher import main
     
-    # Lancer le GUI launcher
-    print("🚀 Gestio V4 Launcher")
+    # Lancer le Centre de Contrôle
+    print("🚀 Gestio V4 - Centre de Contrôle")
     print("📍 Ouverture de l'interface...\n")
     
     main()
-    
-    # Lancer le serveur
-    print("🚀 Gestio V4 Web Launcher")
     print("📍 Ouverture dans votre navigateur...")
     print("⚠️  Appuyez sur Ctrl+C pour arrêter\n")
     

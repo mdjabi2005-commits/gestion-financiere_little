@@ -1,6 +1,6 @@
 """
-Gestio V4 - GUI Launcher (Tkinter)
-Interface native sans navigateur
+Gestio V4 - Centre de Contrôle (Control Center)
+Interface complète de gestion : logs, MAJ, changelog, aide
 """
 
 import os
@@ -9,10 +9,14 @@ import json
 import subprocess
 import webbrowser
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, scrolledtext
 from pathlib import Path
 import requests
 import threading
+import time
+from datetime import datetime
+import zipfile
+import shutil
 
 # Helper pour PyInstaller
 def get_base_path():
@@ -23,7 +27,7 @@ def get_base_path():
         return Path(__file__).parent
 
 def get_exe_directory():
-    """Retourne le dossier de l'exécutable (pour fichiers externes)"""
+    """Retourne le dossier de l'exécutable"""
     if getattr(sys, 'frozen', False):
         return Path(sys.executable).parent
     else:
@@ -31,8 +35,10 @@ def get_exe_directory():
 
 # Configuration
 SCRIPT_DIR = get_base_path()
+EXE_DIR = get_exe_directory()
 CONFIG_FILE = SCRIPT_DIR / "launcher_config.json"
 GITHUB_REPO = "mdjabi2005-commits/gestion-financiere_little"
+LOG_DIR = Path.home() / "analyse" / "logs"
 
 def load_config():
     """Charge la configuration du launcher"""
@@ -40,7 +46,8 @@ def load_config():
         "title": "Gestio V4",
         "subtitle": "Gestion Financière Personnelle",
         "docs_url": "https://mdjabi2005-commits.github.io/gestion-financiere_little",
-        "github_url": f"https://github.com/{GITHUB_REPO}"
+        "github_url": f"https://github.com/{GITHUB_REPO}",
+        "support_url": "https://mdjabi2005-commits.github.io/gestion-financiere_little/support"
     }
     
     if CONFIG_FILE.exists():
@@ -60,186 +67,401 @@ def get_version():
         return version_file.read_text().strip()
     return "0.4.0"
 
-class LauncherGUI:
+class ControlCenterGUI:
     def __init__(self, root):
         self.root = root
         self.config = load_config()
         self.version = get_version()
+        self.app_process = None
         
         # Configuration fenêtre
-        self.root.title(f"{self.config['title']} - Launcher")
-        self.root.geometry("500x400")
-        self.root.resizable(False, False)
+        self.root.title(f"{self.config['title']} - Centre de Contrôle")
+        self.root.geometry("800x600")
+        self.root.resizable(True, True)
         
         # Style
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Couleurs modernes
-        bg_color = "#667eea"
-        fg_color = "white"
+        # Couleurs
+        self.bg_color = "#667eea"
+        self.accent_color = "#4F46E5"
         
-        self.root.configure(bg=bg_color)
+        self.create_ui()
+        
+        # Démarrer monitoring logs
+        self.log_monitoring = True
+        threading.Thread(target=self.monitor_logs, daemon=True).start()
+        
+        # Vérifier MAJ au démarrage
+        threading.Thread(target=self.check_updates_silent, daemon=True).start()
+    
+    def create_ui(self):
+        """Crée l'interface utilisateur"""
         
         # Header
-        header = tk.Frame(root, bg=bg_color)
-        header.pack(pady=30, fill='x')
+        header = tk.Frame(self.root, bg=self.bg_color, height=80)
+        header.pack(fill='x')
+        header.pack_propagate(False)
         
         title = tk.Label(
             header, 
-            text=f"💰 {self.config['title']}", 
-            font=("Segoe UI", 24, "bold"),
-            bg=bg_color,
-            fg=fg_color
+            text=f"💰 {self.config['title']} - Centre de Contrôle", 
+            font=("Segoe UI", 18, "bold"),
+            bg=self.bg_color,
+            fg="white"
         )
-        title.pack()
-        
-        subtitle = tk.Label(
-            header,
-            text=self.config['subtitle'],
-            font=("Segoe UI", 12),
-            bg=bg_color,
-            fg=fg_color
-        )
-        subtitle.pack()
+        title.pack(pady=15)
         
         version_label = tk.Label(
             header,
             text=f"Version {self.version}",
+            font=("Segoe UI", 9),
+            bg=self.bg_color,
+            fg="white"
+        )
+        version_label.pack()
+        
+        # Tabs
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Tab 1: Accueil
+        self.create_home_tab()
+        
+        # Tab 2: Logs
+        self.create_logs_tab()
+        
+        # Tab 3: Mises à jour
+        self.create_updates_tab()
+        
+        # Tab 4: Aide
+        self.create_help_tab()
+    
+    def create_home_tab(self):
+        """Onglet Accueil"""
+        home_frame = ttk.Frame(self.notebook)
+        self.notebook.add(home_frame, text="🏠 Accueil")
+        
+        # Message de bienvenue
+        welcome = tk.Label(
+            home_frame,
+            text="Bienvenue dans Gestio V4",
+            font=("Segoe UI", 16, "bold"),
+            fg=self.accent_color
+        )
+        welcome.pack(pady=20)
+        
+        # Status app
+        self.status_frame = tk.LabelFrame(home_frame, text="📊 État de l'application", font=("Segoe UI", 10, "bold"))
+        self.status_frame.pack(fill='x', padx=20, pady=10)
+        
+        self.app_status_label = tk.Label(
+            self.status_frame,
+            text="● Application arrêtée",
             font=("Segoe UI", 10),
-            bg=bg_color,
-            fg=fg_color
+            fg="red"
         )
-        version_label.pack(pady=5)
-        
-        # Update banner (caché par défaut)
-        self.update_frame = tk.Frame(root, bg="#FCD34D", height=50)
-        self.update_label = tk.Label(
-            self.update_frame,
-            text="🎉 Nouvelle version disponible !",
-            font=("Segoe UI", 10, "bold"),
-            bg="#FCD34D",
-            fg="#78350F"
-        )
-        self.update_label.pack(side='left', padx=20, pady=10)
-        
-        self.update_btn = tk.Button(
-            self.update_frame,
-            text="Télécharger",
-            command=self.open_update,
-            bg="#78350F",
-            fg="white",
-            font=("Segoe UI", 9, "bold"),
-            relief='flat',
-            cursor='hand2'
-        )
-        self.update_btn.pack(side='right', padx=20, pady=10)
+        self.app_status_label.pack(pady=10)
         
         # Boutons principaux
-        button_frame = tk.Frame(root, bg=bg_color)
-        button_frame.pack(pady=20)
+        btn_frame = tk.Frame(home_frame)
+        btn_frame.pack(pady=20)
         
         self.launch_btn = tk.Button(
-            button_frame,
+            btn_frame,
             text="🚀 Lancer l'application",
             command=self.launch_app,
-            bg="#4F46E5",
+            bg=self.accent_color,
             fg="white",
             font=("Segoe UI", 12, "bold"),
-            width=25,
+            width=20,
             height=2,
             relief='flat',
             cursor='hand2'
         )
-        self.launch_btn.pack(pady=10)
+        self.launch_btn.grid(row=0, column=0, padx=10)
         
-        # Status label
-        self.status_label = tk.Label(
-            root,
-            text="",
-            font=("Segoe UI", 9),
-            bg=bg_color,
-            fg=fg_color
+        self.stop_btn = tk.Button(
+            btn_frame,
+            text="⏹️ Arrêter",
+            command=self.stop_app,
+            bg="#DC2626",
+            fg="white",
+            font=("Segoe UI", 12, "bold"),
+            width=15,
+            height=2,
+            relief='flat',
+            cursor='hand2',
+            state='disabled'
         )
-        self.status_label.pack(pady=10)
+        self.stop_btn.grid(row=0, column=1, padx=10)
         
-        # Liens en bas
-        links_frame = tk.Frame(root, bg=bg_color)
-        links_frame.pack(side='bottom', pady=20)
+        # Actions rapides
+        quick_frame = tk.LabelFrame(home_frame, text="⚡ Actions rapides", font=("Segoe UI", 10, "bold"))
+        quick_frame.pack(fill='x', padx=20, pady=10)
         
-        links = [
-            ("📖 Documentation", lambda: webbrowser.open(self.config['docs_url'])),
-            ("🔍 Vérifier MAJ", self.check_update),
-            ("💬 GitHub", lambda: webbrowser.open(self.config['github_url']))
+        actions = [
+            ("📖 Ouvrir Documentation", lambda: webbrowser.open(self.config['docs_url'])),
+            ("🔍 Vérifier les mises à jour", self.check_updates),
+            ("📋 Voir les logs", lambda: self.notebook.select(1))
         ]
         
-        for text, command in links:
+        for i, (text, cmd) in enumerate(actions):
             btn = tk.Button(
-                links_frame,
+                quick_frame,
                 text=text,
-                command=command,
-                bg=bg_color,
-                fg=fg_color,
-                font=("Segoe UI", 9, "underline"),
+                command=cmd,
+                font=("Segoe UI", 9),
+                relief='flat',
+                cursor='hand2'
+            )
+            btn.grid(row=i, column=0, sticky='ew', padx=10, pady=5)
+    
+    def create_logs_tab(self):
+        """Onglet Logs avec parsing intelligent"""
+        logs_frame = ttk.Frame(self.notebook)
+        self.notebook.add(logs_frame, text="📋 Logs")
+        
+        # Filtres
+        filter_frame = tk.Frame(logs_frame)
+        filter_frame.pack(fill='x', padx=10, pady=5)
+        
+        tk.Label(filter_frame, text="Filtrer:", font=("Segoe UI", 9, "bold")).pack(side='left', padx=5)
+        
+        self.log_filter = tk.StringVar(value="ALL")
+        filters = [("Tous", "ALL"), ("Erreurs", "ERROR"), ("Warnings", "WARNING"), ("Info", "INFO")]
+        
+        for text, value in filters:
+            tk.Radiobutton(
+                filter_frame,
+                text=text,
+                variable=self.log_filter,
+                value=value,
+                command=self.filter_logs
+            ).pack(side='left', padx=5)
+        
+        tk.Button(
+            filter_frame,
+            text="🗑️ Effacer",
+            command=self.clear_logs,
+            relief='flat'
+        ).pack(side='right', padx=5)
+        
+        # Zone de logs
+        self.log_text = scrolledtext.ScrolledText(
+            logs_frame,
+            wrap=tk.WORD,
+            font=("Consolas", 9),
+            bg="#1e1e1e",
+            fg="#d4d4d4"
+        )
+        self.log_text.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Tags pour coloration
+        self.log_text.tag_config("ERROR", foreground="#f87171")
+        self.log_text.tag_config("WARNING", foreground="#fbbf24")
+        self.log_text.tag_config("INFO", foreground="#60a5fa")
+        self.log_text.tag_config("SUCCESS", foreground="#34d399")
+        self.log_text.tag_config("TIMESTAMP", foreground="#9ca3af")
+    
+    def create_updates_tab(self):
+        """Onglet Mises à jour"""
+        updates_frame = ttk.Frame(self.notebook)
+        self.notebook.add(updates_frame, text="🔄 Mises à jour")
+        
+        # Status MAJ
+        self.update_status_frame = tk.LabelFrame(
+            updates_frame,
+            text="État des mises à jour",
+            font=("Segoe UI", 10, "bold")
+        )
+        self.update_status_frame.pack(fill='x', padx=20, pady=10)
+        
+        self.update_status_label = tk.Label(
+            self.update_status_frame,
+            text="Vérification en cours...",
+            font=("Segoe UI", 10)
+        )
+        self.update_status_label.pack(pady=10)
+        
+        self.download_btn = tk.Button(
+            self.update_status_frame,
+            text="📥 Télécharger et installer",
+            command=self.download_update,
+            bg=self.accent_color,
+            fg="white",
+            font=("Segoe UI", 10, "bold"),
+            relief='flat',
+            cursor='hand2',
+            state='disabled'
+        )
+        self.download_btn.pack(pady=10)
+        
+        # Changelog
+        changelog_frame = tk.LabelFrame(
+            updates_frame,
+            text="📝 Nouveautés",
+            font=("Segoe UI", 10, "bold")
+        )
+        changelog_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        self.changelog_text = scrolledtext.ScrolledText(
+            changelog_frame,
+            wrap=tk.WORD,
+            font=("Segoe UI", 9)
+        )
+        self.changelog_text.pack(fill='both', expand=True, padx=5, pady=5)
+    
+    def create_help_tab(self):
+        """Onglet Aide"""
+        help_frame = ttk.Frame(self.notebook)
+        self.notebook.add(help_frame, text="❓ Aide")
+        
+        tk.Label(
+            help_frame,
+            text="Centre d'aide Gestio V4",
+            font=("Segoe UI", 14, "bold"),
+            fg=self.accent_color
+        ).pack(pady=20)
+        
+        # Liens d'aide
+        help_links = [
+            ("📖 Guide de démarrage", self.config['docs_url'] + "/getting-started"),
+            ("🎓 Tutoriels vidéo", self.config['docs_url'] + "/tutorials"),
+            ("💬 Support & FAQ", self.config.get('support_url', self.config['docs_url'])),
+            ("🐛 Signaler un bug", self.config['github_url'] + "/issues"),
+            ("💡 Proposer une fonctionnalité", self.config['github_url'] + "/discussions")
+        ]
+        
+        for text, url in help_links:
+            btn = tk.Button(
+                help_frame,
+                text=text,
+                command=lambda u=url: webbrowser.open(u),
+                font=("Segoe UI", 10),
                 relief='flat',
                 cursor='hand2',
-                borderwidth=0
+                anchor='w'
             )
-            btn.pack(side='left', padx=10)
-        
-        # Vérifier updates au démarrage (en arrière-plan)
-        threading.Thread(target=self.check_update, daemon=True).start()
+            btn.pack(fill='x', padx=50, pady=5)
     
     def launch_app(self):
-        """Lance l'application Streamlit"""
+        """Lance l'application"""
         try:
-            self.status_label.config(text="⏳ Lancement de l'application...")
-            self.launch_btn.config(state='disabled')
+            self.log_message("INFO", "Lancement de l'application Streamlit...")
             
             main_path = SCRIPT_DIR / "main.py"
-            subprocess.Popen([
+            self.app_process = subprocess.Popen([
                 sys.executable, "-m", "streamlit", "run", str(main_path),
-                "--server.port=8501"
+                "--server.port=8501",
+                "--server.headless=true"
             ])
             
-            self.status_label.config(text="✅ Application lancée sur http://localhost:8501")
+            self.app_status_label.config(text="● Application en cours d'exécution", fg="green")
+            self.launch_btn.config(state='disabled')
+            self.stop_btn.config(state='normal')
+            
+            self.log_message("SUCCESS", "✅ Application lancée sur http://localhost:8501")
             
             # Ouvrir navigateur
+            time.sleep(2)
             webbrowser.open("http://localhost:8501")
             
-            # Réactiver bouton après 2s
-            self.root.after(2000, lambda: self.launch_btn.config(state='normal'))
-            
         except Exception as e:
-            self.status_label.config(text=f"❌ Erreur : {str(e)}")
-            self.launch_btn.config(state='normal')
+            self.log_message("ERROR", f"❌ Erreur au lancement: {str(e)}")
             messagebox.showerror("Erreur", f"Impossible de lancer l'application:\n{str(e)}")
     
-    def check_update(self):
-        """Vérifie les mises à jour sur GitHub"""
+    def stop_app(self):
+        """Arrête l'application"""
+        if self.app_process:
+            self.app_process.terminate()
+            self.app_process = None
+            
+            self.app_status_label.config(text="● Application arrêtée", fg="red")
+            self.launch_btn.config(state='normal')
+            self.stop_btn.config(state='disabled')
+            
+            self.log_message("INFO", "Application arrêtée")
+    
+    def log_message(self, level, message):
+        """Ajoute un message au log"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        formatted = f"[{timestamp}] [{level}] {message}\n"
+        
+        self.log_text.insert(tk.END, f"[{timestamp}] ", "TIMESTAMP")
+        self.log_text.insert(tk.END, f"[{level}] ", level)
+        self.log_text.insert(tk.END, f"{message}\n")
+        self.log_text.see(tk.END)
+    
+    def monitor_logs(self):
+        """Surveille les logs de l'application"""
+        # TO DO: Implémenter lecture des fichiers de logs
+        pass
+    
+    def filter_logs(self):
+        """Filtre les logs par niveau"""
+        # TO DO: Implémenter filtrage
+        pass
+    
+    def clear_logs(self):
+        """Efface les logs affichés"""
+        self.log_text.delete(1.0, tk.END)
+    
+    def check_updates_silent(self):
+        """Vérifie les MAJ en arrière-plan"""
         try:
             url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-            response = requests.get(url, timeout=3)
+            response = requests.get(url, timeout=5)
             
             if response.status_code == 200:
                 data = response.json()
                 latest_version = data.get("tag_name", "").lstrip('v')
                 
                 if latest_version and latest_version != self.version:
-                    self.update_url = data.get("html_url")
-                    self.update_frame.pack(fill='x', after=self.root.winfo_children()[0])
-                    self.update_label.config(text=f"🎉 Version {latest_version} disponible !")
+                    self.update_data = data
+                    self.update_status_label.config(
+                        text=f"🎉 Nouvelle version {latest_version} disponible !",
+                        fg="green"
+                    )
+                    self.download_btn.config(state='normal')
+                    
+                    # Charger changelog
+                    changelog = data.get("body", "Aucune description disponible")
+                    self.changelog_text.delete(1.0, tk.END)
+                    self.changelog_text.insert(1.0, changelog)
+                else:
+                    self.update_status_label.config(
+                        text="✅ Vous avez la dernière version",
+                        fg="green"
+                    )
         except:
-            pass
+            self.update_status_label.config(
+                text="❌ Impossible de vérifier les mises à jour",
+                fg="red"
+            )
     
-    def open_update(self):
-        """Ouvre la page de téléchargement"""
-        if hasattr(self, 'update_url'):
-            webbrowser.open(self.update_url)
+    def check_updates(self):
+        """Force la vérification des MAJ"""
+        self.update_status_label.config(text="Vérification en cours...")
+        threading.Thread(target=self.check_updates_silent, daemon=True).start()
+    
+    def download_update(self):
+        """Télécharge et installe la mise à jour"""
+        if not hasattr(self, 'update_data'):
+            return
+        
+        # TO DO: Implémenter téléchargement et installation
+        messagebox.showinfo(
+            "Mise à jour",
+            "La mise à jour automatique sera disponible prochainement.\n\n"
+            "Pour l'instant, téléchargez manuellement depuis GitHub."
+        )
+        webbrowser.open(self.update_data.get("html_url"))
 
 def main():
     root = tk.Tk()
-    app = LauncherGUI(root)
+    app = ControlCenterGUI(root)
     root.mainloop()
 
 if __name__ == '__main__':
