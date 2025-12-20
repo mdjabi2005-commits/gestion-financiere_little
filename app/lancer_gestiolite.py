@@ -330,16 +330,16 @@ def check_and_install_deps():
 #  LANCEMENT DE STREAMLIT
 # ==============================
 
-def launch_streamlit_lite(app_path, port):
-    """Lance Streamlit avec affichage informatif dans la console"""
+def launch_streamlit_lite(launcher_path, port):
+    """Lance le web launcher avec affichage informatif dans la console"""
     
     # En-tête clair
     print("\n" + "="*60)
     print(" GESTION FINANCIERE LITTLE - MODE LITE ".center(60))
     print("="*60)
     
-    safe_print(f"Application : {os.path.basename(app_path)}", "INFO")
-    safe_print(f"Port reseau : {port}", "INFO")
+    safe_print(f"Launcher : {os.path.basename(launcher_path)}", "INFO")
+    safe_print(f"Port web launcher : {port}", "INFO")
     safe_print(f"Repertoire : {get_base_path()}", "INFO")
     
     python_exe = find_system_python()
@@ -352,133 +352,22 @@ def launch_streamlit_lite(app_path, port):
     
     log_dir = Path(get_base_path()) / "logs"
     log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / "streamlit_lite.log"
+    log_file = log_dir / "launcher_lite.log"
 
-    cmd = [
-        python_exe, "-m", "streamlit", "run", app_path,
-        "--server.port", str(port),
-        "--server.headless", "true",
-        "--logger.level", "warning"
-    ]
+    cmd = [python_exe, launcher_path]
     
     print("\n" + "-"*60)
-    safe_print("Demarrage du serveur Streamlit...", "INFO")
+    safe_print("Demarrage du web launcher...", "INFO")
     
-    # Ouvrir le fichier log en mode append
-    log_handle = open(log_file, "w", encoding="utf-8")
-    
-    # Lancer le processus
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        cwd=get_base_path(),
-        text=True,
-        encoding='utf-8',
-        errors='replace',
-        bufsize=1  # Line buffered
-    )
-    
-    # Thread pour afficher les logs importants
-    def monitor_output():
-        try:
-            for line in process.stdout:
-                # Écrire dans le fichier si toujours ouvert
-                try:
-                    log_handle.write(line)
-                    log_handle.flush()
-                except (ValueError, OSError):
-                    # Le fichier a été fermé, on arrête
-                    break
-                
-                # Filtrer et afficher les lignes importantes
-                line_lower = line.lower()
-                if "running on" in line_lower or "network url" in line_lower:
-                    safe_print(line.strip(), "OK")
-                elif "warning" in line_lower:
-                    safe_print(line.strip(), "WARN")
-                elif "error" in line_lower or "exception" in line_lower:
-                    safe_print(line.strip(), "ERROR")
-                elif "stopping" in line_lower or "shutdown" in line_lower:
-                    safe_print(line.strip(), "INFO")
-        except Exception as e:
-            safe_print(f"Erreur monitoring : {e}", "WARN")
-    
-    monitor_thread = threading.Thread(target=monitor_output, daemon=True)
-    monitor_thread.start()
-    
-    # Attendre que le port soit ouvert
-    safe_print("Attente du serveur...", "INFO")
-    if wait_for_port(port, timeout=40):
-        url = f"http://localhost:{port}"
-        print("\n" + "="*60)
-        safe_print("APPLICATION PRETE", "OK")
-        print("="*60)
-        print(f"\n  URL locale    : {url}")
-        try:
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            print(f"  URL reseau    : http://{local_ip}:{port}")
-        except:
-            pass
-        print(f"  Logs          : {log_file}")
-        print("  Etat          : En cours d'execution")
-        
-        print("\n" + "-"*60)
-        print("  Actions disponibles :")
-        print("  - Minimiser cette fenetre (l'app continue)")
-        print("  - Ctrl+C pour arreter proprement")
-        print("  - Fermer pour forcer l'arret")
-        print("-"*60 + "\n")
-        
-        try:
-            webbrowser.open(url)
-            safe_print("Navigateur ouvert automatiquement", "OK")
-        except Exception as e:
-            safe_print(f"Impossible d'ouvrir le navigateur : {e}", "WARN")
-            safe_print(f"Ouvrez manuellement : {url}", "INFO")
-        
-        # Afficher le statut périodiquement
-        def status_monitor():
-            count = 0
-            while True:
-                time.sleep(60)  # Toutes les minutes
-                if process.poll() is None:
-                    count += 1
-                    if count % 5 == 0:  # Toutes les 5 minutes
-                        safe_print(f"Application active depuis {count} minute(s)", "OK")
-                else:
-                    break
-        
-        status_thread = threading.Thread(target=status_monitor, daemon=True)
-        status_thread.start()
-        
-    else:
-        safe_print("Le serveur n'a pas demarre a temps", "ERROR")
-        safe_print(f"Consultez les logs : {log_file}", "INFO")
-        log_handle.close()
-        input("Appuyez sur Entree pour fermer...")
-        sys.exit(1)
-    
-    # Attendre la fin
+    # Lancer le web launcher
     try:
-        process.wait()
-        safe_print("Application fermee normalement", "INFO")
+        subprocess.run(cmd, cwd=get_base_path())
+        safe_print("Launcher ferme normalement", "INFO")
     except KeyboardInterrupt:
         print("\n" + "-"*60)
         safe_print("Arret demande par l'utilisateur...", "WARN")
-        process.terminate()
-        time.sleep(2)
-        if process.poll() is None:
-            process.kill()
         safe_print("Application arretee", "OK")
         print("-"*60)
-    finally:
-        # Fermer le fichier log proprement
-        try:
-            log_handle.close()
-        except:
-            pass
 
 
 # ==============================
@@ -495,13 +384,16 @@ def main():
     base_path = get_base_path()
     setup_marker = Path(base_path) / "setup.done"
     
-    # Version LITE : Lance main.py directement (pas de web launcher)
-    app_path = Path(base_path) / "main.py"
+    # Version LITE : Lance web_launcher.py (comme Little) 
+    launcher_path = Path(base_path) / "web_launcher.py"
+    if not launcher_path.exists():
+        # Fallback vers main.py si web_launcher manquant
+        launcher_path = Path(base_path) / "main.py"
     
-    # Vérifier que l'application existe
-    if not app_path.exists():
-        safe_print(f"ERREUR : Fichier main.py introuvable dans {base_path}", "ERROR")
-        safe_print("Version LITE requiert main.py pour fonctionner", "INFO")
+    # Vérifier que le launcher existe
+    if not launcher_path.exists():
+        safe_print(f"ERREUR : Fichier web_launcher.py introuvable dans {base_path}", "ERROR")
+        safe_print("Version LITE requiert web_launcher.py pour fonctionner", "INFO")
         safe_print("Contenu du repertoire :", "INFO")
         try:
             for item in os.listdir(base_path):
@@ -531,10 +423,10 @@ def main():
         input("Appuyez sur Entree pour fermer...")
         sys.exit(1)
 
-    # Étape 3 : Lancement Streamlit
-    port = find_free_port(8501)
+    # Étape 3 : Lancement du web launcher
+    port = find_free_port(5555)
     safe_print(f"Port libre trouve : {port}", "OK")
-    launch_streamlit_lite(str(app_path), port)
+    launch_streamlit_lite(str(launcher_path), port)
 
 
 # ==============================
