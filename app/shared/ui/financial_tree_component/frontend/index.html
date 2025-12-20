@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Tree - D3.js</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="tree.css">
+</head>
+
+<body>
+    <div id="tree-container"></div>
+
+    <script>
+        // Streamlit bridge
+        function sendMessageToStreamlitClient(type, data) {
+            var outData = Object.assign({
+                isStreamlitMessage: true,
+                type: type,
+            }, data);
+            window.parent.postMessage(outData, "*");
+        }
+
+        const Streamlit = {
+            setComponentValue: (value) => {
+                sendMessageToStreamlitClient("streamlit:setComponentValue", { value: value });
+            },
+            setFrameHeight: (height) => {
+                if (!height) {
+                    height = document.body.scrollHeight;
+                }
+                sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: height });
+            },
+            setComponentReady: () => {
+                sendMessageToStreamlitClient("streamlit:componentReady", { apiVersion: 1 });
+            },
+            RENDER_EVENT: "streamlit:render",
+            events: {
+                addEventListener: function (event, callback) {
+                    window.addEventListener("message", function (evt) {
+                        if (evt.data.type === event) {
+                            const renderEvent = new CustomEvent(event, {
+                                detail: {
+                                    args: evt.data.args,
+                                    disabled: evt.data.disabled,
+                                    theme: evt.data.theme
+                                }
+                            });
+                            callback(renderEvent);
+                        }
+                    });
+                }
+            }
+        };
+
+        window.Streamlit = Streamlit;
+        console.log('[STREAMLIT] Bridge initialized');
+    </script>
+
+    <script src="sankey_flow.js"></script>
+</body>
+
+</html>

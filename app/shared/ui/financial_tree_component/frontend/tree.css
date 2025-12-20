@@ -1,0 +1,248 @@
+/**
+ * D3 Interactive Financial Tree - Styles
+ */
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#tree-container {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    overflow: auto;
+}
+
+/* SVG Nodes */
+.node {
+    cursor: move;
+    transition: transform 0.2s ease;
+}
+
+.node:hover {
+    filter: brightness(1.2);
+}
+
+.node rect {
+    transition: all 0.2s ease;
+}
+
+.node.dragging {
+    opacity: 0.7;
+}
+
+.node.dragging rect {
+    stroke: #f59e0b;
+    stroke-width: 4;
+    filter: drop-shadow(0 8px 16px rgba(245, 158, 11, 0.5));
+}
+
+/* Links (branches) */
+.link {
+    fill: none;
+    stroke: #475569;
+    stroke-width: 2;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.link:hover {
+    stroke: #64748b;
+    opacity: 0.9;
+    stroke-width: 3;
+}
+
+/* Delete zone */
+.delete-zone {
+    transition: all 0.3s ease;
+}
+
+.delete-zone.active rect {
+    opacity: 0.9 !important;
+    fill: #f87171;
+    stroke-width: 5 !important;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+/* Delete zone text */
+.delete-zone text {
+    font-size: 18px;
+    font-weight: bold;
+    fill: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Pulse animation for delete zone */
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+/* Node labels and text */
+.node text {
+    fill: #ffffff;
+    pointer-events: none;
+    user-select: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Scrollbar styling */
+#tree-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+#tree-container::-webkit-scrollbar-track {
+    background: #1e293b;
+}
+
+#tree-container::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 6px;
+}
+
+#tree-container::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background-color: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    pointer-events: none;
+    font-size: 13px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.tooltip.visible {
+    opacity: 1;
+}
+
+.tooltip-label {
+    font-weight: 600;
+    color: #10b981;
+    margin-bottom: 4px;
+}
+
+.tooltip-amount {
+    color: #e2e8f0;
+    font-family: 'Courier New', monospace;
+}
+
+.tooltip-percentage {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* Controls */
+.controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+}
+
+.control-btn {
+    background-color: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.control-btn:hover {
+    background-color: rgba(51, 65, 85, 0.9);
+    border-color: rgba(148, 163, 184, 0.5);
+    transform: translateY(-1px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #94a3b8;
+    backdrop-filter: blur(10px);
+    max-width: 60%;
+}
+
+.breadcrumb-text {
+    color: #10b981;
+    font-weight: 500;
+}
+
+/* Animation classes */
+.node-enter {
+    opacity: 0;
+    transform: scale(0);
+}
+
+.node-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.5s, transform 0.5s;
+}
+
+.node-exit {
+    opacity: 1;
+}
+
+.node-exit-active {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+/* Loading state */
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #10b981;
+    font-size: 18px;
+    font-weight: 500;
+}

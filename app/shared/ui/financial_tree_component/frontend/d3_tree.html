@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        #tree-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node rect {
+            cursor: pointer;
+            stroke: #1e293b;
+            stroke-width: 2px;
+        }
+
+        .node.selected rect {
+            stroke: #9333ea;
+            stroke-width: 4px;
+        }
+
+        .node text {
+            font-size: 12px;
+            fill: white;
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .link {
+            fill: none;
+            stroke: #475569;
+            stroke-width: 2px;
+        }
+
+        .node:hover rect {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="tree-container"></div>
+
+    <!-- D3.js v7 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <script src="./d3_tree.js"></script>
+</body>
+
+</html>

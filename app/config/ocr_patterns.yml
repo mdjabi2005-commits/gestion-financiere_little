@@ -1,0 +1,110 @@
+# Configuration des patterns OCR
+# Ce fichier contient tous les patterns utilisés pour l'extraction OCR
+# Modifiez ce fichier pour ajouter de nouveaux patterns sans toucher au code
+
+# === PATTERNS POUR MONTANTS TOTAUX ===
+# Patterns extraits des tickets réels + variantes OCR
+amount_patterns:
+  # Patterns fréquents (avec variantes OCR)
+  - pattern: "MONTANT\\s*(R[EÉ][EÉ][LI]|REEL|KEEL)"
+    priority: 1
+    enabled: true
+    description: "Montant réel (REEL/KEEL variantes OCR)"
+  
+  - pattern: "TOTAL\\s*\\d+\\s*ARTICL"
+    priority: 2
+    enabled: true
+    description: "Total X articles (Leclerc)"
+  
+  - pattern: "MONT\\s*ANT\\s*:"
+    priority: 3
+    enabled: true
+    description: "MONTANT avec espace (OCR error)"
+  
+  - pattern: "MONTANT\\s*:"
+    priority: 4
+    enabled: true
+    description: "Montant :"
+  
+  - pattern: "TOTAL\\s*T[IT]C\\s*[=:]?"
+    priority: 5
+    enabled: true
+    description: "Total TTC/TIC avec = ou :"
+  
+  - pattern: "MONTANT"
+    priority: 6
+    enabled: true
+    description: "Montant simple"
+  
+  - pattern: "TOTAL"
+    priority: 7
+    enabled: true
+    description: "Total générique"
+  
+  # Patterns standards
+  - pattern: "NET\\s*A\\s*PAYER"
+    priority: 8
+    enabled: true
+    description: "Net à payer"
+  
+  - pattern: "TOTAL\\s*(A\\s*PAYER)?"
+    priority: 9
+    enabled: true
+    description: "Total à payer"
+
+
+# === PATTERNS POUR PAIEMENTS ===
+payment_patterns:
+  - "CB"
+  - "CARTE"
+  - "ESPECES"
+  - "WEB"
+  - "PAYPAL"
+  - "CHEQUE"
+  - "PAIEMENT"
+  - "PATEMENT"  # Variante OCR
+  - "BANCAIRE"
+  - "DEBIT"
+  - "CREDIT"
+
+
+# === PATTERNS POUR DATES ===
+date_patterns:
+  - pattern: "\\b\\d{1,2}[./\\-]\\d{1,2}[./\\-]\\d{2,4}\\b"
+    format: "%d/%m/%Y"
+    description: "Format JJ/MM/AAAA"
+  
+  - pattern: "\\b\\d{1,2}\\s*(janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\\.?\\s*\\d{2,4}\\b"
+    format: "day_month_year"
+    description: "Format JJ mois AAAA (français)"
+
+
+# === MAGASINS CONNUS ===
+# Utilisés pour la catégorisation automatique
+known_merchants:
+  - "CARREFOUR"
+  - "AUCHAN"
+  - "LECLERC"
+  - "E.LECLERC"
+  - "LIDL"
+  - "INTERMARCHÉ"
+  - "INTERMARCHE"
+  - "CASINO"
+  - "MONOPRIX"
+  - "FRANPRIX"
+  - "SUPER U"
+  - "HYPER U"
+  - "CORA"
+  - "SIMPLY"
+
+
+# === CONFIGURATION ===
+config:
+  # Nombre maximum de patterns à tester par ticket
+  max_patterns_to_test: 20
+  
+  # Seuil de confiance minimum (0-100)
+  confidence_threshold: 70
+  
+  # Activer la détection de nouveaux patterns
+  auto_detect_patterns: true

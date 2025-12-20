@@ -1,0 +1,176 @@
+/* 🎨 Variables de design moderne */
+:root {
+    --primary-color: #10b981;
+    --secondary-color: #3b82f6;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --background-light: #f9fafb;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 📱 Container principal responsive */
+.main .block-container {
+    padding: 1rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 📊 DataFrames modernes */
+div[data-testid="stDataFrame"] {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+}
+
+div[data-testid="stDataFrame"] div[role="gridcell"] {
+    font-size: 15px !important;
+    padding: 10px !important;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* 🎯 Métriques améliorées */
+div[data-testid="stMetricValue"] {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+div[data-testid="stMetricDelta"] {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* 🔘 Boutons modernes */
+.stButton > button {
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: var(--box-shadow);
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #059669 100%);
+}
+
+.stButton > button[kind="secondary"] {
+    background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
+}
+
+/* 📝 Inputs et selectbox */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stSelectbox > div > div > select {
+    border-radius: var(--border-radius);
+    border: 2px solid #e5e7eb;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus,
+.stSelectbox > div > div > select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* 🎨 Expanders modernes */
+.streamlit-expanderHeader {
+    border-radius: var(--border-radius);
+    background-color: var(--background-light);
+    font-weight: 600;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+}
+
+/* 📊 Graphiques */
+.stPlotlyChart, .stPyplot {
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 1rem;
+    background-color: white;
+}
+
+/* 💬 Messages (success, error, warning, info) */
+.stSuccess, .stError, .stWarning, .stInfo {
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    border-left: 4px solid;
+}
+
+.stSuccess {
+    border-left-color: var(--primary-color);
+    background-color: #d1fae5;
+}
+
+.stError {
+    border-left-color: var(--danger-color);
+    background-color: #fee2e2;
+}
+
+.stWarning {
+    border-left-color: var(--warning-color);
+    background-color: #fef3c7;
+}
+
+.stInfo {
+    border-left-color: var(--secondary-color);
+    background-color: #dbeafe;
+}
+
+/* 🎯 Sidebar moderne */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+}
+
+section[data-testid="stSidebar"] .stRadio > label {
+    color: white !important;
+    font-weight: 600;
+}
+
+/* ✨ Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stButton, .stMetric, div[data-testid="stDataFrame"] {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* 🎨 Scrollbar personnalisée */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #059669;
+}

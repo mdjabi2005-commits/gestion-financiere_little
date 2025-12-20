@@ -1,0 +1,10 @@
+# Patterns appris automatiquement par le système
+# Ce fichier est généré automatiquement quand les utilisateurs corrigent des erreurs OCR
+
+learned_patterns: []
+# Les patterns seront ajoutés ici au format:
+# - pattern: "NOUVEAU\\s*PATTERN"
+#   source: "ticket_123.jpg"
+#   learned_date: "2024-12-19"
+#   user_confirmed: true
+#   confidence: 0.8

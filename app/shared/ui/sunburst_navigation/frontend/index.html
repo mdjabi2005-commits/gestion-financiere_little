@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Tree - Plotly</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #plotly-container {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="plotly-container"></div>
+
+    <script>
+        // ----------------------------------------------------
+        // DÉBUT DU CORRECTIF : LE PONT STREAMLIT
+        // ----------------------------------------------------
+        function sendMessageToStreamlitClient(type, data) {
+            var outData = Object.assign({
+                isStreamlitMessage: true,
+                type: type,
+            }, data);
+            window.parent.postMessage(outData, "*");
+        }
+
+        const Streamlit = {
+            setComponentValue: (value) => {
+                sendMessageToStreamlitClient("streamlit:setComponentValue", { value: value });
+            },
+            setFrameHeight: (height) => {
+                if (!height) {
+                    height = document.body.scrollHeight;
+                }
+                sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: height });
+            },
+            setComponentReady: () => {
+                sendMessageToStreamlitClient("streamlit:componentReady", { apiVersion: 1 });
+            },
+            RENDER_EVENT: "streamlit:render",
+            events: {
+                addEventListener: function (event, callback) {
+                    window.addEventListener("message", function (evt) {
+                        if (evt.data.type === event) {
+                            // Create a proper event object with detail containing args
+                            const renderEvent = new CustomEvent(event, {
+                                detail: {
+                                    args: evt.data.args,
+                                    disabled: evt.data.disabled,
+                                    theme: evt.data.theme
+                                }
+                            });
+                            callback(renderEvent);
+                        }
+                    });
+                }
+            }
+        };
+
+        // Expose Streamlit globally
+        window.Streamlit = Streamlit;
+
+        console.log('[STREAMLIT] Bridge initialized');
+        // ----------------------------------------------------
+        // FIN DU CORRECTIF
+        // ----------------------------------------------------
+    </script>
+
+    <script src="plotly_tree.js"></script>
+</body>
+
+</html>
