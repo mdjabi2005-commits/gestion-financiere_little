@@ -267,7 +267,7 @@ def check_and_install_deps():
         return False
     
     
-    # Modules à vérifier (sans platform et threading qui sont natifs)
+    # Modules à vérifier pour version LITE (sans Flask qui est pour le web launcher)
     packages = [
         ("streamlit", "streamlit"),
         ("pandas", "pandas"),
@@ -279,7 +279,6 @@ def check_and_install_deps():
         ("matplotlib", "matplotlib"),
         ("plotly", "plotly"),
         ("regex", "regex"),
-        ("flask", "flask"),
         ("requests", "requests")
     ]
     

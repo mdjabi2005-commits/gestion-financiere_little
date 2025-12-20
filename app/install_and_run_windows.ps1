@@ -122,7 +122,7 @@ if (-not $pythonFound) {
             Remove-Item $pythonInstaller -ErrorAction SilentlyContinue
             
             # Rafraichir le PATH
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
             
             # Attendre que Python soit disponible
             Start-Sleep -Seconds 3
@@ -193,7 +193,6 @@ $packages = @(
     "matplotlib",
     "plotly",
     "regex",
-    "flask",
     "requests"
 )
 
@@ -252,7 +251,6 @@ try:
     import matplotlib
     import plotly
     import regex
-    import flask
     import requests
     print("OK")
 except Exception as e:
