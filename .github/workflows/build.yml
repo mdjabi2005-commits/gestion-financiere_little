@@ -521,12 +521,10 @@ jobs:
           Write-Host ""
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "📦 Copie des fichiers V4"
+          Write-Host "📦 Vérification des artefacts compilés"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item app/main.py dist/ -ErrorAction SilentlyContinue
-          Copy-Item app/install_and_run_windows.ps1 dist/ -ErrorAction SilentlyContinue
 
           if (Test-Path "tesseract") {
             Copy-Item -Recurse -Force tesseract dist/
@@ -577,10 +575,11 @@ jobs:
                 cp -r ../tesseract ./
               fi
               
+              # ZIP contient : exe + tesseract (modules Python déjà dans l'exe)
               7z a -tzip GestionFinanciereLittle-Windows-Portable.zip \
-                GestionFinanciereLittle_Portable.exe *.py tesseract/
+                GestionFinanciereLittle_Portable.exe tesseract/
               
-              echo "✅ Package Portable créé avec Tesseract embarqué"
+              echo "✅ Package Portable créé (exe + tesseract)"
             else
               echo "❌ Erreur : GestionFinanciereLittle_Portable.exe introuvable"
             fi
@@ -603,10 +602,11 @@ jobs:
                 echo "✅ Dossier Tesseract embarqué ajouté dans la version Lite"
               fi
               
+              # ZIP contient : exe + ps1 + tesseract (modules Python déjà dans l'exe)
               7z a -tzip GestionFinanciereLittle-Windows-Lite.zip \
-                GestionFinanciereLittle_Lite.exe *.py *.ps1 tesseract/
+                GestionFinanciereLittle_Lite.exe *.ps1 tesseract/
               
-              echo "✅ Package Lite créé (Tesseract embarqué + installateur)"
+              echo "✅ Package Lite créé (exe + installateur + tesseract)"
             else
               echo "❌ Erreur : GestionFinanciereLittle_Lite.exe introuvable"
             fi
