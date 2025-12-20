@@ -372,9 +372,6 @@ class ControlCenterGUI:
                 "--server.port=8501",
                 "--server.headless=true"
             ])
-                "--server.port=8501",
-                "--server.headless=true"
-            ])
             
             self.app_status_label.config(text="● Application en cours d'exécution", fg="green")
             self.launch_btn.config(state='disabled')
