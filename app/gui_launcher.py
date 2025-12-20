@@ -361,17 +361,17 @@ class ControlCenterGUI:
         try:
             self.log_message("INFO", "Lancement de l'application Streamlit...")
             
-            # Trouver le vrai fichier de l'app Streamlit
-            app_path = SCRIPT_DIR / "app.py"
-            if not app_path.exists():
-                # Fallback : chercher dans domains/home
-                app_path = SCRIPT_DIR / "domains" / "home" / "app.py"
+            # main.py est le point d'entrée Streamlit
+            main_path = SCRIPT_DIR / "main.py"
             
-            if not app_path.exists():
-                raise FileNotFoundError("app.py introuvable")
+            if not main_path.exists():
+                raise FileNotFoundError(f"main.py introuvable dans {SCRIPT_DIR}")
             
             self.app_process = subprocess.Popen([
-                sys.executable, "-m", "streamlit", "run", str(app_path),
+                sys.executable, "-m", "streamlit", "run", str(main_path),
+                "--server.port=8501",
+                "--server.headless=true"
+            ])
                 "--server.port=8501",
                 "--server.headless=true"
             ])
