@@ -496,15 +496,13 @@ def main():
     base_path = get_base_path()
     setup_marker = Path(base_path) / "setup.done"
     
-    # Chercher le launcher V4
-    app_path = Path(base_path) / "lancer_gestiolittle.py"
-    if not app_path.exists():
-        app_path = Path(base_path) / "main.py"
+    # Version LITE : Lance main.py directement (pas de web launcher)
+    app_path = Path(base_path) / "main.py"
     
     # Vérifier que l'application existe
     if not app_path.exists():
-        safe_print(f"ERREUR : Fichier de lancement introuvable dans {base_path}", "ERROR")
-        safe_print("Fichiers attendus: lancer_gestiolittle.py ou main.py", "INFO")
+        safe_print(f"ERREUR : Fichier main.py introuvable dans {base_path}", "ERROR")
+        safe_print("Version LITE requiert main.py pour fonctionner", "INFO")
         safe_print("Contenu du repertoire :", "INFO")
         try:
             for item in os.listdir(base_path):
