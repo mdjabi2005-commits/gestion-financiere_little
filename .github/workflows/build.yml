@@ -440,7 +440,6 @@ jobs:
             --collect-all cv2 `
             --collect-all numpy `
             --collect-all plotly `
-            --collect-all flask `
             --hidden-import config `
             --hidden-import config.database_config `
             --hidden-import config.logging_config `
@@ -470,7 +469,6 @@ jobs:
             --hidden-import cv2 `
             --hidden-import plotly `
             --hidden-import regex `
-            --hidden-import flask `
             --hidden-import requests `
             --hidden-import python-dateutil
 

@@ -270,7 +270,7 @@ def check_and_install_deps():
         return False
     
     
-    # Modules à vérifier pour version LITE (sans Flask qui est pour le web launcher)
+    # Modules à vérifier pour version LITE (Tkinter built-in, pas Flask)
     packages = [
         ("streamlit", "streamlit"),
         ("pandas", "pandas"),
