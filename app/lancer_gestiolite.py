@@ -277,7 +277,9 @@ def check_and_install_deps():
         ("cv2", "opencv-python-headless"),
         ("numpy", "numpy"),
         ("matplotlib", "matplotlib"),
-        ("pdfminer.six", "pdfminer.six"),
+        ("plotly", "plotly"),
+        ("regex", "regex"),
+        ("flask", "flask"),
         ("requests", "requests")
     ]
     
@@ -493,11 +495,16 @@ def main():
     
     base_path = get_base_path()
     setup_marker = Path(base_path) / "setup.done"
-    app_path = Path(base_path) / "gestiolittle.py"
+    
+    # Chercher le launcher V4
+    app_path = Path(base_path) / "lancer_gestiolittle.py"
+    if not app_path.exists():
+        app_path = Path(base_path) / "main.py"
     
     # Vérifier que l'application existe
     if not app_path.exists():
-        safe_print(f"ERREUR : Fichier gestiolittle.py introuvable dans {base_path}", "ERROR")
+        safe_print(f"ERREUR : Fichier de lancement introuvable dans {base_path}", "ERROR")
+        safe_print("Fichiers attendus: lancer_gestiolittle.py ou main.py", "INFO")
         safe_print("Contenu du repertoire :", "INFO")
         try:
             for item in os.listdir(base_path):
