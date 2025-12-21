@@ -425,6 +425,15 @@ jobs:
           Write-Host ""
           Write-Host "📦 Compilation launcher Gestio V4..."
           
+          # Nettoyage COMPLET avant compilation
+          Write-Host "🧹 Nettoyage des anciens builds..."
+          Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
+          Remove-Item -Force *.spec -ErrorAction SilentlyContinue
+          Write-Host "✅ Nettoyage terminé"
+          
+          Write-Host ""
+          Write-Host "🔨 Compilation..."
+          
           # Compilation launcher simple
           & pyinstaller `
             "app/launch.py" `
