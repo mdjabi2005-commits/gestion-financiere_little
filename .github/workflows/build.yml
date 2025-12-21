@@ -443,8 +443,8 @@ jobs:
             --windowed `
             --name "GestionFinanciere" `
             --paths "app" `
-            --add-data "app/main.py;main.py" `
-            --add-data "app/gui_launcher.py;gui_launcher.py" `
+            --add-data "app/main.py;." `
+            --add-data "app/gui_launcher.py;." `
             --add-data "app/config;./config" `
             --add-data "app/domains;./domains" `
             --add-data "app/shared;./shared" `

@@ -81,10 +81,38 @@ if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
     # Rafraîchir le PATH
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
     
-    # Attendre que Python soit disponible
-    Start-Sleep -Seconds 3
+    # ATTENDRE QUE PYTHON SOIT VRAIMENT INSTALLÉ
+    Write-Host "Vérification de l'installation..."
+    $maxAttempts = 20
+    $attempt = 0
+    $pythonFound = $false
     
-    Write-Host "[OK] Python installé avec succès"
+    while ($attempt -lt $maxAttempts -and -not $pythonFound) {
+        Start-Sleep -Seconds 2
+        $attempt++
+        
+        try {
+            $version = & python --version 2>&1
+            if ($version -match "Python") {
+                $pythonFound = $true
+                Write-Host "[OK] Python installé avec succès : $version"
+            }
+        }
+        catch {
+            # Continuer à attendre
+        }
+        
+        if (-not $pythonFound -and $attempt -lt $maxAttempts) {
+            Write-Host "Attente de l'installation ($attempt/$maxAttempts)..."
+        }
+    }
+    
+    if (-not $pythonFound) {
+        Write-Host "[ERREUR] Python installé mais non détecté après $maxAttempts tentatives"
+        Write-Host "Veuillez redémarrer votre terminal et relancer l'application"
+        Read-Host "Appuyez sur Entrée pour fermer"
+        exit 1
+    }
 }
 else {
     Write-Host "[ERREUR] Impossible de télécharger Python"
@@ -218,7 +246,7 @@ Write-Host "=========================================="
 Write-Host ""
 Write-Host "Pour lancer l'application :"
 Write-Host ""
-Write-Host " Relancez l'éx
+Write-Host " Relancez l'application"
 Write-Host ""
 Write-Host "=========================================="
 Write-Host ""
