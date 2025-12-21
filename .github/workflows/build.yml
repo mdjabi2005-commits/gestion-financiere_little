@@ -31,7 +31,7 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-            ~\AppData\Local\pip\Cache
+            ~/AppData/Local/pip/Cache
           key: ${{ runner.os }}-pip-${{ hashFiles('app/requirements.txt', 'requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -460,17 +460,7 @@ jobs:
             --exclude-module pip `
             --exclude-module wheel `
             --exclude-module test `
-            --exclude-module unittest `
-            --exclude-module streamlit `
-            --exclude-module pandas `
-            --exclude-module numpy `
-            --exclude-module pytesseract `
-            --exclude-module Pillow `
-            --exclude-module opencv-python-headless `
-            --exclude-module cv2 `
-            --exclude-module pdfminer `
-            --exclude-module pdfminer.six `
-            --exclude-module python-dateutil 
+            --exclude-module unittest 
 
           Write-Host ""
           Write-Host "✅ Compilation terminée"
@@ -571,7 +561,7 @@ jobs:
             cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"  
             if [ -f "dist/run.sh" ]; then
               cp dist/run.sh dist/linux/
-             else
+            else
               echo "⚠️ Script run.sh non trouvé dans dist/, création d'un run.sh simplifié (fallback)"
               echo "#!/bin/bash" > dist/linux/run.sh
               echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
