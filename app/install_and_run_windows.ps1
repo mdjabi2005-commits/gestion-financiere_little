@@ -144,10 +144,11 @@ catch {
     Write-Host "[!] Erreur lors de la mise à jour de pip (peut être ignorée)"
 }
 
-# ETAPE 3 : Installation des dépendances
+# ETAPE 3 : Installation des paquets Python..."
 Write-Host ""
 Write-Host "[3/5] Installation des paquets Python..."
 Write-Host "   (Cela peut prendre 2-5 minutes...)"
+Write-Host ""
 
 $packages = @(
     "streamlit",
@@ -166,19 +167,37 @@ $packages = @(
 # Convertir en string pour la commande
 $packagesStr = $packages -join " "
 
-Write-Host "   Packages : $packagesStr"
+Write-Host "Installation de $($packages.Count) packages..."
+Write-Host ""
 
-try {
-    # Installation avec affichage minimal
-    $installCmd = "& `"$pythonCmd`" -m pip install --upgrade $packagesStr"
-    Invoke-Expression $installCmd
-    Write-Host "[OK] Tous les modules Python sont installes"
+# Installation avec feedback visible
+& $pythonCmd -m pip install $packagesStr --upgrade
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host ""
+    Write-Host "[OK] Tous les paquets installés avec succès"
 }
-catch {
-    Write-Host "[!] Erreur lors de l'installation des modules"
+else {
+    Write-Host ""
+    Write-Host "[ERREUR] Échec de l'installation des paquets (code: $LASTEXITCODE)"
+    Write-Host ""
+    Write-Host "Commande manuelle à essayer :"
+    Write-Host "  python -m pip install $packagesStr"
+    Write-Host ""
+    Read-Host "Appuyez sur Entrée pour continuer quand même"
+    # The original script had a fallback to reinstall without cache.
+    # Re-integrating that fallback here, as it was part of the original logic.
     Write-Host "   Tentative de reinstallation sans cache..."
-    $installCmd = "& `"$pythonCmd`" -m pip install --upgrade --no-cache-dir $packagesStr"
-    Invoke-Expression $installCmd
+    & $pythonCmd -m pip install --upgrade --no-cache-dir $packagesStr
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERREUR] La réinstallation sans cache a également échoué."
+        Write-Host "Veuillez vérifier votre connexion internet ou installer manuellement les paquets."
+        Read-Host "Appuyez sur Entrée pour fermer"
+        exit 1
+    }
+    else {
+        Write-Host "[OK] Réinstallation sans cache réussie."
+    }
 }
 
 # ETAPE 4 : Configuration de Tesseract
