@@ -470,7 +470,6 @@ jobs:
             --exclude-module cv2 `
             --exclude-module pdfminer `
             --exclude-module pdfminer.six `
-            --exclude-module requests `
             --exclude-module python-dateutil 
 
           Write-Host ""
