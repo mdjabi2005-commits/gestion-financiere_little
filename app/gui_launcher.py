@@ -100,11 +100,58 @@ class ControlCenterGUI:
         
         self.create_ui()
         
-        # CRITIQUE : Vérifier Python au démarrage
-        threading.Thread(target=self.check_python_environment, daemon=True).start()
+        # CRITIQUE : Vérifier la configuration au démarrage (UNE SEULE fois)
+        threading.Thread(target=self.check_and_setup, daemon=True).start()
         
         # Vérifier MAJ au démarrage
         threading.Thread(target=self.check_updates_silent, daemon=True).start()
+    
+    def check_and_setup(self):
+        """Vérifie Python + dépendances - UNE console unique si besoin"""
+        try:
+            # Vérifier Python silencieusement
+            result = subprocess.run(
+                ["python", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                python_version = result.stdout.strip()
+                self.log_message("SUCCESS", f"✅ {python_version} détecté")
+                
+                # Vérifier dépendances
+                missing = self.check_dependencies()
+                
+                if missing:
+                    self.log_message("WARNING", f"⚠️ Dépendances manquantes: {', '.join(missing)}")
+                    # Demander confirmation
+                    response = messagebox.askyesno(
+                        "Configuration requise",
+                        f"Modules Python manquants: {', '.join(missing)}\n\n"
+                        "Voulez-vous les installer maintenant ?\n"
+                        "(Une console s'ouvrira pour l'installation)"
+                    )
+                    if response:
+                        self.launch_unified_setup(missing)
+                else:
+                    self.log_message("SUCCESS", "✅ Toutes les dépendances installées")
+                    self.python_ready = True
+            else:
+                raise FileNotFoundError("Python non trouvé")
+                
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            self.log_message("ERROR", "❌ Python non détecté")
+            response = messagebox.askyesno(
+                "Python requis",
+                "Python n'est pas installé sur ce système.\n\n"
+                "Gestio V4 nécessite Python pour fonctionner.\n\n"
+                "Voulez-vous lancer l'installation ?\n"
+                "(Une console s'ouvrira pour l'installation)"
+            )
+            if response:
+                self.launch_unified_setup(need_python=True)
     
     def create_ui(self):
         """Crée l'interface utilisateur"""
@@ -356,171 +403,55 @@ class ControlCenterGUI:
             )
             btn.pack(fill='x', padx=50, pady=5)
     
-    def check_python_environment(self):
-        """Vérifie Python + dépendances au démarrage"""
-        try:
-            # Vérifier Python
-            result = subprocess.run(
-                ["python", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            
-            if result.returncode == 0:
-                python_version = result.stdout.strip()
-                self.log_message("SUCCESS", f"✅ {python_version} détecté")
-                
-                # Vérifier dépendances critiques
-                missing = self.check_dependencies()
-                
-                if missing:
-                    self.log_message("WARNING", f"⚠️ Dépendances manquantes: {', '.join(missing)}")
-                    self.prompt_install_dependencies(missing)
-                else:
-                    self.log_message("SUCCESS", "✅ Toutes les dépendances installées")
-                    self.python_ready = True
-            else:
-                raise FileNotFoundError("Python non trouvé")
-                
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
-            self.log_message("ERROR", "❌ Python non détecté sur ce système")
-            self.prompt_install_python()
-    
-    def check_dependencies(self):
-        """Vérifie les dépendances Python"""
-        required = ['streamlit', 'pandas', 'requests']
-        missing = []
+    def launch_unified_setup(self, modules=None, need_python=False):
+        """Lance UN SEUL script PowerShell pour toute la configuration"""
+        self.log_message("INFO", "Création du script de configuration unique...")
         
-        for module in required:
-            try:
-                result = subprocess.run(
-                    ["python", "-c", f"import {module}"],
-                    capture_output=True,
-                    timeout=3
-                )
-                if result.returncode != 0:
-                    missing.append(module)
-            except:
-                missing.append(module)
+        setup_script = EXE_DIR / "gestio_setup.ps1"
         
-        return missing
-    
-    def prompt_install_python(self):
-        """Propose d'installer Python via le script PowerShell"""
-        response = messagebox.askyesno(
-            "Python requis",
-            "Python n'est pas installé sur ce système.\n\n"
-            "Gestio V4 nécessite Python pour fonctionner.\n\n"
-            "Voulez-vous lancer l'installateur automatique ?"
-        )
-        
-        if response:
-            self.run_installer()
-        else:
-            self.log_message("INFO", "Installation Python annulée par l'utilisateur")
-    
-    def prompt_install_dependencies(self, missing):
-        """Propose d'installer les dépendances manquantes"""
-        response = messagebox.askyesno(
-            "Dépendances manquantes",
-            f"Modules manquants: {', '.join(missing)}\n\n"
-            "Voulez-vous les installer automatiquement ?"
-        )
-        
-        if response:
-            self.install_dependencies(missing)
-    
-    def install_dependencies(self, modules):
-        """Installe les dépendances via un script PowerShell unifié"""
-        self.log_message("INFO", "Création du script d'installation...")
-        
-        # Créer un script PowerShell temporaire
-        setup_script = EXE_DIR / "setup_dependencies.ps1"
-        
-        script_content = f"""# Gestio V4 - Installation des dépendances
+        # Script PowerShell COMPLET et UNIQUE
+        if need_python:
+            # Cas 1 : Python manquant
+            script_content = """# Gestio V4 - Installation Complète
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "  🚀 Gestio V4 - Configuration Automatique" -ForegroundColor Cyan
+Write-Host "  🚀 Gestio V4 - Installation Complète" -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📋 CE QUI VA SE PASSER :" -ForegroundColor Yellow
-Write-Host "   1. Vérification de Python" -ForegroundColor White
-Write-Host "   2. Installation des modules nécessaires" -ForegroundColor White
-Write-Host "   3. Vérification finale" -ForegroundColor White
+Write-Host "❌ Python n'est pas installé sur ce système" -ForegroundColor Red
+Write-Host ""
+Write-Host "🔄 Lancement de l'installateur complet..." -ForegroundColor Yellow
+Start-Sleep -Seconds 2
+
+$installerPath = Join-Path $PSScriptRoot "install_and_run_windows.ps1"
+
+if (Test-Path $installerPath) {
+    Write-Host "✅ Installateur trouvé" -ForegroundColor Green
+    Write-Host ""
+    & $installerPath
+} else {
+    Write-Host "❌ Installateur introuvable : $installerPath" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Téléchargez le package complet depuis GitHub" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Appuyez sur une touche pour quitter..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+"""
+        else:
+            # Cas 2 : Juste installer des dépendances
+            modules_list = ", ".join([f'"{m}"' for m in modules])
+            script_content = f"""# Gestio V4 - Installation Dépendances
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "  � Gestio V4 - Installation Dépendances" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📦 Modules à installer : {', '.join(modules)}" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "⏱️  Durée estimée : 2-3 minutes" -ForegroundColor Gray
 Write-Host ""
 Start-Sleep -Seconds 2
 
-# ═══════════════════════════════════════════════════════════
-# ÉTAPE 1 : Vérification de Python
-# ═══════════════════════════════════════════════════════════
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "🔍 ÉTAPE 1/3 : Vérification de Python" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host ""
-
-try {{
-    $pythonVersion = python --version 2>&1
-    if ($LASTEXITCODE -eq 0) {{
-        Write-Host "✅ Python détecté : $pythonVersion" -ForegroundColor Green
-    }} else {{
-        throw "Python non trouvé"
-    }}
-}} catch {{
-    Write-Host "❌ Python n'est pas installé sur ce système" -ForegroundColor Red
-    Write-Host "" 
-    Write-Host "🔄 Lancement automatique de l'installateur Python..." -ForegroundColor Yellow
-    Write-Host ""
-    Start-Sleep -Seconds 2
-    
-    # Chercher l'installateur
-    $installerPath = Join-Path $PSScriptRoot "install_and_run_windows.ps1"
-    
-    if (Test-Path $installerPath) {{
-        Write-Host "✅ Installateur détecté : $installerPath" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "📦 Lancement de l'installation complète..." -ForegroundColor Cyan
-        Write-Host "   (Cette fenêtre va se fermer, suivez les instructions dans la nouvelle fenêtre)" -ForegroundColor Gray
-        Write-Host ""
-        Start-Sleep -Seconds 3
-        
-        # Lancer l'installateur
-        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$installerPath`""
-        exit 0
-    }} else {{
-        Write-Host "❌ ERREUR : Installateur introuvable" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "📂 Emplacement recherché : $installerPath" -ForegroundColor Gray
-        Write-Host ""
-        Write-Host "💡 SOLUTION :" -ForegroundColor Yellow
-        Write-Host "   1. Téléchargez le package complet depuis GitHub" -ForegroundColor White
-        Write-Host "   2. Assurez-vous que install_and_run_windows.ps1 est présent" -ForegroundColor White
-        Write-Host ""
-        Write-Host "Appuyez sur une touche pour quitter..." -ForegroundColor Gray
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        exit 1
-    }}
-}}
-
-Write-Host ""
-Start-Sleep -Seconds 1
-
-# ═══════════════════════════════════════════════════════════
-# ÉTAPE 2 : Installation des modules
-# ═══════════════════════════════════════════════════════════
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "📦 ÉTAPE 2/3 : Installation des modules" -ForegroundColor Cyan
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Les modules suivants vont être installés :" -ForegroundColor White
-$modules = @({", ".join([f'"{m}"' for m in modules])})
-foreach ($mod in $modules) {{
-    Write-Host "   • $mod" -ForegroundColor Gray
-}}
-Write-Host ""
-Start-Sleep -Seconds 1
-
+$modules = @({modules_list})
 $installed = 0
 $failed = 0
 
@@ -541,37 +472,29 @@ foreach ($module in $modules) {{
     Write-Host ""
 }}
 
-# ═══════════════════════════════════════════════════════════
-# ÉTAPE 3 : Vérification finale
-# ═══════════════════════════════════════════════════════════
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "🔍 ÉTAPE 3/3 : Vérification finale" -ForegroundColor Cyan
+Write-Host "� RÉSULTAT FINAL" -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📊 RÉSULTAT :" -ForegroundColor Yellow
-Write-Host "   ✅ Modules installés : $installed" -ForegroundColor Green
+Write-Host "   ✅ Installés : $installed" -ForegroundColor Green
 if ($failed -gt 0) {{
-    Write-Host "   ❌ Modules échoués   : $failed" -ForegroundColor Red
+    Write-Host "   ❌ Échoués   : $failed" -ForegroundColor Red
 }}
 Write-Host ""
 
 if ($failed -eq 0) {{
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
-    Write-Host "  ✅ INSTALLATION TERMINÉE AVEC SUCCÈS !" -ForegroundColor Green
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+    Write-Host "✅ Installation terminée avec succès !" -ForegroundColor Green
     Write-Host ""
-    Write-Host "🔄 Vous pouvez maintenant relancer Gestio V4." -ForegroundColor Yellow
+    Write-Host "🔄 Relancez Gestio V4 pour utiliser l'application" -ForegroundColor Yellow
 }} else {{
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
-    Write-Host "  ⚠️  INSTALLATION TERMINÉE AVEC DES ERREURS" -ForegroundColor Red
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
+    Write-Host "⚠️  Installation terminée avec erreurs" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "💡 Essayez de réinstaller manuellement :" -ForegroundColor Yellow
-    Write-Host "   python -m pip install streamlit pandas requests" -ForegroundColor White
+    Write-Host "💡 Commande manuelle :" -ForegroundColor White
+    Write-Host "   python -m pip install {' '.join(modules)}" -ForegroundColor Gray
 }}
 
 Write-Host ""
-Write-Host "Appuyez sur une touche pour fermer cette fenêtre..." -ForegroundColor Gray
+Write-Host "Appuyez sur une touche pour fermer..." -ForegroundColor Gray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 """
         
@@ -582,7 +505,7 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             
             self.log_message("INFO", "Lancement de l'installation...")
             
-            # Lancer dans une nouvelle console
+            # Lancer UNE SEULE console PowerShell
             subprocess.Popen(
                 ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(setup_script)],
                 creationflags=subprocess.CREATE_NEW_CONSOLE
@@ -590,51 +513,16 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             
             messagebox.showinfo(
                 "Installation en cours",
-                "L'installation des dépendances a démarré.\n\n"
-                "Suivez la progression dans la fenêtre PowerShell.\n\n"
-                "Relancez Gestio V4 une fois l'installation terminée."
+                "L'installation a démarré dans une console PowerShell.\n\n"
+                "Suivez les instructions et relancez Gestio V4 après."
             )
             
             # Fermer le Control Center
             self.root.quit()
             
         except Exception as e:
-            self.log_message("ERROR", f"❌ Erreur création script: {str(e)}")
-            messagebox.showerror("Erreur", f"Impossible de créer le script d'installation:\n{str(e)}")
-    
-    def run_installer(self):
-        """Lance le script PowerShell d'installation"""
-        installer_path = EXE_DIR / "install_and_run_windows.ps1"
-        
-        if not installer_path.exists():
-            self.log_message("ERROR", "❌ Installateur introuvable")
-            messagebox.showerror(
-                "Erreur",
-                "Le script d'installation est introuvable.\n\n"
-                "Veuillez télécharger le package complet depuis GitHub."
-            )
-            return
-        
-        self.log_message("INFO", "Lancement de l'installateur PowerShell...")
-        
-        try:
-            subprocess.Popen(
-                ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(installer_path)],
-                creationflags=subprocess.CREATE_NEW_CONSOLE
-            )
-            
-            messagebox.showinfo(
-                "Installateur lancé",
-                "Le script d'installation Python a été lancé.\n\n"
-                "Suivez les instructions dans la fenêtre PowerShell.\n\n"
-                "Relancez Gestio V4 après l'installation."
-            )
-            
-            # Fermer le Control Center
-            self.root.quit()
-            
-        except Exception as e:
-            self.log_message("ERROR", f"❌ Impossible de lancer l'installateur: {str(e)}")
+            self.log_message("ERROR", f"❌ Erreur : {str(e)}")
+            messagebox.showerror("Erreur", f"Impossible de lancer l'installation:\n{str(e)}")
     
     def launch_app(self):
         """Lance l'application Streamlit"""
