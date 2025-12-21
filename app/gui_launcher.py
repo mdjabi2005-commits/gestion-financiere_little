@@ -1023,7 +1023,7 @@ if ($pythonOk) {
     Write-Host "📌 Étape 2/2 : Vérification dépendances" -ForegroundColor Cyan
     Write-Host ""
     
-    $modules = @("streamlit", "pandas", "requests")
+    $modules = @("streamlit", "pandas", "requests", "plotly", "numpy", "pytesseract", "PIL", "cv2", "pdfminer", "dateutil", "regex")
     $missing = @()
     
     foreach ($module in $modules) {
@@ -1122,14 +1122,32 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
 def main():
     """Point d'entrée principal"""
-    # 1. VÉRIFICATION D'ABORD (bloquant)
-    print("Lancement de la vérification de l'environnement...")
-    if not run_verification_console():
-        print("Vérification annulée ou échouée")
-        return
+    # Vérifier flag premier lancement
+    flag_file = Path.home() / ".gestio_v4_setup_done"
+    is_first_run = not flag_file.exists()
     
-    # 2. PUIS GUI TKINTER
+    # 1. VÉRIFICATION SEULEMENT AU PREMIER LANCEMENT
+    if is_first_run:
+        print("🚀 Premier lancement - Vérification de l'environnement...")
+        if not run_verification_console():
+            print("❌ Vérification annulée ou échouée")
+            return
+        
+        # Créer le flag
+        flag_file.touch()
+        print("✅ Configuration terminée - Flag créé")
+    else:
+        print("✅ Configuration déjà effectuée - Lancement direct du GUI")
+    
+    # 2. LANCER GUI TKINTER
     root = tk.Tk()
+    
+    # Mettre la fenêtre au premier plan
+    root.lift()
+    root.attributes('-topmost', True)
+    root.after_idle(root.attributes, '-topmost', False)
+    root.focus_force()
+    
     app = ControlCenterGUI(root)
     root.mainloop()
 
