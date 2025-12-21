@@ -620,17 +620,22 @@ if ($pythonOk) {
         $failed = 0
         
         foreach ($module in $missing) {
-            Write-Host "   📦 Installation de $module..." -ForegroundColor White -NoNewline
+            Write-Host "   📦 Installation de $module..." -ForegroundColor White
+            Write-Host ""
             
-            & $pythonCmd -m pip install $module --quiet --disable-pip-version-check 2>&1 | Out-Null
+            # Installation VISIBLE (sans --quiet)
+            & $pythonCmd -m pip install $module --disable-pip-version-check
             
             if ($LASTEXITCODE -eq 0) {
-                Write-Host " ✅" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "      ✅ $module installé !" -ForegroundColor Green
                 $installed++
             } else {
-                Write-Host " ❌" -ForegroundColor Red
+                Write-Host ""
+                Write-Host "      ❌ Échec pour $module (code: $LASTEXITCODE)" -ForegroundColor Red
                 $failed++
             }
+            Write-Host ""
         }
         
         Write-Host ""
