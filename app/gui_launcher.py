@@ -103,10 +103,6 @@ class ControlCenterGUI:
         # CRITIQUE : Vérifier Python au démarrage
         threading.Thread(target=self.check_python_environment, daemon=True).start()
         
-        # Démarrer monitoring logs
-        self.log_monitoring = True
-        threading.Thread(target=self.monitor_logs, daemon=True).start()
-        
         # Vérifier MAJ au démarrage
         threading.Thread(target=self.check_updates_silent, daemon=True).start()
     
@@ -866,17 +862,11 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         threading.Thread(target=self.check_updates_silent, daemon=True).start()
     
     def download_update(self):
-        """Télécharge et installe la mise à jour"""
-        if not hasattr(self, 'update_data'):
-            return
-        
-        # TO DO: Implémenter téléchargement et installation
-        messagebox.showinfo(
-            "Mise à jour",
-            "La mise à jour automatique sera disponible prochainement.\n\n"
-            "Pour l'instant, téléchargez manuellement depuis GitHub."
-        )
-        webbrowser.open(self.update_data.get("html_url"))
+        """Ouvre la page de téléchargement GitHub"""
+        if hasattr(self, 'update_data'):
+            webbrowser.open(self.update_data.get("html_url", f"https://github.com/{GITHUB_REPO}/releases"))
+        else:
+            webbrowser.open(f"https://github.com/{GITHUB_REPO}/releases")
 
 def main():
     root = tk.Tk()
