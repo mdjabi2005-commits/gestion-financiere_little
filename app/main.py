@@ -22,8 +22,26 @@ st.set_page_config(
     page_title="Gestio V4 - Gestion Financière",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get help': None,
+        'Report a bug': None,
+        'About': "Gestio V4 - Gestion Financière"
+    }
 )
+
+# Force dark theme via Python (backup si config.toml ne marche pas)
+import streamlit as st
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #0f172a !important;
+    }
+    .main .block-container {
+        background-color: #0f172a !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==============================
 # IMPORTS - Configuration
