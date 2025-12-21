@@ -224,16 +224,28 @@ Start-Sleep -Seconds 2
 
 Write-Host ""
 Write-Host "[>] Lancement de Gestio V4..."
-Write-Host "[!] Gardez cette fenetre ouverte"
+Write-Host "[!] Gardez cette fenêtre ouverte"
 Write-Host ""
 
-# Lancer le launcher
-try {
-    & $pythonCmd $mainScript
+# Lancer le GUI launcher
+$launcherScript = Join-Path $root "gui_launcher.py"
+
+if (Test-Path $launcherScript) {
+    try {
+        & $pythonCmd $launcherScript
+    }
+    catch {
+        Write-Host ""
+        Write-Host "[ERREUR] Impossible de démarrer l'application"
+        Write-Host "Vérifiez l'installation ou consultez les logs"
+        Read-Host "Appuyez sur Entrée pour fermer"
+        exit 1
+    }
 }
-catch {
-    Show-Message "Erreur de lancement" "Impossible de demarrer l'application. Verifiez l'installation." "Error"
-    Read-Host "Appuyez sur Entree pour fermer"
+else {
+    Write-Host ""
+    Write-Host "[ERREUR] gui_launcher.py introuvable dans : $root"
+    Read-Host "Appuyez sur Entrée pour fermer"
     exit 1
 }
 
