@@ -498,6 +498,15 @@ class ControlCenterGUI:
     
     def launch_app(self):
         """Lance l'application Streamlit"""
+        # Vérifier que Python est prêt
+        if not self.python_ready:
+            messagebox.showwarning(
+                "Python non prêt",
+                "Python ou les dépendances ne sont pas installés.\n\n"
+                "Veuillez installer Python et les dépendances d'abord."
+            )
+            return
+        
         try:
             self.log_message("INFO", "Lancement de l'application Streamlit...")
             
