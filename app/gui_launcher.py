@@ -701,13 +701,16 @@ def main():
     # 1. VÉRIFICATION SEULEMENT AU PREMIER LANCEMENT
     if is_first_run:
         print("🚀 Premier lancement - Vérification de l'environnement...")
-        if not run_verification_console():
-            print("❌ Vérification annulée ou échouée")
+        verification_ok = run_verification_console()
+        
+        if not verification_ok:
+            print("❌ Vérification annulée, échouée ou installation en cours")
+            print("⚠️ Relancez l'application après l'installation")
             return
         
-        # Créer le flag
+        # Créer le flag UNIQUEMENT si la vérification a réussi (exit 0)
         flag_file.touch()
-        print("✅ Configuration terminée - Flag créé")
+        print("✅ Configuration vérifiée - Flag créé")
     else:
         print("✅ Configuration déjà effectuée - Lancement direct du GUI")
     
