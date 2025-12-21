@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from config import OCR_LOGS_DIR, DATA_DIR
+from config import OCR_LOGS_DIR, INPUT_DIR
 
 import logging
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def prepare_logs_for_support(
 
     Args:
         include_problematic_tickets: Include problematic tickets metadata
-        output_dir: Directory to save the ZIP file (defaults to DATA_DIR)
+        output_dir: Directory to save the ZIP file (defaults to INPUT_DIR)
 
     Returns:
         Path to the created ZIP file
@@ -98,7 +98,7 @@ def prepare_logs_for_support(
         >>> print(f"Send this file to support: {zip_path}")
     """
     if output_dir is None:
-        output_dir = DATA_DIR
+        output_dir = INPUT_DIR
 
     # Create timestamp for unique filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -119,7 +119,7 @@ def prepare_logs_for_support(
 
             # Add problematic tickets metadata (not the images, just JSON)
             if include_problematic_tickets:
-                problematic_dir = os.path.join(DATA_DIR, "tickets_problematiques")
+                problematic_dir = os.path.join(INPUT_DIR, "tickets_problematiques")
                 if os.path.exists(problematic_dir):
                     metadata_files = []
                     for file in os.listdir(problematic_dir):

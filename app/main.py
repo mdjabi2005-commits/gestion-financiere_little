@@ -61,7 +61,7 @@ st.markdown("""
 # IMPORTS - Configuration
 # ==============================
 from config import (
-    DATA_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR,
+    INPUT_DIR, DB_PATH, TO_SCAN_DIR, SORTED_DIR,
     REVENUS_A_TRAITER, REVENUS_TRAITES
 )
 
@@ -94,7 +94,7 @@ from domains.ocr.pages.ocr_control_center import render_ocr_control_center
 from config.logging_config import setup_logging, get_logger
 
 # Initialiser le système de logging
-setup_logging(log_dir=DATA_DIR, level="INFO")
+setup_logging(log_dir=INPUT_DIR, level="INFO")
 logger = get_logger(__name__)
 
 # ==============================
