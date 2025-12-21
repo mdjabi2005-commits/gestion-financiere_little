@@ -668,6 +668,103 @@
       transform: scale(1.3);
     }
 
+    /* Video Tutorials */
+    .video-tutorials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .video-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .video-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      /* 16:9 aspect ratio */
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .video-container video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+    }
+
+    .video-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .video-info {
+      padding: 1.5rem;
+    }
+
+    .video-info h3 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-size: 1.15rem;
+    }
+
+    .video-duration {
+      color: var(--text-light);
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    .video-topics {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .video-topics li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .video-topics li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--success);
+      font-weight: bold;
+    }
+
     html {
       scroll-padding-top: 100px;
       scroll-behavior: smooth;
@@ -944,49 +1041,122 @@
       <div class="card">
         <h2 class="section-title">📖 Guide d'utilisation</h2>
         <div class="alert alert-info">
-          <span style="font-size: 1.5rem;">ℹ️</span>
+          <span style="font-size: 1.5rem;">🎥</span>
           <div>
-            <strong>Premiers pas</strong>
-            <p style="margin: 0.5rem 0 0;">Ce guide vous accompagne dans l'utilisation de toutes les fonctionnalités de
-              Gestion Financière Little.</p>
+            <strong>Tutoriels Vidéo</strong>
+            <p style="margin: 0.5rem 0 0;">Découvrez comment utiliser Gestio V4 grâce à nos tutoriels vidéo courts et
+              pratiques.</p>
           </div>
         </div>
-        <div class="steps-grid">
-          <div class="step-card">
-            <div class="step-number">1</div>
-            <h3>Ajouter une transaction</h3>
-            <p>Cliquez sur <code>Ajouter une transaction</code> dans le menu latéral. Remplissez les informations
-              (montant, catégorie, description) et validez.</p>
+
+        <!-- Video Tutorials Grid -->
+        <div class="video-tutorials-grid">
+
+          <!-- Video 1: Installation -->
+          <div class="video-card">
+            <div class="video-container">
+              <div class="video-placeholder">
+                <span class="video-icon">🎬</span>
+                <p>Vidéo à venir</p>
+              </div>
+              <!-- Future: <video src="videos/installation.mp4" controls poster="videos/thumbs/installation.jpg"></video> -->
+            </div>
+            <div class="video-info">
+              <h3>1️⃣ Installation & Premier lancement</h3>
+              <p class="video-duration">⏱️ ~2 minutes</p>
+              <ul class="video-topics">
+                <li>Téléchargement du fichier ZIP</li>
+                <li>Extraction et lancement</li>
+                <li>Configuration initiale</li>
+                <li>Vérification antivirus</li>
+              </ul>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-number">2</div>
-            <h3>Scanner un ticket</h3>
-            <p>Utilisez la fonctionnalité <code>Scanner OCR</code> pour extraire automatiquement les informations d'un
-              ticket de caisse.</p>
+
+          <!-- Video 2: Add Transaction -->
+          <div class="video-card">
+            <div class="video-container">
+              <div class="video-placeholder">
+                <span class="video-icon">🎬</span>
+                <p>Vidéo à venir</p>
+              </div>
+              <!-- Future: <video src="videos/add-transaction.mp4" controls poster="videos/thumbs/transaction.jpg"></video> -->
+            </div>
+            <div class="video-info">
+              <h3>2️⃣ Ajouter une transaction</h3>
+              <p class="video-duration">⏱️ ~1 minute</p>
+              <ul class="video-topics">
+                <li>Navigation vers Transactions</li>
+                <li>Remplir le formulaire</li>
+                <li>Choisir une catégorie</li>
+                <li>Valider et confirmer</li>
+              </ul>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-number">3</div>
-            <h3>Consulter le tableau de bord</h3>
-            <p>Accédez à <code>Accueil</code> pour visualiser vos graphiques, statistiques et un résumé de vos finances.
-            </p>
+
+          <!-- Video 3: OCR Scanner -->
+          <div class="video-card">
+            <div class="video-container">
+              <div class="video-placeholder">
+                <span class="video-icon">🎬</span>
+                <p>Vidéo à venir</p>
+              </div>
+              <!-- Future: <video src="videos/ocr-scan.mp4" controls poster="videos/thumbs/ocr.jpg"></video> -->
+            </div>
+            <div class="video-info">
+              <h3>3️⃣ Scanner un ticket (OCR)</h3>
+              <p class="video-duration">⏱️ ~2 minutes</p>
+              <ul class="video-topics">
+                <li>Préparer l'image du ticket</li>
+                <li>Upload et reconnaissance OCR</li>
+                <li>Vérification des données extraites</li>
+                <li>Correction et validation</li>
+              </ul>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-number">4</div>
-            <h3>Gérer les récurrences</h3>
-            <p>Créez des transactions récurrentes pour vos abonnements et charges fixes dans la section
-              <code>Récurrence</code>.
-            </p>
+
+          <!-- Video 4: Dashboard -->
+          <div class="video-card">
+            <div class="video-container">
+              <div class="video-placeholder">
+                <span class="video-icon">🎬</span>
+                <p>Vidéo à venir</p>
+              </div>
+              <!-- Future: <video src="videos/dashboard.mp4" controls poster="videos/thumbs/dashboard.jpg"></video> -->
+            </div>
+            <div class="video-info">
+              <h3>4️⃣ Tableau de bord</h3>
+              <p class="video-duration">⏱️ ~1 minute</p>
+              <ul class="video-topics">
+                <li>Lire les statistiques principales</li>
+                <li>Interpréter les graphiques</li>
+                <li>Utiliser les filtres par période</li>
+                <li>Comprendre l'évolution mensuelle</li>
+              </ul>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-number">5</div>
-            <h3>Exporter vos données</h3>
-            <p>Exportez toutes vos transactions au format CSV pour une analyse externe ou une sauvegarde.</p>
+
+          <!-- Video 5: Portfolio -->
+          <div class="video-card">
+            <div class="video-container">
+              <div class="video-placeholder">
+                <span class="video-icon">🎬</span>
+                <p>Vidéo à venir</p>
+              </div>
+              <!-- Future: <video src="videos/portfolio.mp4" controls poster="videos/thumbs/portfolio.jpg"></video> -->
+            </div>
+            <div class="video-info">
+              <h3>5️⃣ Gérer son portefeuille</h3>
+              <p class="video-duration">⏱️ ~2 minutes</p>
+              <ul class="video-topics">
+                <li>Définir des budgets</li>
+                <li>Créer des objectifs d'épargne</li>
+                <li>Suivre les échéances</li>
+                <li>Analyser ses dépenses</li>
+              </ul>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-number">6</div>
-            <h3>Filtrer et rechercher</h3>
-            <p>Utilisez les filtres par date, catégorie ou montant pour retrouver rapidement vos transactions.</p>
-          </div>
+
         </div>
       </div>
     </section>
