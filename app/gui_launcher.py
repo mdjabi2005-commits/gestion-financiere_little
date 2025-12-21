@@ -594,6 +594,14 @@ if ($pythonOk) {
     $modules = @("streamlit", "pandas", "requests", "plotly", "numpy", "pytesseract", "PIL", "cv2", "pdfminer", "dateutil", "regex")
     $missing = @()
     
+    # Mapping entre nom d'import et nom de package pip
+    $packageMapping = @{
+        "PIL" = "Pillow"
+        "cv2" = "opencv-python-headless"
+        "dateutil" = "python-dateutil"
+        "pdfminer" = "pdfminer.six"
+    }
+    
     foreach ($module in $modules) {
         Write-Host "   Vérification de $module..." -ForegroundColor Gray -NoNewline
         
@@ -620,11 +628,14 @@ if ($pythonOk) {
         $failed = 0
         
         foreach ($module in $missing) {
-            Write-Host "   📦 Installation de $module..." -ForegroundColor White
+            # Utiliser le nom de package pip correct
+            $pipPackage = if ($packageMapping.ContainsKey($module)) { $packageMapping[$module] } else { $module }
+            
+            Write-Host "   📦 Installation de $module ($pipPackage)..." -ForegroundColor White
             Write-Host ""
             
             # Installation VISIBLE (sans --quiet)
-            & $pythonCmd -m pip install $module --disable-pip-version-check
+            & $pythonCmd -m pip install $pipPackage --disable-pip-version-check
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host ""
