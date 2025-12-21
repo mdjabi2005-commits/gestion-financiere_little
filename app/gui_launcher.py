@@ -552,9 +552,23 @@ if ($pythonCmd) {
     if (Test-Path $installerPath) {
         Write-Host "   🔄 Lancement de l'installateur complet..." -ForegroundColor Cyan
         Write-Host ""
+        Write-Host "   ⏱️  Veuillez patienter, cela peut prendre 20 minutes..." -ForegroundColor Yellow
+        Write-Host ""
         Start-Sleep -Seconds 2
-        & $installerPath
-        exit 0
+        
+        # Lancer l'installateur et ATTENDRE qu'il se termine
+        & powershell -ExecutionPolicy Bypass -File $installerPath -Wait
+        
+        Write-Host ""
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host "  ✅ Installation terminée" -ForegroundColor Green
+        Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "🔄 Veuillez RELANCER l'application pour démarrer" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Appuyez sur une touche pour fermer..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 2  # Code 2 = installateur lancé, ne pas ouvrir le GUI
     } else {
         Write-Host "   ❌ ERREUR : Installateur introuvable" -ForegroundColor Red
         Write-Host ""
