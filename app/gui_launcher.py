@@ -472,15 +472,39 @@ try {{
         throw "Python non trouvé"
     }}
 }} catch {{
-    Write-Host "❌ ERREUR : Python n'est pas installé ou pas dans le PATH" -ForegroundColor Red
+    Write-Host "❌ Python n'est pas installé sur ce système" -ForegroundColor Red
+    Write-Host "" 
+    Write-Host "🔄 Lancement automatique de l'installateur Python..." -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "💡 SOLUTION :" -ForegroundColor Yellow
-    Write-Host "   Lancez le script install_and_run_windows.ps1" -ForegroundColor White
-    Write-Host "   pour installer Python automatiquement." -ForegroundColor White
-    Write-Host ""
-    Write-Host "Appuyez sur une touche pour quitter..." -ForegroundColor Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit 1
+    Start-Sleep -Seconds 2
+    
+    # Chercher l'installateur
+    $installerPath = Join-Path $PSScriptRoot "install_and_run_windows.ps1"
+    
+    if (Test-Path $installerPath) {{
+        Write-Host "✅ Installateur détecté : $installerPath" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "📦 Lancement de l'installation complète..." -ForegroundColor Cyan
+        Write-Host "   (Cette fenêtre va se fermer, suivez les instructions dans la nouvelle fenêtre)" -ForegroundColor Gray
+        Write-Host ""
+        Start-Sleep -Seconds 3
+        
+        # Lancer l'installateur
+        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$installerPath`""
+        exit 0
+    }} else {{
+        Write-Host "❌ ERREUR : Installateur introuvable" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📂 Emplacement recherché : $installerPath" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "💡 SOLUTION :" -ForegroundColor Yellow
+        Write-Host "   1. Téléchargez le package complet depuis GitHub" -ForegroundColor White
+        Write-Host "   2. Assurez-vous que install_and_run_windows.ps1 est présent" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Appuyez sur une touche pour quitter..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }}
 }}
 
 Write-Host ""
