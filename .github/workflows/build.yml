@@ -474,8 +474,7 @@ jobs:
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "🔹 VERSION LITE (utilisant le Python global)"
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
+          Write-Host          # Compilation simple - launcher uniquement
           & pyinstaller `
             "app/launch.py" `
             --noconfirm `
@@ -483,6 +482,11 @@ jobs:
             --onefile `
             --console `
             --name "GestionFinanciere" `
+            --paths "app" `
+            --hidden-import tkinter `
+            --hidden-import webbrowser `
+            --hidden-import subprocess `
+            --hidden-import gui_launcher `
             --exclude-module pytest `
             --exclude-module setuptools `
             --exclude-module pip `
