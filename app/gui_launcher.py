@@ -436,31 +436,72 @@ class ControlCenterGUI:
             self.install_dependencies(missing)
     
     def install_dependencies(self, modules):
-        """Installe les dépendances via pip"""
-        self.log_message("INFO", f"Installation de {', '.join(modules)}...")
+        """Installe les dépendances via un script PowerShell unifié"""
+        self.log_message("INFO", "Création du script d'installation...")
+        
+        # Créer un script PowerShell temporaire
+        setup_script = EXE_DIR / "setup_dependencies.ps1"
+        
+        script_content = f"""# Gestio V4 - Installation des dépendances
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "  🚀 Gestio V4 - Configuration" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📦 Installation des modules Python nécessaires..." -ForegroundColor Yellow
+Write-Host ""
+
+# Liste des modules à installer
+$modules = @({", ".join([f'"{m}"' for m in modules])})
+
+foreach ($module in $modules) {{
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+    Write-Host "📦 Installation de $module..." -ForegroundColor Cyan
+    
+    python -m pip install $module --quiet
+    
+    if ($LASTEXITCODE -eq 0) {{
+        Write-Host "✅ $module installé avec succès !" -ForegroundColor Green
+    }} else {{
+        Write-Host "❌ Échec de l'installation de $module" -ForegroundColor Red
+    }}
+    Write-Host ""
+}}
+
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "✅ Installation terminée !" -ForegroundColor Green
+Write-Host ""
+Write-Host "🔄 Veuillez relancer Gestio V4." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Appuyez sur une touche pour fermer cette fenêtre..." -ForegroundColor Gray
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+"""
         
         try:
-            for module in modules:
-                self.log_message("INFO", f"Installation de {module}...")
-                result = subprocess.run(
-                    ["python", "-m", "pip", "install", module],
-                    capture_output=True,
-                    text=True
-                )
-                
-                if result.returncode == 0:
-                    self.log_message("SUCCESS", f"✅ {module} installé")
-                else:
-                    self.log_message("ERROR", f"❌ Échec installation {module}")
+            # Écrire le script
+            with open(setup_script, 'w', encoding='utf-8') as f:
+                f.write(script_content)
             
-            # Revérifier
-            missing = self.check_dependencies()
-            if not missing:
-                self.python_ready = True
-                self.log_message("SUCCESS", "✅ Installation terminée !")
-                messagebox.showinfo("Succès", "Toutes les dépendances sont installées !")
+            self.log_message("INFO", "Lancement de l'installation...")
+            
+            # Lancer dans une nouvelle console
+            subprocess.Popen(
+                ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(setup_script)],
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
+            
+            messagebox.showinfo(
+                "Installation en cours",
+                "L'installation des dépendances a démarré.\n\n"
+                "Suivez la progression dans la fenêtre PowerShell.\n\n"
+                "Relancez Gestio V4 une fois l'installation terminée."
+            )
+            
+            # Fermer le Control Center
+            self.root.quit()
+            
         except Exception as e:
-            self.log_message("ERROR", f"❌ Erreur installation: {str(e)}")
+            self.log_message("ERROR", f"❌ Erreur création script: {str(e)}")
+            messagebox.showerror("Erreur", f"Impossible de créer le script d'installation:\n{str(e)}")
     
     def run_installer(self):
         """Lance le script PowerShell d'installation"""
