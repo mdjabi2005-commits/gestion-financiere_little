@@ -556,8 +556,8 @@ if ($pythonCmd) {
         Write-Host ""
         Start-Sleep -Seconds 2
         
-        # Lancer l'installateur et ATTENDRE qu'il se termine
-        & powershell -ExecutionPolicy Bypass -File $installerPath -Wait
+        # Lancer l'installateur et ATTENDRE qu'il se termine (Start-Process -Wait)
+        Start-Process -FilePath "powershell" -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$installerPath`"" -Wait -NoNewWindow
         
         Write-Host ""
         Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
