@@ -56,130 +56,66 @@ function Download-File {
     }
 }
 
-# ETAPE 1 : Verification de Python
-Write-Host "[1/6] Verification de Python..."
 
-# Chercher Python dans plusieurs endroits
-$pythonFound = $false
-$pythonCmd = ""
+# Ce script est appelé uniquement quand Python n'est PAS installé
+# On procède directement à l'installation
 
-# Chercher dans PATH
-if (Have "python") {
-    $pythonCmd = "python"
-    $pythonFound = $true
-}
-elseif (Have "python3") {
-    $pythonCmd = "python3"
-    $pythonFound = $true
-}
+Write-Host "[1/5] Installation de Python 3.13.0..."
+Write-Host ""
 
-# Chercher dans les emplacements standards
-if (-not $pythonFound) {
-    $pythonPaths = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
-        "C:\Python313\python.exe",
-        "C:\Python312\python.exe",
-        "C:\Python311\python.exe",
-        "C:\Python310\python.exe",
-        "C:\Python39\python.exe"
-    )
+# Déterminer l'architecture
+$arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "win32" }
+$pythonUrl = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-$arch.exe"
+$pythonInstaller = Join-Path $env:TEMP "python_installer.exe"
+
+if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
+    Write-Host "Téléchargement terminé"
+    Write-Host "Installation en cours (cela peut prendre quelques minutes)..."
     
-    foreach ($path in $pythonPaths) {
-        if (Test-Path $path) {
-            $pythonCmd = $path
-            $pythonFound = $true
-            Write-Host "Python trouve : $path"
-            break
-        }
-    }
-}
-
-if (-not $pythonFound) {
-    Write-Host "Python n'est pas installe sur ce systeme."
-    Write-Host ""
-    $response = Read-Host "Voulez-vous installer Python automatiquement ? (O/n)"
+    # Installation avec tous les composants nécessaires
+    $installArgs = "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1 Include_launcher=1"
+    Start-Process -FilePath $pythonInstaller -ArgumentList $installArgs -Wait
     
-    if ($response -match "^[OoYy]?$") {
-        Write-Host "Installation de Python 3.13.0..."
-        
-        # Determiner l'architecture
-        $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "win32" }
-        $pythonUrl = "https://www.python.org/ftp/python/3.13.0/python-3.13.0-$arch.exe"
-        $pythonInstaller = Join-Path $env:TEMP "python_installer.exe"
-        
-        if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
-            Write-Host "Telechargement termine"
-            Write-Host "Installation en cours (cela peut prendre quelques minutes)..."
-            
-            # Installation avec tous les composants necessaires
-            $installArgs = "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1 Include_launcher=1"
-            Start-Process -FilePath $pythonInstaller -ArgumentList $installArgs -Wait
-            
-            Remove-Item $pythonInstaller -ErrorAction SilentlyContinue
-            
-            # Rafraichir le PATH
-            $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-            
-            # Attendre que Python soit disponible
-            Start-Sleep -Seconds 3
-            
-            # Re-verifier
-            if (Have "python") {
-                $pythonCmd = "python"
-                Write-Host "Python installe avec succes !"
-            }
-            else {
-                Show-Message "Erreur" "Python n'a pas pu etre installe correctement. Veuillez l'installer manuellement depuis python.org" "Error"
-                Read-Host "Appuyez sur Entree pour fermer"
-                exit 1
-            }
-        }
-        else {
-            Show-Message "Erreur" "Impossible de telecharger Python. Verifiez votre connexion Internet." "Error"
-            Read-Host "Appuyez sur Entree pour fermer"
-            exit 1
-        }
-    }
-    else {
-        Write-Host ""
-        Write-Host "Installation manuelle requise :"
-        Write-Host "   1. Telechargez Python depuis https://www.python.org/downloads/"
-        Write-Host "   2. IMPORTANT : Cochez 'Add Python to PATH'"
-        Write-Host "   3. Relancez ce script"
-        Write-Host ""
-        Read-Host "Appuyez sur Entree pour fermer"
-        exit 1
-    }
+    Remove-Item $pythonInstaller -ErrorAction SilentlyContinue
+    
+    # Rafraîchir le PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    
+    # Attendre que Python soit disponible
+    Start-Sleep -Seconds 3
+    
+    Write-Host "[OK] Python installé avec succès"
 }
 else {
-    try {
-        $pythonVersion = & $pythonCmd --version 2>&1
-        Write-Host "Python detecte : $pythonVersion"
-    }
-    catch {
-        Write-Host "Python detecte : $pythonCmd"
-    }
+    Write-Host "[ERREUR] Impossible de télécharger Python"
+    Write-Host ""
+    Write-Host "Installation manuelle requise :"
+    Write-Host "   1. Téléchargez Python depuis https://www.python.org/downloads/"
+    Write-Host "   2. IMPORTANT : Cochez 'Add Python to PATH'"
+    Write-Host "   3. Relancez ce script"
+    Write-Host ""
+    Read-Host "Appuyez sur Entrée pour fermer"
+    exit 1
 }
 
-# ETAPE 2 : Mise a jour de pip
+# Définir la commande Python
+$pythonCmd = "python"
+
+# ETAPE 2 : Mise à jour de pip
 Write-Host ""
-Write-Host "[2/6] Mise a jour de pip..."
+Write-Host "[2/5] Mise à jour de pip..."
 try {
     & $pythonCmd -m ensurepip --upgrade 2>&1 | Out-Null
     & $pythonCmd -m pip install --upgrade pip setuptools wheel --quiet 2>&1 | Out-Null
-    Write-Host "[OK] pip mis a jour"
+    Write-Host "[OK] pip mis à jour"
 }
 catch {
-    Write-Host "[!] Erreur lors de la mise a jour de pip (peut etre ignoree)"
+    Write-Host "[!] Erreur lors de la mise à jour de pip (peut être ignorée)"
 }
 
-# ETAPE 3 : Installation des dependances
+# ETAPE 3 : Installation des dépendances
 Write-Host ""
-Write-Host "[3/6] Installation des dependances Python..."
+Write-Host "[3/5] Installation des paquets Python..."
 Write-Host "   (Cela peut prendre 2-5 minutes...)"
 
 $packages = @(
@@ -192,7 +128,8 @@ $packages = @(
     "numpy",
     "plotly",
     "regex",
-    "requests"
+    "requests",
+    "pdfminer.six"
 )
 
 # Convertir en string pour la commande
@@ -215,7 +152,7 @@ catch {
 
 # ETAPE 4 : Configuration de Tesseract
 Write-Host ""
-Write-Host "[4/6] Configuration de Tesseract OCR..."
+Write-Host "[4/5] Configuration de Tesseract OCR..."
 
 $tessLocal = Join-Path $root "tesseract\tesseract.exe"
 if (Test-Path $tessLocal) {
@@ -235,7 +172,7 @@ else {
 
 # ETAPE 5 : Test des imports
 Write-Host ""
-Write-Host "[5/6] Verification des modules..."
+Write-Host "[5/5] Verification des modules..."
 
 $checkScript = @"
 import sys
