@@ -367,8 +367,13 @@ class ControlCenterGUI:
             if not main_path.exists():
                 raise FileNotFoundError(f"main.py introuvable dans {SCRIPT_DIR}")
             
+            # CRITICAL: En mode frozen, sys.executable = GestionFinanciere.exe
+            # qui relancerait le launcher -> boucle infinie ! 
+            # On utilise 'python' du PATH système
+            python_cmd = "python" if getattr(sys, 'frozen', False) else sys.executable
+            
             self.app_process = subprocess.Popen([
-                sys.executable, "-m", "streamlit", "run", str(main_path),
+                python_cmd, "-m", "streamlit", "run", str(main_path),
                 "--server.port=8501",
                 "--server.headless=true"
             ])
