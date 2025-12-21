@@ -181,22 +181,30 @@ else {
     Write-Host ""
     Write-Host "[ERREUR] Échec de l'installation des paquets (code: $LASTEXITCODE)"
     Write-Host ""
-    Write-Host "Commande manuelle à essayer :"
-    Write-Host "  python -m pip install $packagesStr"
+    Write-Host "Tentative de réinstallation sans cache..."
     Write-Host ""
-    Read-Host "Appuyez sur Entrée pour continuer quand même"
-    # The original script had a fallback to reinstall without cache.
-    # Re-integrating that fallback here, as it was part of the original logic.
-    Write-Host "   Tentative de reinstallation sans cache..."
-    & $pythonCmd -m pip install --upgrade --no-cache-dir $packagesStr
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[ERREUR] La réinstallation sans cache a également échoué."
-        Write-Host "Veuillez vérifier votre connexion internet ou installer manuellement les paquets."
-        Read-Host "Appuyez sur Entrée pour fermer"
-        exit 1
+    
+    # Réessayer sans cache
+    & $pythonCmd -m pip install $packagesStr --upgrade --no-cache-dir
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host ""
+        Write-Host "[OK] Réinstallation réussie sans cache"
     }
     else {
-        Write-Host "[OK] Réinstallation sans cache réussie."
+        Write-Host ""
+        Write-Host "[ERREUR CRITIQUE] Impossible d'installer les dépendances"
+        Write-Host ""
+        Write-Host "Causes possibles :"
+        Write-Host "  - Pas de connexion Internet"
+        Write-Host "  - Pare-feu bloque pip"
+        Write-Host "  - Proxy requis"
+        Write-Host ""
+        Write-Host "Commande manuelle à essayer :"
+        Write-Host "  python -m pip install $packagesStr"
+        Write-Host ""
+        Read-Host "Appuyez sur Entrée pour fermer"
+        exit 1
     }
 }
 
