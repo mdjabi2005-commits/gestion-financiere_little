@@ -571,6 +571,103 @@
       }
     }
 
+    /* Screenshots Carousel */
+    .screenshots-carousel {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .carousel-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.5s ease;
+    }
+
+    .carousel-slide {
+      min-width: 100%;
+      display: none;
+    }
+
+    .carousel-slide.active {
+      display: block;
+    }
+
+    .carousel-slide img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 0.5rem;
+    }
+
+    .screenshot-caption {
+      text-align: center;
+      padding: 1rem;
+      background: var(--card);
+      color: var(--text);
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 2rem;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .carousel-btn:hover {
+      background: white;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .carousel-prev {
+      left: 1rem;
+    }
+
+    .carousel-next {
+      right: 1rem;
+    }
+
+    .carousel-indicators {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .indicator.active {
+      background: var(--primary);
+      transform: scale(1.3);
+    }
+
     html {
       scroll-padding-top: 100px;
       scroll-behavior: smooth;
@@ -616,6 +713,51 @@
       <div class="hero-actions">
         <button class="btn btn-primary" onclick="switchTab('installation')">📥 Télécharger maintenant</button>
         <button class="btn btn-secondary" onclick="switchTab('guide')">📖 Guide d'utilisation</button>
+      </div>
+    </section>
+
+    <!-- Screenshots Carousel Section -->
+    <section class="container">
+      <h2 class="section-title">📸 Aperçu de l'application</h2>
+      <p style="text-align: center; color: var(--text-light); margin-bottom: 2rem;">
+        Découvrez Gestio V4 en images - Interface moderne et intuitive
+      </p>
+
+      <div class="screenshots-carousel">
+        <div class="carousel-container">
+          <button class="carousel-btn carousel-prev" onclick="moveCarousel(-1)">‹</button>
+
+          <div class="carousel-track">
+            <div class="carousel-slide active">
+              <img src="images/screenshots/home.png" alt="Tableau de bord - Vue d'ensemble de vos finances">
+              <p class="screenshot-caption">📊 Tableau de bord - Suivi de vos revenus et dépenses en temps réel</p>
+            </div>
+
+            <div class="carousel-slide">
+              <img src="images/screenshots/transactions.png" alt="Page Transactions - Ajout et scan OCR">
+              <p class="screenshot-caption">💳 Transactions - Scanner vos tickets automatiquement avec l'OCR</p>
+            </div>
+
+            <div class="carousel-slide">
+              <img src="images/screenshots/view_transactions.png" alt="Liste des transactions">
+              <p class="screenshot-caption">📋 Historique - Consultez toutes vos transactions passées</p>
+            </div>
+
+            <div class="carousel-slide">
+              <img src="images/screenshots/portfolio.png" alt="Portefeuille et budgets">
+              <p class="screenshot-caption">💼 Portefeuille - Gérez vos budgets et objectifs financiers</p>
+            </div>
+          </div>
+
+          <button class="carousel-btn carousel-next" onclick="moveCarousel(1)">›</button>
+        </div>
+
+        <div class="carousel-indicators">
+          <span class="indicator active" onclick="goToSlide(0)"></span>
+          <span class="indicator" onclick="goToSlide(1)"></span>
+          <span class="indicator" onclick="goToSlide(2)"></span>
+          <span class="indicator" onclick="goToSlide(3)"></span>
+        </div>
       </div>
     </section>
 
@@ -1149,6 +1291,34 @@
       }
       fetchLatestRelease();
     });
+
+    // Carousel functionality
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.carousel-slide');
+    const indicators = document.querySelectorAll('.indicator');
+
+    function showSlide(n) {
+      slides.forEach(slide => slide.classList.remove('active'));
+      indicators.forEach(ind => ind.classList.remove('active'));
+
+      currentSlide = (n + slides.length) % slides.length;
+
+      slides[currentSlide].classList.add('active');
+      indicators[currentSlide].classList.add('active');
+    }
+
+    function moveCarousel(direction) {
+      showSlide(currentSlide + direction);
+    }
+
+    function goToSlide(n) {
+      showSlide(n);
+    }
+
+    // Auto-advance carousel every 5 seconds
+    setInterval(() => {
+      moveCarousel(1);
+    }, 5000);
   </script>
 </body>
 
