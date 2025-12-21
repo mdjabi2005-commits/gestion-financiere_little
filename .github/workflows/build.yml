@@ -514,35 +514,25 @@ jobs:
             if [ -f "GestionFinanciere.exe" ]; then
               echo "📦 Création du package Windows..."
               
-              # Copier installateur 
+              # Copier UNIQUEMENT l'installateur PowerShell
               if [ -f "../app/install_and_run_windows.ps1" ]; then
                 cp ../app/install_and_run_windows.ps1 .
                 echo "✅ Installateur PowerShell copié"
               fi
               
-              # Copier GUI launcher et config
-              if [ -f "../app/gui_launcher.py" ]; then
-                cp ../app/gui_launcher.py .
-                cp ../app/main.py .
-                echo "✅ GUI Launcher + main.py copiés"
-              fi
-              
-              if [ -f "../app/launcher_config.json" ]; then
-                cp ../app/launcher_config.json .
-                echo "✅ Config launcher copiée"
-              fi
-              
-              # Copier Tesseract
+              # Copier Tesseract (essentiel pour OCR)
               if [ -d "../tesseract" ]; then
                 cp -r ../tesseract ./
                 echo "✅ Tesseract embarqué"
               fi
               
-              # ZIP unique : exe + scripts + tesseract
+              # ZIP : UNIQUEMENT exe + install script + tesseract
+              # (gui_launcher.py, main.py, config sont dans l'exe via --add-data)
               7z a -tzip GestionFinanciere-Windows.zip \
-                GestionFinanciere.exe *.py *.ps1 *.json tesseract/
+                GestionFinanciere.exe install_and_run_windows.ps1 tesseract/
               
               echo "✅ Package Windows créé : GestionFinanciere-Windows.zip"
+              echo "   Contenu : exe + install.ps1 + tesseract/"
             else
               echo "❌ Erreur : GestionFinanciere.exe introuvable"
             fi
