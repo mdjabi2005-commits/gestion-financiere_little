@@ -172,7 +172,7 @@ Write-Host "Installation de $($packages.Count) packages..."
 Write-Host ""
 
 # Installation avec feedback visible
-& $pythonCmd -m pip install $packagesStr --upgrade
+& $pythonCmd -m pip install $packagesStr
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
@@ -186,7 +186,7 @@ else {
     Write-Host ""
     
     # Réessayer sans cache
-    & $pythonCmd -m pip install $packagesStr --upgrade --no-cache-dir
+    & $pythonCmd -m pip install $packagesStr --no-cache-dir
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
