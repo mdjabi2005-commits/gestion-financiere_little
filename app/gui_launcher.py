@@ -73,6 +73,7 @@ class ControlCenterGUI:
         self.config = load_config()
         self.version = get_version()
         self.app_process = None
+        self.python_ready = False
         
         # Configuration fenêtre
         self.root.title(f"{self.config['title']} - Centre de Contrôle")
@@ -98,6 +99,9 @@ class ControlCenterGUI:
         self.accent_color = self.primary_color
         
         self.create_ui()
+        
+        # CRITIQUE : Vérifier Python au démarrage
+        threading.Thread(target=self.check_python_environment, daemon=True).start()
         
         # Démarrer monitoring logs
         self.log_monitoring = True
@@ -355,6 +359,142 @@ class ControlCenterGUI:
                 anchor='w'
             )
             btn.pack(fill='x', padx=50, pady=5)
+    
+    def check_python_environment(self):
+        """Vérifie Python + dépendances au démarrage"""
+        try:
+            # Vérifier Python
+            result = subprocess.run(
+                ["python", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                python_version = result.stdout.strip()
+                self.log_message("SUCCESS", f"✅ {python_version} détecté")
+                
+                # Vérifier dépendances critiques
+                missing = self.check_dependencies()
+                
+                if missing:
+                    self.log_message("WARNING", f"⚠️ Dépendances manquantes: {', '.join(missing)}")
+                    self.prompt_install_dependencies(missing)
+                else:
+                    self.log_message("SUCCESS", "✅ Toutes les dépendances installées")
+                    self.python_ready = True
+            else:
+                raise FileNotFoundError("Python non trouvé")
+                
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+            self.log_message("ERROR", "❌ Python non détecté sur ce système")
+            self.prompt_install_python()
+    
+    def check_dependencies(self):
+        """Vérifie les dépendances Python"""
+        required = ['streamlit', 'pandas', 'requests']
+        missing = []
+        
+        for module in required:
+            try:
+                result = subprocess.run(
+                    ["python", "-c", f"import {module}"],
+                    capture_output=True,
+                    timeout=3
+                )
+                if result.returncode != 0:
+                    missing.append(module)
+            except:
+                missing.append(module)
+        
+        return missing
+    
+    def prompt_install_python(self):
+        """Propose d'installer Python via le script PowerShell"""
+        response = messagebox.askyesno(
+            "Python requis",
+            "Python n'est pas installé sur ce système.\n\n"
+            "Gestio V4 nécessite Python pour fonctionner.\n\n"
+            "Voulez-vous lancer l'installateur automatique ?"
+        )
+        
+        if response:
+            self.run_installer()
+        else:
+            self.log_message("INFO", "Installation Python annulée par l'utilisateur")
+    
+    def prompt_install_dependencies(self, missing):
+        """Propose d'installer les dépendances manquantes"""
+        response = messagebox.askyesno(
+            "Dépendances manquantes",
+            f"Modules manquants: {', '.join(missing)}\n\n"
+            "Voulez-vous les installer automatiquement ?"
+        )
+        
+        if response:
+            self.install_dependencies(missing)
+    
+    def install_dependencies(self, modules):
+        """Installe les dépendances via pip"""
+        self.log_message("INFO", f"Installation de {', '.join(modules)}...")
+        
+        try:
+            for module in modules:
+                self.log_message("INFO", f"Installation de {module}...")
+                result = subprocess.run(
+                    ["python", "-m", "pip", "install", module],
+                    capture_output=True,
+                    text=True
+                )
+                
+                if result.returncode == 0:
+                    self.log_message("SUCCESS", f"✅ {module} installé")
+                else:
+                    self.log_message("ERROR", f"❌ Échec installation {module}")
+            
+            # Revérifier
+            missing = self.check_dependencies()
+            if not missing:
+                self.python_ready = True
+                self.log_message("SUCCESS", "✅ Installation terminée !")
+                messagebox.showinfo("Succès", "Toutes les dépendances sont installées !")
+        except Exception as e:
+            self.log_message("ERROR", f"❌ Erreur installation: {str(e)}")
+    
+    def run_installer(self):
+        """Lance le script PowerShell d'installation"""
+        installer_path = EXE_DIR / "install_and_run_windows.ps1"
+        
+        if not installer_path.exists():
+            self.log_message("ERROR", "❌ Installateur introuvable")
+            messagebox.showerror(
+                "Erreur",
+                "Le script d'installation est introuvable.\n\n"
+                "Veuillez télécharger le package complet depuis GitHub."
+            )
+            return
+        
+        self.log_message("INFO", "Lancement de l'installateur PowerShell...")
+        
+        try:
+            subprocess.Popen(
+                ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(installer_path)],
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
+            
+            messagebox.showinfo(
+                "Installateur lancé",
+                "Le script d'installation Python a été lancé.\n\n"
+                "Suivez les instructions dans la fenêtre PowerShell.\n\n"
+                "Relancez Gestio V4 après l'installation."
+            )
+            
+            # Fermer le Control Center
+            self.root.quit()
+            
+        except Exception as e:
+            self.log_message("ERROR", f"❌ Impossible de lancer l'installateur: {str(e)}")
     
     def launch_app(self):
         """Lance l'application Streamlit"""
