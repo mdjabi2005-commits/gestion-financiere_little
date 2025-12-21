@@ -1,0 +1,103 @@
+/* Tab Navigation Styles */
+.main-tabs {
+    background: linear-gradient(to bottom, var(--card), var(--bg));
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 70px;
+    z-index: 99;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.main-tabs-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 1rem;
+}
+
+.main-tab {
+    padding: 1rem 2rem;
+    background: transparent;
+    border: none;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-light);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.05rem;
+    white-space: nowrap;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.main-tab::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+.main-tab:hover {
+    color: var(--primary);
+    background: var(--bg);
+    transform: translateY(-2px);
+}
+
+.main-tab:hover::before {
+    width: 80%;
+}
+
+.main-tab.active {
+    color: var(--primary);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.main-tab.active::before {
+    width: 100%;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeInTab 0.5s ease-out;
+}
+
+@keyframes fadeInTab {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive tabs */
+@media (max-width: 768px) {
+    .main-tabs-inner {
+        gap: 0.25rem;
+        padding: 0.5rem;
+    }
+
+    .main-tab {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+    }
+}

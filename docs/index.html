@@ -485,14 +485,22 @@
       .header-inner {
         flex-wrap: wrap;
         gap: 1rem;
+        padding: 0.75rem 1rem;
       }
 
       .logo {
         order: 1;
+        font-size: 1.1rem;
+      }
+
+      .logo-icon {
+        font-size: 1.5rem;
       }
 
       .btn {
         order: 2;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
       }
 
       .main-tabs-inline {
@@ -500,11 +508,15 @@
         width: 100%;
         justify-content: space-around;
         gap: 0.25rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .main-tab {
         padding: 0.5rem 0.75rem;
         font-size: 0.85rem;
+        white-space: nowrap;
+        min-width: fit-content;
       }
 
       .hero h1 {
@@ -518,6 +530,44 @@
       .steps-grid,
       .features-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .feature-card,
+      .step-card {
+        padding: 1.5rem;
+      }
+
+      .container {
+        padding: 2rem 1rem;
+      }
+
+      .card {
+        padding: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero {
+        padding: 3rem 1rem;
+      }
+
+      .hero h1 {
+        font-size: 1.75rem;
+      }
+
+      .main-tab {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+      }
+
+      .btn {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
       }
     }
 
@@ -843,7 +893,7 @@
       <!-- Questionnaire de feedback -->
       <div class="card">
         <h2 class="section-title">⭐ Votre avis compte</h2>
-        <p style="color: var(--text-light); margin-bottom: 2rem;">Aidez-nous à améliorer Gestion Financière Little en
+        <p style="color: var(--text-light); margin-bottom: 2rem;">Aidez-nous à améliorer Gestio V4 en
           partageant votre expérience.</p>
         <form id="feedbackForm" onsubmit="submitFeedback(event)" style="max-width: 700px; margin: 0 auto;">
           <div style="margin-bottom: 2rem; text-align: center;">
@@ -931,7 +981,7 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <p style="margin-bottom: 1rem;"><strong>Gestion Financière Little</strong> - Application gratuite de gestion
+    <p style="margin-bottom: 1rem;"><strong>Gestio V4</strong> - Application gratuite de gestion
       financière personnelle</p>
     <p style="margin-bottom: 1rem;">📧 Contact : <a href="mailto:lamoms954@gmail.com">lamoms954@gmail.com</a></p>
     <p style="margin-bottom: 1rem;">💻 Code source : <a
