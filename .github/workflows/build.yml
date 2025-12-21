@@ -407,74 +407,25 @@ jobs:
             echo "✅ Dépendances par défaut installées"
           fi
 
-      - name: 🏗️ Compiler les deux versions Windows (Portable + Lite)
+      # ========================================
+      # 🔨 COMPILATION WINDOWS (Version Unique)
+      # ========================================
+      - name: 🔨 Compiler l'application (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "🏗️ Compilation Gestion Financière Little (Windows uniquement)..."
-
-          # 🔧 Installation / mise à jour des outils nécessaires
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          Write-Host "🔨 Compilation Gestio V4"
+          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Installation PyInstaller
           python -m pip install --upgrade pip
-          python -m pip install pyinstaller pyinstaller-hooks-contrib
-
+          python -m pip install pyinstaller
+          
           Write-Host ""
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "🔹 VERSION PORTABLE (autonome, sans installateur ni questions)"
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          & pyinstaller `
-            "app/gui_launcher.py" `
-            --noconfirm `
-            --clean `
-            --onefile `
-            --console `
-            --name "GestionFinanciere" `
-            --paths "app" `
-            --add-data "app/templates;templates" `
-            --add-data "app/launcher_config.json;." `
-            --add-data "tesseract;tesseract" `
-            --collect-all streamlit `
-            --collect-all pandas `
-            --collect-all PIL `
-            --collect-all pytesseract `
-            --collect-all cv2 `
-            --collect-all numpy `
-            --collect-all plotly `
-            --hidden-import config `
-            --hidden-import config.database_config `
-            --hidden-import config.logging_config `
-            --hidden-import config.ocr_config `
-            --hidden-import config.paths `
-            --hidden-import config.ui_config `
-            --hidden-import domains `
-            --hidden-import domains.home `
-            --hidden-import domains.transactions `
-            --hidden-import domains.ocr `
-            --hidden-import domains.revenues `
-            --hidden-import shared `
-            --hidden-import shared.database `
-            --hidden-import shared.services `
-            --hidden-import shared.utils `
-            --hidden-import shared.exceptions `
-            --hidden-import shared.logging_config `
-            --hidden-import resources `
-            --hidden-import streamlit `
-            --hidden-import streamlit.web.bootstrap `
-            --hidden-import streamlit.web.server.browser_websocket_handler `
-            --hidden-import streamlit.runtime.scriptrunner.script_runner `
-            --hidden-import pandas `
-            --hidden-import numpy `
-            --hidden-import pytesseract `
-            --hidden-import Pillow `
-            --hidden-import cv2 `
-            --hidden-import plotly `
-            --hidden-import regex `
-            --hidden-import requests `
-            --hidden-import python-dateutil
-
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "🔹 VERSION LITE (utilisant le Python global)"
-          Write-Host          # Compilation simple - launcher uniquement
+          Write-Host "📦 Compilation launcher Gestio V4..."
+          
+          # Compilation launcher simple
           & pyinstaller `
             "app/launch.py" `
             --noconfirm `
