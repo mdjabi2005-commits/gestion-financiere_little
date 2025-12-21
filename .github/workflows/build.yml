@@ -440,7 +440,7 @@ jobs:
             --noconfirm `
             --clean `
             --onefile `
-            --console `
+            --windowed `
             --name "GestionFinanciere" `
             --paths "app" `
             --add-data "app/main.py;." `
