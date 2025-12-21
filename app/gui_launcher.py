@@ -444,33 +444,112 @@ class ControlCenterGUI:
         
         script_content = f"""# Gestio V4 - Installation des dépendances
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "  🚀 Gestio V4 - Configuration" -ForegroundColor Cyan
+Write-Host "  🚀 Gestio V4 - Configuration Automatique" -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "📦 Installation des modules Python nécessaires..." -ForegroundColor Yellow
+Write-Host "📋 CE QUI VA SE PASSER :" -ForegroundColor Yellow
+Write-Host "   1. Vérification de Python" -ForegroundColor White
+Write-Host "   2. Installation des modules nécessaires" -ForegroundColor White
+Write-Host "   3. Vérification finale" -ForegroundColor White
+Write-Host ""
+Write-Host "⏱️  Durée estimée : 2-3 minutes" -ForegroundColor Gray
+Write-Host ""
+Start-Sleep -Seconds 2
+
+# ═══════════════════════════════════════════════════════════
+# ÉTAPE 1 : Vérification de Python
+# ═══════════════════════════════════════════════════════════
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "🔍 ÉTAPE 1/3 : Vérification de Python" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host ""
 
-# Liste des modules à installer
+try {{
+    $pythonVersion = python --version 2>&1
+    if ($LASTEXITCODE -eq 0) {{
+        Write-Host "✅ Python détecté : $pythonVersion" -ForegroundColor Green
+    }} else {{
+        throw "Python non trouvé"
+    }}
+}} catch {{
+    Write-Host "❌ ERREUR : Python n'est pas installé ou pas dans le PATH" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "💡 SOLUTION :" -ForegroundColor Yellow
+    Write-Host "   Lancez le script install_and_run_windows.ps1" -ForegroundColor White
+    Write-Host "   pour installer Python automatiquement." -ForegroundColor White
+    Write-Host ""
+    Write-Host "Appuyez sur une touche pour quitter..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit 1
+}}
+
+Write-Host ""
+Start-Sleep -Seconds 1
+
+# ═══════════════════════════════════════════════════════════
+# ÉTAPE 2 : Installation des modules
+# ═══════════════════════════════════════════════════════════
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host "📦 ÉTAPE 2/3 : Installation des modules" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Les modules suivants vont être installés :" -ForegroundColor White
 $modules = @({", ".join([f'"{m}"' for m in modules])})
+foreach ($mod in $modules) {{
+    Write-Host "   • $mod" -ForegroundColor Gray
+}}
+Write-Host ""
+Start-Sleep -Seconds 1
+
+$installed = 0
+$failed = 0
 
 foreach ($module in $modules) {{
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
-    Write-Host "📦 Installation de $module..." -ForegroundColor Cyan
+    Write-Host "──────────────────────────────────────────────" -ForegroundColor DarkGray
+    Write-Host "📦 Installation de : $module" -ForegroundColor Cyan
+    Write-Host "   Veuillez patienter..." -ForegroundColor Gray
     
-    python -m pip install $module --quiet
+    python -m pip install $module --quiet --disable-pip-version-check
     
     if ($LASTEXITCODE -eq 0) {{
-        Write-Host "✅ $module installé avec succès !" -ForegroundColor Green
+        Write-Host "   ✅ $module installé avec succès !" -ForegroundColor Green
+        $installed++
     }} else {{
-        Write-Host "❌ Échec de l'installation de $module" -ForegroundColor Red
+        Write-Host "   ❌ Échec de l'installation de $module" -ForegroundColor Red
+        $failed++
     }}
     Write-Host ""
 }}
 
+# ═══════════════════════════════════════════════════════════
+# ÉTAPE 3 : Vérification finale
+# ═══════════════════════════════════════════════════════════
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "✅ Installation terminée !" -ForegroundColor Green
+Write-Host "🔍 ÉTAPE 3/3 : Vérification finale" -ForegroundColor Cyan
+Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "🔄 Veuillez relancer Gestio V4." -ForegroundColor Yellow
+Write-Host "📊 RÉSULTAT :" -ForegroundColor Yellow
+Write-Host "   ✅ Modules installés : $installed" -ForegroundColor Green
+if ($failed -gt 0) {{
+    Write-Host "   ❌ Modules échoués   : $failed" -ForegroundColor Red
+}}
+Write-Host ""
+
+if ($failed -eq 0) {{
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+    Write-Host "  ✅ INSTALLATION TERMINÉE AVEC SUCCÈS !" -ForegroundColor Green
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "🔄 Vous pouvez maintenant relancer Gestio V4." -ForegroundColor Yellow
+}} else {{
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
+    Write-Host "  ⚠️  INSTALLATION TERMINÉE AVEC DES ERREURS" -ForegroundColor Red
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "💡 Essayez de réinstaller manuellement :" -ForegroundColor Yellow
+    Write-Host "   python -m pip install streamlit pandas requests" -ForegroundColor White
+}}
+
 Write-Host ""
 Write-Host "Appuyez sur une touche pour fermer cette fenêtre..." -ForegroundColor Gray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
