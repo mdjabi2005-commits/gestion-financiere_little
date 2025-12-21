@@ -3,6 +3,10 @@ Gestio V4 - Centre de Contrôle (Control Center)
 Interface complète de gestion : logs, MAJ, changelog, aide
 """
 
+# ═══════════════════════════════════════════════════════════
+# IMPORTS
+# ═══════════════════════════════════════════════════════════
+
 import os
 import sys
 import json
@@ -18,7 +22,10 @@ from datetime import datetime
 import zipfile
 import shutil
 
-# Helper pour PyInstaller
+# ═══════════════════════════════════════════════════════════
+# CONFIGURATION GLOBALE
+# ═══════════════════════════════════════════════════════════
+
 def get_base_path():
     """Retourne le chemin de base (gère PyInstaller frozen apps)"""
     if getattr(sys, 'frozen', False):
@@ -33,12 +40,15 @@ def get_exe_directory():
     else:
         return Path(__file__).parent
 
-# Configuration
 SCRIPT_DIR = get_base_path()
 EXE_DIR = get_exe_directory()
 CONFIG_FILE = SCRIPT_DIR / "launcher_config.json"
 GITHUB_REPO = "mdjabi2005-commits/gestion-financiere_little"
 LOG_DIR = Path.home() / "analyse" / "logs"
+
+# ═══════════════════════════════════════════════════════════
+# FONCTIONS UTILITAIRES
+# ═══════════════════════════════════════════════════════════
 
 def load_config():
     """Charge la configuration du launcher"""
@@ -66,6 +76,10 @@ def get_version():
     if version_file.exists():
         return version_file.read_text().strip()
     return "0.4.0"
+
+# ═══════════════════════════════════════════════════════════
+# CLASSE INTERFACE GRAPHIQUE - CONTROL CENTER
+# ═══════════════════════════════════════════════════════════
 
 class ControlCenterGUI:
     def __init__(self, root):
@@ -102,6 +116,10 @@ class ControlCenterGUI:
         
         # Vérifier MAJ au démarrage
         threading.Thread(target=self.check_updates_silent, daemon=True).start()
+    
+    # ─────────────────────────────────────────────────────────
+    # CRÉATION INTERFACE UI
+    # ─────────────────────────────────────────────────────────
     
     def create_ui(self):
         """Crée l'interface utilisateur"""
@@ -230,32 +248,7 @@ class ControlCenterGUI:
         logs_frame = ttk.Frame(self.notebook)
         self.notebook.add(logs_frame, text="📋 Logs")
         
-        # Filtres
-        filter_frame = tk.Frame(logs_frame)
-        filter_frame.pack(fill='x', padx=10, pady=5)
-        
-        tk.Label(filter_frame, text="Filtrer:", font=("Segoe UI", 9, "bold")).pack(side='left', padx=5)
-        
-        self.log_filter = tk.StringVar(value="ALL")
-        filters = [("Tous", "ALL"), ("Erreurs", "ERROR"), ("Warnings", "WARNING"), ("Info", "INFO")]
-        
-        for text, value in filters:
-            tk.Radiobutton(
-                filter_frame,
-                text=text,
-                variable=self.log_filter,
-                value=value,
-                command=self.filter_logs
-            ).pack(side='left', padx=5)
-        
-        tk.Button(
-            filter_frame,
-            text="🗑️ Effacer",
-            command=self.clear_logs,
-            relief='flat'
-        ).pack(side='right', padx=5)
-        
-        # Zone de logs
+        # Zone de texte pour les logs
         self.log_text = scrolledtext.ScrolledText(
             logs_frame,
             wrap=tk.WORD,
@@ -353,6 +346,9 @@ class ControlCenterGUI:
             )
             btn.pack(fill='x', padx=50, pady=5)
     
+    # ─────────────────────────────────────────────────────────
+    # GESTION APPLICATION STREAMLIT
+    # ─────────────────────────────────────────────────────────
     
     def launch_app(self):
         """Lance l'application Streamlit"""
@@ -402,14 +398,17 @@ class ControlCenterGUI:
     def stop_app(self):
         """Arrête l'application"""
         if self.app_process:
-            self.app_process.terminate()
             self.app_process = None
             
             self.app_status_label.config(text="● Application arrêtée", fg="red")
             self.launch_btn.config(state='normal')
             self.stop_btn.config(state='disabled')
-            
+            self.app_process.terminate()
             self.log_message("INFO", "Application arrêtée")
+    
+    # ─────────────────────────────────────────────────────────
+    # SYSTÈME DE LOGS
+    # ─────────────────────────────────────────────────────────
     
     def log_message(self, level, message):
         """Ajoute un message au log"""
@@ -419,6 +418,10 @@ class ControlCenterGUI:
         self.log_text.insert(tk.END, f"[{timestamp}] ", "TIMESTAMP")
         self.log_text.insert(tk.END, f"[{level}] ", level)
         self.log_text.insert(tk.END, f"{message}\n")
+    
+    # ─────────────────────────────────────────────────────────
+    # GESTION MISES À JOUR
+    # ─────────────────────────────────────────────────────────
     
     def check_updates_silent(self):
         """Vérifie les MAJ en arrière-plan"""
@@ -464,6 +467,10 @@ class ControlCenterGUI:
             webbrowser.open(self.update_data.get("html_url", f"https://github.com/{GITHUB_REPO}/releases"))
         else:
             webbrowser.open(f"https://github.com/{GITHUB_REPO}/releases")
+
+# ═══════════════════════════════════════════════════════════
+# VÉRIFICATION ENVIRONNEMENT (Python + Dépendances)
+# ═══════════════════════════════════════════════════════════
 
 def run_verification_console():
     """Lance la console de vérification AVANT le GUI"""
@@ -666,6 +673,10 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     except Exception as e:
         print(f"Erreur lors de la vérification : {e}")
         return False
+
+# ═══════════════════════════════════════════════════════════
+# POINT D'ENTRÉE PRINCIPAL
+# ═══════════════════════════════════════════════════════════
 
 def main():
     """Point d'entrée principal"""
