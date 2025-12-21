@@ -144,7 +144,7 @@ catch {
     Write-Host "[!] Erreur lors de la mise à jour de pip (peut être ignorée)"
 }
 
-# ETAPE 3 : Installation des paquets Python..."
+# ETAPE 3 : Installation des paquets Python
 Write-Host ""
 Write-Host "[3/5] Installation des paquets Python..."
 Write-Host "   (Cela peut prendre 2-5 minutes...)"
@@ -161,7 +161,8 @@ $packages = @(
     "plotly",
     "regex",
     "requests",
-    "pdfminer.six"
+    "pdfminer.six",
+    "PyYAML"
 )
 
 # Convertir en string pour la commande
