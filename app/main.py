@@ -132,9 +132,7 @@ def main():
             "🏠 Accueil",
             "💳 Transactions",
             "📊 Voir Transactions",
-            # "🌳 Arbre Financier",  # Removed - functionality moved to edit mode
             "💼 Portefeuille",
-            "🔍 Tour de Contrôle OCR",  # Unified OCR page
         ]
         
         
@@ -188,10 +186,6 @@ def main():
 
         elif page == "💼 Portefeuille":
             interface_portefeuille()
-
-        elif page == "🔍 Tour de Contrôle OCR":
-            from domains.ocr.pages.tour_controle_simplifie import render_tour_controle_simple
-            render_tour_controle_simple()
 
     except Exception as e:
         logger.critical(f"Application V4 failed: {e}", exc_info=True)
