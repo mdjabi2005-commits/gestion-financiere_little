@@ -187,6 +187,7 @@ try:
     import plotly
     import regex
     import requests
+    import pdfminer.six
     print("OK")
 except Exception as e:
     print(f"ERR: {e}")
@@ -209,23 +210,6 @@ if ($result -notmatch "OK") {
 }
 
 Write-Host "[OK] Tous les modules sont operationnels"
-
-# ETAPE 6 : Lancement de l'application
-Write-Host ""
-Write-Host "[6/6] Lancement de l'application..."
-
-# Chercher le launcher V4
-$mainScript = Join-Path $root "lancer_gestiolittle.py"
-if (-not (Test-Path $mainScript)) {
-    # Essayer main.py directement
-    $mainScript = Join-Path $root "main.py"
-}
-
-if (-not (Test-Path $mainScript)) {
-    Show-Message "Erreur" "Fichier de lancement introuvable dans : $root" "Error"
-    Read-Host "Appuyez sur Entree pour fermer"
-    exit 1
-}
 
 Write-Host ""
 Write-Host "=========================================="
