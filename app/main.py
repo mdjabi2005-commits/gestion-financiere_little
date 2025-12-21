@@ -36,9 +36,23 @@ st.markdown("""
 <style>
     .stApp {
         background-color: #0f172a !important;
+        secondaryBackgroundColor: #090924ff !important;
+        textColor: #e2e8f0 !important;
+        font: "sans serif" !important;
     }
     .main .block-container {
         background-color: #0f172a !important;
+        secondaryBackgroundColor: #090924ff !important;
+        textColor: #e2e8f0 !important;
+        font: "sans serif" !important;
+    }
+    /* Header / Toolbar Streamlit */
+    header[data-testid="stHeader"] {
+        background-color: #0f172a !important;
+    }
+    /* Sidebar background */
+    section[data-testid="stSidebar"] {
+        background-color: #1a1a2e !important;
     }
 </style>
 """, unsafe_allow_html=True)
