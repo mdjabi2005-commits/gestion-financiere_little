@@ -591,7 +591,7 @@ if ($pythonOk) {
     Write-Host "📌 Étape 2/2 : Vérification dépendances" -ForegroundColor Cyan
     Write-Host ""
     
-    $modules = @("streamlit", "pandas", "requests", "plotly", "numpy", "pytesseract", "PIL", "cv2", "pdfminer", "dateutil", "regex")
+    $modules = @("streamlit", "pandas", "requests", "plotly", "numpy", "pytesseract", "PIL", "cv2", "pdfminer", "dateutil", "regex", "yaml")
     $missing = @()
     
     # Mapping entre nom d'import et nom de package pip
@@ -600,6 +600,7 @@ if ($pythonOk) {
         "cv2" = "opencv-python-headless"
         "dateutil" = "python-dateutil"
         "pdfminer" = "pdfminer.six"
+        "yaml" = "PyYAML"
     }
     
     foreach ($module in $modules) {
