@@ -218,7 +218,7 @@ Write-Host "=========================================="
 Write-Host ""
 Write-Host "Pour lancer l'application :"
 Write-Host ""
-Write-Host "  python app\gui_launcher.py"
+Write-Host " Relancez l'éx
 Write-Host ""
 Write-Host "=========================================="
 Write-Host ""
