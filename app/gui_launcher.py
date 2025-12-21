@@ -128,7 +128,7 @@ class ControlCenterGUI:
                     self.log_message("WARNING", f"⚠️ Dépendances manquantes: {', '.join(missing)}")
                     # Demander confirmation
                     response = messagebox.askyesno(
-                        "Configuration requise",
+                        "Configuration requise, ces librairies sont nécessaires au bon fonctionnement de l'application",
                         f"Modules Python manquants: {', '.join(missing)}\n\n"
                         "Voulez-vous les installer maintenant ?\n"
                         "(Une console s'ouvrira pour l'installation)"
@@ -144,11 +144,10 @@ class ControlCenterGUI:
         except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
             self.log_message("ERROR", "❌ Python non détecté")
             response = messagebox.askyesno(
-                "Python requis",
                 "Python n'est pas installé sur ce système.\n\n"
                 "Gestio V4 nécessite Python pour fonctionner.\n\n"
                 "Voulez-vous lancer l'installation ?\n"
-                "(Une console s'ouvrira pour l'installation)"
+                "(Un script se lancera et installera Python de la bonne manière et toutes les librairies nécessaires)"
             )
             if response:
                 self.launch_unified_setup(need_python=True)
