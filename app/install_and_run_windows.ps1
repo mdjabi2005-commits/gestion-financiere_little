@@ -83,12 +83,13 @@ if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
     
     # ATTENDRE QUE PYTHON SOIT VRAIMENT INSTALLÉ
     Write-Host "Vérification de l'installation..."
-    $maxAttempts = 20
+    Write-Host "(Cela peut prendre jusqu'à 20 minutes sur les ordinateurs lents)"
+    $maxAttempts = 40  # 40 × 30s = 20 minutes
     $attempt = 0
     $pythonFound = $false
     
     while ($attempt -lt $maxAttempts -and -not $pythonFound) {
-        Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 30
         $attempt++
         
         try {
@@ -103,13 +104,15 @@ if (Download-File -Url $pythonUrl -Destination $pythonInstaller) {
         }
         
         if (-not $pythonFound -and $attempt -lt $maxAttempts) {
-            Write-Host "Attente de l'installation ($attempt/$maxAttempts)..."
+            $elapsed = $attempt * 30
+            $remaining = ($maxAttempts - $attempt) * 30
+            Write-Host "Attente de l'installation... (${elapsed}s écoulées, ${remaining}s restantes max)"
         }
     }
     
     if (-not $pythonFound) {
-        Write-Host "[ERREUR] Python installé mais non détecté après $maxAttempts tentatives"
-        Write-Host "Veuillez redémarrer votre terminal et relancer l'application"
+        Write-Host "[ERREUR] Python installé mais non détecté après 20 minutes"
+        Write-Host "Veuillez redémarrer votre ordinateur et relancer l'application"
         Read-Host "Appuyez sur Entrée pour fermer"
         exit 1
     }
