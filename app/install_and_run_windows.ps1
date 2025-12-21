@@ -213,44 +213,13 @@ Write-Host "[OK] Tous les modules sont operationnels"
 
 Write-Host ""
 Write-Host "=========================================="
-Write-Host "  ✅ Configuration terminée !"
+Write-Host "  ✅ Installation terminée avec succès !"
 Write-Host "=========================================="
 Write-Host ""
-Write-Host "[>] L'application va maintenant démarrer"
-Write-Host "[!] Pour arrêter : Fermez cette fenêtre (Ctrl+C)"
+Write-Host "Pour lancer l'application :"
 Write-Host ""
-
-Start-Sleep -Seconds 2
-
+Write-Host "  python app\gui_launcher.py"
 Write-Host ""
-Write-Host "[>] Lancement de Gestio V4..."
-Write-Host "[!] Gardez cette fenêtre ouverte"
+Write-Host "=========================================="
 Write-Host ""
-
-# Lancer le GUI launcher
-$launcherScript = Join-Path $root "gui_launcher.py"
-
-if (Test-Path $launcherScript) {
-    try {
-        & $pythonCmd $launcherScript
-    }
-    catch {
-        Write-Host ""
-        Write-Host "[ERREUR] Impossible de démarrer l'application"
-        Write-Host "Vérifiez l'installation ou consultez les logs"
-        Read-Host "Appuyez sur Entrée pour fermer"
-        exit 1
-    }
-}
-else {
-    Write-Host ""
-    Write-Host "[ERREUR] gui_launcher.py introuvable dans : $root"
-    Read-Host "Appuyez sur Entrée pour fermer"
-    exit 1
-}
-
-# Quand Streamlit se ferme
-Write-Host ""
-Write-Host "[!] L'application a ete arretee."
-Write-Host "Appuyez sur une touche pour fermer cette fenetre."
-Pause
+Read-Host "Appuyez sur Entrée pour fermer"
