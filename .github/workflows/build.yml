@@ -443,6 +443,13 @@ jobs:
             --console `
             --name "GestionFinanciere" `
             --paths "app" `
+            --add-data "app/main.py;." `
+            --add-data "app/gui_launcher.py;." `
+            --add-data "app/config;config" `
+            --add-data "app/domains;domains" `
+            --add-data "app/shared;shared" `
+            --add-data "app/resources;resources" `
+            --add-data ".streamlit;.streamlit" `
             --hidden-import tkinter `
             --hidden-import webbrowser `
             --hidden-import subprocess `
