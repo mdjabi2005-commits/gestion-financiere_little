@@ -423,7 +423,7 @@ jobs:
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
           & pyinstaller `
-            "app/launch.py" `
+            "app/gui_launcher.py" `
             --noconfirm `
             --clean `
             --onefile `
@@ -472,16 +472,6 @@ jobs:
             --hidden-import requests `
             --hidden-import python-dateutil
 
-          Write-Host ""
-          Write-Host "✅ Compilation de la version Portable terminée"
-          Write-Host ""
-
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Write-Host "📦 Vérification post-compilation (Portable)"
-          Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          Get-ChildItem dist/
-          Write-Host ""
-
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           Write-Host "🔹 VERSION LITE (utilisant le Python global)"
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -512,7 +502,7 @@ jobs:
             --exclude-module python-dateutil 
 
           Write-Host ""
-          Write-Host "✅ Compilation de la version Lite terminée"
+          Write-Host "✅ Compilation terminée"
           Write-Host ""
 
           Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
