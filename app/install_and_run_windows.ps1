@@ -213,13 +213,12 @@ Write-Host "[OK] Tous les modules sont operationnels"
 
 Write-Host ""
 Write-Host "=========================================="
-Write-Host "  Configuration terminee !"
+Write-Host "  ✅ Configuration terminée !"
 Write-Host "=========================================="
 Write-Host ""
-Write-Host "[>] L'application va s'ouvrir dans votre navigateur"
-Write-Host "[!] Pour arreter : Fermez cette fenetre (Ctrl+C)"
+Write-Host "[>] L'application va maintenant démarrer"
+Write-Host "[!] Pour arrêter : Fermez cette fenêtre (Ctrl+C)"
 Write-Host ""
-
 
 Start-Sleep -Seconds 2
 
