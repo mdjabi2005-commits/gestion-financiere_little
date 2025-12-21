@@ -158,8 +158,8 @@ class ConfigurationError(GestioException):
     
     Example:
         >>> from shared.exceptions import ConfigurationError
-        >>> if not INPUT_DIR:
-        ...     raise ConfigurationError("INPUT_DIR environment variable not set")
+        >>> if not DATA_DIR:
+        ...     raise ConfigurationError("DATA_DIR environment variable not set")
     """
     pass
 
