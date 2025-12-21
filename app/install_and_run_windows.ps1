@@ -165,44 +165,65 @@ $packages = @(
     "PyYAML"
 )
 
-# Convertir en string pour la commande
-$packagesStr = $packages -join " "
-
 Write-Host "Installation de $($packages.Count) packages..."
 Write-Host ""
 
-# Installation avec feedback visible
-& $pythonCmd -m pip install $packagesStr
+$installed = 0
+$failed = 0
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "[OK] Tous les paquets installés avec succès"
-}
-else {
-    Write-Host ""
-    Write-Host "[ERREUR] Échec de l'installation des paquets (code: $LASTEXITCODE)"
-    Write-Host ""
-    Write-Host "Tentative de réinstallation sans cache..."
-    Write-Host ""
+foreach ($package in $packages) {
+    Write-Host "   📦 Installation de $package..." -ForegroundColor Cyan
     
-    # Réessayer sans cache
-    & $pythonCmd -m pip install $packagesStr --no-cache-dir
+    & $pythonCmd -m pip install $package --quiet --disable-pip-version-check
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host ""
-        Write-Host "[OK] Réinstallation réussie sans cache"
+        Write-Host "      ✅ $package installé" -ForegroundColor Green
+        $installed++
     }
     else {
+        Write-Host "      ❌ Échec pour $package" -ForegroundColor Red
+        $failed++
+    }
+}
+
+Write-Host ""
+
+if ($failed -eq 0) {
+    Write-Host "[OK] Tous les $installed paquets installés avec succès" -ForegroundColor Green
+}
+else {
+    Write-Host "[AVERTISSEMENT] $installed/$($packages.Count) paquets installés, $failed échecs" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Tentative de réinstallation des paquets échoués sans cache..." -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Réessayer les échecs
+    $retryFailed = 0
+    foreach ($package in $packages) {
+        # Vérifier si déjà installé
+        & $pythonCmd -c "import $package" 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "   🔄 Retry: $package sans cache..." -ForegroundColor Yellow
+            & $pythonCmd -m pip install $package --no-cache-dir --quiet --disable-pip-version-check
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "      ✅ $package installé" -ForegroundColor Green
+            }
+            else {
+                Write-Host "      ❌ Toujours en échec" -ForegroundColor Red
+                $retryFailed++
+            }
+        }
+    }
+    
+    if ($retryFailed -gt 0) {
         Write-Host ""
-        Write-Host "[ERREUR CRITIQUE] Impossible d'installer les dépendances"
+        Write-Host "[ERREUR CRITIQUE] $retryFailed package(s) impossible(s) à installer" -ForegroundColor Red
         Write-Host ""
-        Write-Host "Causes possibles :"
+        Write-Host "Causes possibles :" -ForegroundColor White
         Write-Host "  - Pas de connexion Internet"
         Write-Host "  - Pare-feu bloque pip"
         Write-Host "  - Proxy requis"
-        Write-Host ""
-        Write-Host "Commande manuelle à essayer :"
-        Write-Host "  python -m pip install $packagesStr"
         Write-Host ""
         Read-Host "Appuyez sur Entrée pour fermer"
         exit 1
