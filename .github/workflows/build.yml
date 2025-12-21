@@ -451,16 +451,8 @@ jobs:
             --add-data "app/resources;resources" `
             --add-data ".streamlit;.streamlit" `
             --hidden-import tkinter `
-            --hidden-import webbrowser `
-            --hidden-import subprocess `
-            --hidden-import gui_launcher `
             --hidden-import requests `
-            --exclude-module pytest `
-            --exclude-module setuptools `
-            --exclude-module pip `
-            --exclude-module wheel `
-            --exclude-module test `
-            --exclude-module unittest 
+            --hidden-import gui_launcher
 
           Write-Host ""
           Write-Host "✅ Compilation terminée"
