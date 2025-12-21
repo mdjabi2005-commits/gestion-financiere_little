@@ -428,7 +428,7 @@ jobs:
             --clean `
             --onefile `
             --console `
-            --name "GestionFinanciereLittle_Portable" `
+            --name "GestionFinanciere" `
             --paths "app" `
             --add-data "app/templates;templates" `
             --add-data "app/launcher_config.json;." `
@@ -492,7 +492,7 @@ jobs:
             --clean `
             --onefile `
             --console `
-            --name "GestionFinanciereLittle_Lite" `
+            --name "GestionFinanciere" `
             --exclude-module pytest `
             --exclude-module setuptools `
             --exclude-module pip `
@@ -618,7 +618,7 @@ jobs:
             fi
             chmod +x dist/linux/run.sh
             cd dist/linux
-            zip -r ../GestionFinanciereLittle-Linux.zip ./
+            zip -r ../GestionFinanciere-Linux.zip ./
             cd ../..
             echo "✅ Package Linux créé avec succès (Tesseract inclus)"
           fi
@@ -636,7 +636,7 @@ jobs:
             echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/macos/run.sh
             chmod +x dist/macos/run.sh
             cd dist/macos
-            zip -r ../GestionFinanciereLittle-macOS.zip ./
+            zip -r ../GestionFinanciere-macOS.zip ./
             cd ../..
             echo "✅ Package macOS créé avec succès (Tesseract inclus)"  
           fi
@@ -741,6 +741,6 @@ jobs:
           prerelease: false
           body_path: /tmp/release_notes.md
           files: |
-            dist/GestionFinanciereLittle*.zip
+            dist/GestionFinanciere*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
