@@ -137,7 +137,7 @@ jobs:
               echo "📦 Installation des dépendances OpenCV..."
               case "$DISTRO" in
                   *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                      sudo apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libgl1-mesa-glx || {
+                      sudo apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6 libgl1 || {
                           echo "❌ Impossible d'installer les dépendances OpenCV"
                           return 1
                       }
@@ -270,10 +270,16 @@ jobs:
                   
                   case "$DISTRO" in
                       *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
-                          sudo apt-get install -y python3-venv python3-full || {
-                              echo "❌ Impossible d'installer python3-venv"
-                              echo "💡 Essayez: sudo apt install python3-venv python3-full"
-                              exit 1
+                          # Installer python3-venv pour la version Python détectée
+                          PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '\d+\.\d+')
+                          sudo apt-get install -y python${PYTHON_VERSION}-venv python3-venv python3-full || {
+                              echo "❌ Impossible d'installer python${PYTHON_VERSION}-venv"
+                              # Fallback: essayer juste python3-venv
+                              sudo apt-get install -y python3-venv python3-full || {
+                                  echo "❌ Impossible d'installer python3-venv"
+                                  echo "💡 Essayez: sudo apt install python${PYTHON_VERSION}-venv python3-full"
+                                  exit 1
+                              }
                           }
                           ;;
                       *"Fedora"*|*"Red Hat"*|*"CentOS"*)
