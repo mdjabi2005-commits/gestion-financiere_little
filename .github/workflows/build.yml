@@ -259,6 +259,18 @@ jobs:
           VENV_DIR="$SCRIPT_DIR/.little_finance_env"
           echo "🔧 Configuration de l'environnement Python..."
           
+          # Sur Debian/Ubuntu, installer python3-venv de manière préventive
+          # (le test 'import venv' peut réussir même si ensurepip manque sur Ubuntu 24.04)
+          case "$DISTRO" in
+              *"Debian"*|*"Ubuntu"*|*"MX"*|*"Linux Mint"*)
+                  echo "📦 Installation de python3-venv (requis sur Debian/Ubuntu)..."
+                  PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '\d+\.\d+')
+                  sudo apt-get install -y python${PYTHON_VERSION}-venv python3-venv python3-full 2>/dev/null || {
+                      sudo apt-get install -y python3-venv python3-full 2>/dev/null || true
+                  }
+                  ;;
+          esac
+          
           # Vérifier si l'environnement existe déjà
           if [ ! -d "$VENV_DIR" ]; then
               echo "📦 Création de l'environnement virtuel Python..."
