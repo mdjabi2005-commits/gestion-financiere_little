@@ -328,8 +328,14 @@ jobs:
           source "$VENV_DIR/bin/activate"
           echo "✅ Environnement virtuel activé"
           
-          # Installation de TOUTES les dépendances Python
-          echo "📦 Installation des dépendances Python..."
+          # Vérifier si l'installation initiale est complète
+          SETUP_FLAG="$VENV_DIR/.setup_complete"
+          if [ -f "$SETUP_FLAG" ]; then
+              echo "✅ Dépendances déjà installées (installation ignorée)"
+              echo "💡 Pour réinstaller, supprimez: $SETUP_FLAG"
+          else
+              # Installation de TOUTES les dépendances Python
+              echo "📦 Installation des dépendances Python..."
           echo "⏳ Cela peut prendre plusieurs minutes (surtout sur WSL)..."
           python -m pip install --upgrade pip --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|ERROR)" || true
           python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
@@ -382,6 +388,11 @@ jobs:
               echo "❌ Certaines dépendances ne sont pas correctement installées"
               exit 1
           }
+          
+              # Marquer l'installation comme complète
+              touch "$SETUP_FLAG"
+              echo "✅ Installation initiale terminée avec succès !"
+          fi
           
           # Vérifier que gui_launcher.py existe
           if [ ! -f "$SCRIPT_DIR/gui_launcher.py" ]; then
