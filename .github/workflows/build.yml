@@ -338,10 +338,10 @@ jobs:
               echo "📦 Installation des dépendances Python..."
           echo "⏳ Cela peut prendre plusieurs minutes (surtout sur WSL)..."
           python -m pip install --upgrade pip --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|ERROR)" || true
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy plotly regex pdfminer.six requests --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
-              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy plotly regex pdfminer.six requests --no-cache-dir --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
                   echo "❌ Échec critique de l'installation des dépendances"
                   exit 1
               }
@@ -378,7 +378,8 @@ jobs:
               import dateutil
               import cv2
               import numpy
-              import matplotlib
+              import plotly
+              import regex
               import requests
               print('✅ Toutes les dépendances sont installées avec succès!')
           except ImportError as e:
@@ -572,7 +573,7 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             echo "📦 Création du package Linux..."
             mkdir -p dist/linux
-            cp app/*.py dist/linux/
+            cp -r app/* dist/linux/
             cp -r tesseract dist/linux/ || echo "⚠️ Dossier Tesseract non trouvé (Linux)"  
             if [ -f "dist/run.sh" ]; then
               cp dist/run.sh dist/linux/
@@ -596,7 +597,7 @@ jobs:
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             echo "📦 Création du package macOS..."
             mkdir -p dist/macos
-            cp app/*.py dist/macos/
+            cp -r app/* dist/macos/
             cp -r tesseract dist/macos/ || echo "⚠️ Dossier Tesseract non trouvé (macOS)"
             echo "#!/bin/bash" > dist/macos/run.sh
             echo "python3 -m streamlit run gui_launcher.py --server.headless true" >> dist/macos/run.sh
@@ -613,90 +614,6 @@ jobs:
           ls -la dist/*.zip || echo "⚠️ Aucun ZIP trouvé"
           echo ""
           echo "✅ Tous les packages de distribution ont été générés avec Tesseract embarqué"
-
-      - name: 🔢 Lire la version depuis VERSION.txt
-        id: ver
-        run: |
-          if [ ! -f version.txt ]; then
-            echo "VERSION=0.0.0" >> $GITHUB_ENV
-          else
-            V=$(cat version.txt | tr -d ' \r\n')
-            echo "VERSION=$V" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: 📝 Générer titre + notes (conventional commits)
-        id: notes
-        run: |
-          set -e
-
-          if git describe --tags --abbrev=0 >/tmp/last_tag 2>/dev/null; then
-            LAST_TAG=$(cat /tmp/last_tag)
-          else
-            LAST_TAG=""
-          fi
-          if [ -n "$LAST_TAG" ]; then
-            RANGE="${LAST_TAG}..HEAD"
-          else
-            RANGE="HEAD"
-          fi
-
-          # Récupérer les messages de commit
-          git log --pretty=format:%s $RANGE > /tmp/commits.txt || true
-
-          # Flags par type
-          HAS_BREAK=$(grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt || true)
-          HAS_FEAT=$(grep -Ei '^feat(\(|:)' /tmp/commits.txt || true)
-          HAS_FIX=$(grep -Ei '^fix(\(|:)' /tmp/commits.txt || true)
-          HAS_PERF=$(grep -Ei '^perf(\(|:)' /tmp/commits.txt || true)
-          HAS_REFACTOR=$(grep -Ei '^refactor(\(|:)' /tmp/commits.txt || true)
-          HAS_DOCS=$(grep -Ei '^docs(\(|:)' /tmp/commits.txt || true)
-          HAS_CHORE=$(grep -Ei '^chore(\(|:)' /tmp/commits.txt || true)
-
-          # Titre dynamique
-          TITLE="🔧 Maintenance"
-          if [ -n "$HAS_BREAK" ]; then
-            TITLE="💥 Changements majeurs"
-          elif [ -n "$HAS_FEAT" ] && [ -n "$HAS_FIX" ]; then
-            TITLE="✨ Nouvelles fonctionnalités & 🐛 Corrections"
-          elif [ -n "$HAS_FEAT" ]; then
-            TITLE="✨ Nouvelles fonctionnalités"
-          elif [ -n "$HAS_FIX" ]; then
-            TITLE="🐛 Corrections de bugs"
-          elif [ -n "$HAS_PERF" ]; then
-            TITLE="⚡ Améliorations de performances"
-          elif [ -n "$HAS_REFACTOR" ]; then
-            TITLE="🧹 Refactor"
-          elif [ -n "$HAS_DOCS" ]; then
-            TITLE="📝 Documentation"
-          fi
-
-          # Corps : regrouper par section
-          body() {
-            SEC="$1"; PAT="$2"
-            MATCHES=$(grep -E "$PAT" /tmp/commits.txt | sed -E 's/^[a-z]+(\([^)]+\))?:\s*//' || true)
-            if [ -n "$MATCHES" ]; then
-              echo "### $SEC"
-              echo "$MATCHES" | sed 's/^/- /'
-              echo
-            fi
-          }
-
-          {
-            echo "## ${TITLE} — ${{ env.VERSION }}"
-            echo
-            [ -n "$HAS_BREAK" ] && echo "### 💥 Breaking changes" && \
-              grep -Ei '(^.*!|BREAKING CHANGE:)' /tmp/commits.txt | sed 's/^/- /' && echo
-            body "✨ Features" '^feat(\(|:)'
-            body "🐛 Fixes" '^fix(\(|:)'
-            body "⚡ Perf" '^perf(\(|:)'
-            body "🧹 Refactor" '^refactor(\(|:)'
-            body "📝 Docs" '^docs(\(|:)'
-            body "🔧 Chore" '^chore(\(|:)'
-          } > /tmp/release_notes.md
-
-          echo "title=${TITLE}" >> $GITHUB_OUTPUT
-        shell: bash
 
       - name: 📤 Upload de l'exécutable pour la Release (DRAFT)
         uses: softprops/action-gh-release@v2
