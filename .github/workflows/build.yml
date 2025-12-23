@@ -312,7 +312,10 @@ jobs:
                   esac
               fi
               
-              python3 -m venv "$VENV_DIR" || {
+              echo "⏳ Création en cours (cela peut prendre 30-60 secondes)..."
+              python3 -m venv "$VENV_DIR" --upgrade-deps 2>&1 | while IFS= read -r line; do
+                  echo "   $line"
+              done || {
                   echo "❌ Impossible de créer l'environnement virtuel"
                   exit 1
               }
