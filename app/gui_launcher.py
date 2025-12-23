@@ -477,6 +477,14 @@ def run_verification_console():
     from pathlib import Path
     import subprocess
     import sys
+    import platform
+    
+    # ⚠️ Vérification UNIQUEMENT sur Windows
+    if platform.system() != "Windows":
+        print("✅ Système Linux/macOS détecté - Pas de vérification PowerShell")
+        print("💡 Assurez-vous que Python et les dépendances sont installés")
+        print("   Commande : pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy plotly regex pdfminer.six PyYAML requests")
+        return True  # Skip vérification sur non-Windows
     
     # Déterminer le répertoire d'exécution
     if getattr(sys, 'frozen', False):
