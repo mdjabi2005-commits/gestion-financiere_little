@@ -383,9 +383,9 @@ jobs:
               exit 1
           }
           
-          # Vérifier que gestiolittle.py existe
-          if [ ! -f "$SCRIPT_DIR/gestiolittle.py" ]; then
-              echo "❌ Erreur: gestiolittle.py introuvable dans $SCRIPT_DIR"
+          # Vérifier que gui_launcher.py existe
+          if [ ! -f "$SCRIPT_DIR/gui_launcher.py" ]; then
+              echo "❌ Erreur: gui_launcher.py introuvable dans $SCRIPT_DIR"
               echo "📂 Contenu du répertoire:"
               ls -la "$SCRIPT_DIR"
               exit 1
@@ -404,7 +404,7 @@ jobs:
           sleep 2
           
           # Lancer Streamlit depuis l'environnement virtuel
-          python -m streamlit run "$SCRIPT_DIR/gestiolittle.py" --server.port 8501 --server.headless true
+          python -m streamlit run "$SCRIPT_DIR/gui_launcher.py" --server.port 8501 --server.headless true
           # Si Streamlit se ferme (erreur ou arrêt manuel)
           echo ""
           echo "🔧 Pour relancer l'application plus tard :"
@@ -568,7 +568,7 @@ jobs:
             else
               echo "⚠️ Script run.sh non trouvé dans dist/, création d'un run.sh simplifié (fallback)"
               echo "#!/bin/bash" > dist/linux/run.sh
-              echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/linux/run.sh
+              echo "python3 -m streamlit run gui_launcher.py --server.headless true" >> dist/linux/run.sh
               chmod +x dist/linux/run.sh
             fi
             chmod +x dist/linux/run.sh
@@ -588,7 +588,7 @@ jobs:
             cp app/*.py dist/macos/
             cp -r tesseract dist/macos/ || echo "⚠️ Dossier Tesseract non trouvé (macOS)"
             echo "#!/bin/bash" > dist/macos/run.sh
-            echo "python3 -m streamlit run gestiolittle.py --server.headless true" >> dist/macos/run.sh
+            echo "python3 -m streamlit run gui_launcher.py --server.headless true" >> dist/macos/run.sh
             chmod +x dist/macos/run.sh
             cd dist/macos
             zip -r ../GestionFinanciere-macOS.zip ./
