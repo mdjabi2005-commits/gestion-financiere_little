@@ -327,11 +327,12 @@ jobs:
           
           # Installation de TOUTES les dépendances Python
           echo "📦 Installation des dépendances Python..."
-          python -m pip install --upgrade pip --quiet
-          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --quiet || {
+          echo "⏳ Cela peut prendre plusieurs minutes (surtout sur WSL)..."
+          python -m pip install --upgrade pip --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|ERROR)" || true
+          python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
               echo "❌ Erreur lors de l'installation des dépendances"
               echo "🔁 Nouvelle tentative avec des options étendues..."
-              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir || {
+              python -m pip install streamlit pandas pytesseract Pillow python-dateutil opencv-python-headless numpy matplotlib pdfminer.six requests --no-cache-dir --verbose 2>&1 | grep -E "(Successfully|Collecting|Downloading|Installing|Building|ERROR)" || {
                   echo "❌ Échec critique de l'installation des dépendances"
                   exit 1
               }
